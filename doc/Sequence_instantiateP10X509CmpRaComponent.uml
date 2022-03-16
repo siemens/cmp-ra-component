@@ -1,0 +1,25 @@
+@startuml
+
+database "**Configuration Interface**" as config
+
+
+participant "Downstream Interface" as Downstream 
+participant "RA Component" as RA
+participant "Upstream Interface" as Upstream
+
+activate Downstream
+config -> RA : instantiateP10X509CmpRaComponent()
+
+Downstream -> RA : Function<byte[], byte[]>(**byte[]** request)
+
+activate RA
+RA -> Upstream : upstreamP10X509Exchange (**byte[]** request, String certificateProfile)
+activate Upstream
+
+Upstream --> RA : **byte[]** upstreamP10X509Exchange (response)
+deactivate Upstream
+
+RA --> Downstream : **byte[]** Function<byte[], byte[]> (response)
+deactivate RA
+
+@enduml

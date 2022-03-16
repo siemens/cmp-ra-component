@@ -1,0 +1,19 @@
+@startuml
+
+
+artifact embedding as "Embedding Application" {
+
+(**Upstream Interface**\n- provided by Embedding Application) as upif
+[**RA Component**\n- instantiated by Embedding Application] as RA
+(**Downstream Interface**\n- provided by Embedding Application) as downif
+database "**Configuration Interface**\n- provided by Embedding Application" as config 
+
+RA <= config  : instantiateCmpRaComponent() or\ninstantiateP10X509CmpRaComponent()
+
+left to right direction
+downif <--> RA : byte[] processRequest(byte[] request) or\nFunction<byte[], byte[]>(byte[] request)
+
+RA <-- upif : void gotResponseAtUpstream(byte[] response)
+RA <--> upif : byte[] upstreamExchange(byte[] request, String certificateProfile) or\nBiFunction<byte[], String, byte[]>(byte[] p10csr, String certificateProfile)
+}
+@enduml

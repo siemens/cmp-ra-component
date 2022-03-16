@@ -1,0 +1,41 @@
+@startuml
+
+database "**Configuration Interface**" as config
+
+
+participant "Downstream Interface" as Downstream 
+participant "RA Component" as RA
+participant "Upstream Interface" as Upstream
+
+activate Downstream
+config -> RA : instantiateCmpRaComponent()
+
+Downstream -> RA : processRequest(**byte[]** request)
+
+activate RA
+RA -> Upstream : upstreamExchange (**byte[]** request, String certificateProfile)
+activate Upstream
+alt synchronous
+Upstream --> RA : **byte[]** upstreamExchange (response)
+RA --> Downstream : **byte[]** processRequest (response)
+
+else asynchronous: delayed delivery
+Upstream --> RA : **null** upstreamExchange (response absent)
+deactivate Upstream
+RA --> Downstream : **byte[]** processRequest (response with waiting indication)
+loop
+Downstream -> RA :  processRequest(**byte[]** pollRequest)
+RA --> Downstream : **byte[]** processRequest (pollResponse) 
+
+break
+activate Upstream
+Upstream --> RA : gotResponseAtUpstream(**byte[]** response)
+deactivate Upstream
+end
+end
+Downstream -> RA :  processRequest(**byte[]** pollRequest)
+RA --> Downstream : **byte[]** processRequest (response)
+end
+deactivate RA
+
+@enduml
