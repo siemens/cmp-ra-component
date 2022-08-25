@@ -37,7 +37,7 @@ public class PasswordEncryptor extends CmsEncryptorBase {
      * @throws Exception
      *             in case of error
      */
-    public PasswordEncryptor(final CkgPasswordContext config) throws Exception {
+    public PasswordEncryptor(final CkgPasswordContext config) {
         super(config);
 
         final SharedSecretCredentialContext encryptionCredentials =
@@ -46,7 +46,8 @@ public class PasswordEncryptor extends CmsEncryptorBase {
                 AlgorithmHelper.getKeyEncryptionOID(config.getKekAlg()),
                 AlgorithmHelper.convertSharedSecretToPassword(
                         encryptionCredentials.getSharedSecret()))
-                                .setProvider(CertUtility.BOUNCY_CASTLE_PROVIDER)
+                                .setProvider(
+                                        CertUtility.getBouncyCastleProvider())
                                 .setPasswordConversionScheme(
                                         PasswordRecipient.PKCS5_SCHEME2_UTF8)
                                 .setPRF(AlgorithmHelper

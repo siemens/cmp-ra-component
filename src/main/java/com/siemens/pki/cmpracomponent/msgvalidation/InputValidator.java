@@ -19,6 +19,7 @@ package com.siemens.pki.cmpracomponent.msgvalidation;
 
 import java.util.Collection;
 import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 
 import org.bouncycastle.asn1.cmp.PKIFailureInfo;
 import org.bouncycastle.asn1.cmp.PKIMessage;
@@ -36,9 +37,8 @@ public class InputValidator implements ValidatorIF<PersistencyContext> {
 
     private final Collection<Integer> supportedMessageTypes;
     private final String interfaceName;
-    private final BiFunction<String, Integer, Boolean> isRaVerifiedAcceptable;
+    private final BiPredicate<String, Integer> isRaVerifiedAcceptable;
     private final BiFunction<String, Integer, CmpMessageInterface> config;
-    private String certProfile;
     private final ExFunction<byte[], PersistencyContext, Exception> persistencyContextCreator;
 
     /**
@@ -58,7 +58,7 @@ public class InputValidator implements ValidatorIF<PersistencyContext> {
      */
     public InputValidator(final String interfaceName,
             final BiFunction<String, Integer, CmpMessageInterface> config,
-            final BiFunction<String, Integer, Boolean> isRaVerifiedAcceptable,
+            final BiPredicate<String, Integer> isRaVerifiedAcceptable,
             final Collection<Integer> supportedMessageTypes,
             final ExFunction<byte[], PersistencyContext, Exception> persistencyContextCreator) {
 
@@ -87,7 +87,8 @@ public class InputValidator implements ValidatorIF<PersistencyContext> {
                     "message " + MessageDumper.msgTypeAsString(in)
                             + " not supported ");
         }
-        certProfile = new MessageHeaderValidator(interfaceName).validate(in);
+        String certProfile =
+                new MessageHeaderValidator(interfaceName).validate(in);
         try {
             final PersistencyContext persistencyContext =
                     persistencyContextCreator.apply(

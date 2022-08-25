@@ -55,7 +55,7 @@ public class KeyAgreementEncryptor extends CmsEncryptorBase {
 
         infGen.addRecipient(config.getRecipient(protectingCert));
         addRecipientInfoGenerator(
-                infGen.setProvider(CertUtility.BOUNCY_CASTLE_PROVIDER));
+                infGen.setProvider(CertUtility.getBouncyCastleProvider()));
     }
 
 }

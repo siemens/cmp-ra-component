@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.KeyException;
 import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.cert.X509Certificate;
@@ -117,16 +116,16 @@ class SignatureProtectionValidator implements ValidatorIF<Void> {
 
     private void checkProtectingSignature(final PKIMessage message,
             final ASN1ObjectIdentifier algorithm,
-            final X509Certificate protectingCert) throws IOException,
-            NoSuchAlgorithmException, NoSuchProviderException,
-            InvalidKeyException, SignatureException, CmpValidationException {
+            final X509Certificate protectingCert)
+            throws IOException, NoSuchAlgorithmException, InvalidKeyException,
+            SignatureException, CmpValidationException {
         final PKIHeader header = message.getHeader();
         final byte[] protectedBytes =
                 new ProtectedPart(header, message.getBody())
                         .getEncoded(ASN1Encoding.DER);
         final byte[] protectionBytes = message.getProtection().getBytes();
         final Signature sig = Signature.getInstance(algorithm.getId(),
-                CertUtility.BOUNCY_CASTLE_PROVIDER);
+                CertUtility.getBouncyCastleProvider());
         sig.initVerify(protectingCert.getPublicKey());
         sig.update(protectedBytes);
         if (!sig.verify(protectionBytes, 0, protectionBytes.length)) {

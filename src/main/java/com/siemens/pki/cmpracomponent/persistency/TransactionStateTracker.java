@@ -151,7 +151,7 @@ class TransactionStateTracker {
             }
             persistencyContext.setImplicitConfirmGranted(
                     persistencyContext.isImplicitConfirmGranted()
-                            & grantsImplicitConfirm(message));
+                            && grantsImplicitConfirm(message));
             persistencyContext.setLastTransactionState(
                     LastTransactionState.CERTIFICATE_REQUEST_SENT);
             return;
@@ -311,7 +311,7 @@ class TransactionStateTracker {
             throws CmpValidationException, CmpProcessingException {
         persistencyContext.setImplicitConfirmGranted(
                 persistencyContext.isImplicitConfirmGranted()
-                        & grantsImplicitConfirm(msg));
+                        && grantsImplicitConfirm(msg));
         try {
             final Certificate enrolledCertificate =
                     ((CertRepMessage) msg.getBody().getContent())

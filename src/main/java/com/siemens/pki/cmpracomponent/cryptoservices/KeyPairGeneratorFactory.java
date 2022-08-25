@@ -48,7 +48,7 @@ public class KeyPairGeneratorFactory {
     public static KeyPairGenerator getEcKeyPairGenerator(final String curve)
             throws GeneralSecurityException {
         final KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC",
-                CertUtility.BOUNCY_CASTLE_PROVIDER);
+                CertUtility.getBouncyCastleProvider());
         try {
             final ECGenParameterSpec ecSpec = new ECGenParameterSpec(curve);
             keyGen.initialize(ecSpec, RANDOM);
@@ -76,7 +76,7 @@ public class KeyPairGeneratorFactory {
     public static KeyPairGenerator getEdDsaKeyPairGenerator(
             final String keyType) throws GeneralSecurityException {
         return KeyPairGenerator.getInstance(keyType,
-                CertUtility.BOUNCY_CASTLE_PROVIDER);
+                CertUtility.getBouncyCastleProvider());
     }
 
     /**

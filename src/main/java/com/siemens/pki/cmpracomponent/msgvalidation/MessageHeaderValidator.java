@@ -59,7 +59,7 @@ public class MessageHeaderValidator implements ValidatorIF<String> {
                 "pvno is null");
         final long versionNumber = pvno.longValueExact();
         if (versionNumber != PKIHeader.CMP_2000
-                && versionNumber != 3 /* PKIHeader.CMP_2021 */) {
+                && versionNumber != PKIHeader.CMP_2021) {
             throw new CmpValidationException(interfaceName,
                     PKIFailureInfo.unsupportedVersion,
                     "version " + versionNumber + " not supported");

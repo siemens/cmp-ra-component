@@ -61,7 +61,7 @@ public class DelayedDeliveryTestcaseBase {
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        Security.addProvider(CertUtility.BOUNCY_CASTLE_PROVIDER);
+        Security.addProvider(CertUtility.getBouncyCastleProvider());
         ConfigFileLoader.setConfigFileBase(CONFIG_DIRECTORY);
     }
 
@@ -151,8 +151,9 @@ public class DelayedDeliveryTestcaseBase {
                         @Override
                         public void run() {
                             try {
-                                raComponent.gotResponseAtUpstream(caMock
-                                        .processCmpRequest(request, certProfile));
+                                raComponent.gotResponseAtUpstream(
+                                        caMock.processCmpRequest(request,
+                                                certProfile));
                             } catch (final Exception e) {
                                 fail(e.getMessage());
                             }

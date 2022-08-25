@@ -137,7 +137,7 @@ class RaDownstream {
      */
     RaDownstream(final PersistencyContextManager persistencyContextManager,
             final Configuration config, final RaUpstream upstream,
-            final Collection<Integer> supportedmessagetypes) throws Exception {
+            final Collection<Integer> supportedmessagetypes) {
         this.config = config;
         this.supportedMessageTypes = supportedmessagetypes;
         this.upstreamHandler = upstream;
@@ -198,7 +198,8 @@ class RaDownstream {
                             persistencyContext.getTransactionId(), requesterDn,
                             certTemplate.getEncoded(),
                             certTemplate.getSubject().toString());
-            if (checkResult != null && !checkResult.isGranted()) {
+
+            if (checkResult == null || !checkResult.isGranted()) {
                 throw new CmpEnrollmentException(requestBodyType,
                         INTERFACE_NAME, PKIFailureInfo.badCertTemplate,
                         "request refused by external inventory");
@@ -306,14 +307,14 @@ class RaDownstream {
 
         // initial POPO still there and maybe usable again
         final POPOSigningKey popoSigningKey = (POPOSigningKey) popo.getObject();
-        final PublicKey publicKey = KeyFactory
-                .getInstance(subjectPublicKeyInfo.getAlgorithm().getAlgorithm()
-                        .toString(), CertUtility.BOUNCY_CASTLE_PROVIDER)
+        final PublicKey publicKey = KeyFactory.getInstance(
+                subjectPublicKeyInfo.getAlgorithm().getAlgorithm().toString(),
+                CertUtility.getBouncyCastleProvider())
                 .generatePublic(new X509EncodedKeySpec(
                         subjectPublicKeyInfo.getEncoded(ASN1Encoding.DER)));
         final Signature sig = Signature.getInstance(
                 popoSigningKey.getAlgorithmIdentifier().getAlgorithm().getId(),
-                CertUtility.BOUNCY_CASTLE_PROVIDER);
+                CertUtility.getBouncyCastleProvider());
         sig.initVerify(publicKey);
         sig.update(certRequest.getEncoded(ASN1Encoding.DER));
         if (sig.verify(popoSigningKey.getSignature().getBytes())) {
@@ -461,6 +462,10 @@ class RaDownstream {
                     responseTypeOk = true;
                 }
                 break;
+            default:
+                throw new CmpProcessingException(INTERFACE_NAME,
+                        PKIFailureInfo.systemFailure,
+                        "internal error in processCertResponse");
             }
             if (!responseTypeOk) {
                 throw new CmpValidationException(INTERFACE_NAME,
@@ -614,13 +619,14 @@ class RaDownstream {
                     final NestedEndpointContext nestedEndpointContext =
                             downstreamConfiguration.getNestedEndpointContext();
                     if (nestedEndpointContext != null) {
+                        final String NESTED_STRING = "nested ";
                         final MessageHeaderValidator headerValidator =
                                 new MessageHeaderValidator(
-                                        "nested " + INTERFACE_NAME);
+                                        NESTED_STRING + INTERFACE_NAME);
                         headerValidator.validate(in);
                         final ProtectionValidator protectionValidator =
                                 new ProtectionValidator(
-                                        "nested " + INTERFACE_NAME,
+                                        NESTED_STRING + INTERFACE_NAME,
                                         nestedEndpointContext
                                                 .getInputVerification());
                         protectionValidator.validate(in);
@@ -630,7 +636,7 @@ class RaDownstream {
                         if (embeddedMessages == null
                                 || embeddedMessages.length == 0) {
                             throw new CmpProcessingException(
-                                    "nested " + INTERFACE_NAME,
+                                    NESTED_STRING + INTERFACE_NAME,
                                     PKIFailureInfo.badMessageCheck,
                                     "no embedded messages inside NESTED message");
                         }

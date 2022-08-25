@@ -44,12 +44,10 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
  * A utility class for certificate handling
  */
 public class CertUtility {
-
-    static private CertificateFactory certificateFactory;
+    private static CertificateFactory certificateFactory;
 
     private static final SecureRandom RANDOM = new SecureRandom();
-
-    public static final BouncyCastleProvider BOUNCY_CASTLE_PROVIDER =
+    static final BouncyCastleProvider BOUNCY_CASTLE_PROVIDER =
             new BouncyCastleProvider();
 
     /**
@@ -63,7 +61,7 @@ public class CertUtility {
      * @throws CertificateException
      *             if certificate could not be converted from CMP Certificate
      */
-    static public CMPCertificate asCmpCertificate(final Certificate cert)
+    public static CMPCertificate asCmpCertificate(final Certificate cert)
             throws CertificateException {
         return CMPCertificate.getInstance(cert.getEncoded());
     }
@@ -79,7 +77,7 @@ public class CertUtility {
      * @throws CertificateException
      *             if certificate could not be converted from CMP Certificate
      */
-    static public CMPCertificate[] asCmpCertificates(
+    public static CMPCertificate[] asCmpCertificates(
             final List<X509Certificate> certs) throws CertificateException {
         final CMPCertificate[] ret = new CMPCertificate[certs.size()];
         int index = 0;
@@ -117,7 +115,7 @@ public class CertUtility {
      * @throws CertificateException
      *             if certificate could not be converted from CMP Certificate
      */
-    static public X509Certificate asX509Certificate(final CMPCertificate cert)
+    public static X509Certificate asX509Certificate(final CMPCertificate cert)
             throws CertificateException {
         try {
             return asX509Certificate(cert.getEncoded(ASN1Encoding.DER));
@@ -137,8 +135,8 @@ public class CertUtility {
      * @throws CertificateException
      *             if certificate could not be converted from CMP Certificate
      */
-    static public List<X509Certificate> asX509Certificates(
-            final CMPCertificate[] certs) throws Exception {
+    public static List<X509Certificate> asX509Certificates(
+            final CMPCertificate[] certs) throws CertificateException {
         try {
             final ArrayList<X509Certificate> ret =
                     new ArrayList<>(certs.length);
@@ -183,6 +181,10 @@ public class CertUtility {
         final byte[] ret = new byte[length];
         RANDOM.nextBytes(ret);
         return ret;
+    }
+
+    public static BouncyCastleProvider getBouncyCastleProvider() {
+        return BOUNCY_CASTLE_PROVIDER;
     }
 
     /**
@@ -231,6 +233,11 @@ public class CertUtility {
                     BOUNCY_CASTLE_PROVIDER);
         }
         return certificateFactory;
+    }
+
+    // utility class
+    private CertUtility() {
+
     }
 
 }

@@ -20,8 +20,6 @@ package com.siemens.pki.cmpracomponent.cryptoservices;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.KeyFactory;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -29,7 +27,7 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 
 import org.bouncycastle.asn1.cms.CMSObjectIdentifiers;
 import org.bouncycastle.asn1.cms.ContentInfo;
@@ -62,14 +60,14 @@ public class DataSignVerifier extends TrustCredentialAdapter {
             LoggerFactory.getLogger(DataSignVerifier.class);
 
     public static byte[] verifySignature(final byte[] encodedSignedData)
-            throws CMSException, Exception, IOException {
+            throws CertificateException, CMSException, IOException {
         return verifySignature(encodedSignedData,
                 (cert, additionalCerts) -> true);
     }
 
     private static byte[] verifySignature(final byte[] encodedSignedData,
-            final BiFunction<X509CertificateHolder, List<X509Certificate>, Boolean> trustValidator)
-            throws CMSException, Exception, IOException {
+            final BiPredicate<X509CertificateHolder, List<X509Certificate>> trustValidator)
+            throws CMSException, IOException, CertificateException {
 
         final CMSSignedData signedData = new CMSSignedData(
                 new ContentInfo(CMSObjectIdentifiers.signedData,
@@ -87,7 +85,7 @@ public class DataSignVerifier extends TrustCredentialAdapter {
             final X509CertificateHolder cert = certCollection.iterator().next();
             try {
                 if (signerInfo.verify(builder.build(cert))
-                        && trustValidator.apply(cert, allCerts)) {
+                        && trustValidator.test(cert, allCerts)) {
                     final CMSTypedData cmsData = signedData.getSignedContent();
                     final ByteArrayOutputStream bOut =
                             new ByteArrayOutputStream();
@@ -101,9 +99,7 @@ public class DataSignVerifier extends TrustCredentialAdapter {
         return null;
     }
 
-    public DataSignVerifier(final VerificationContext config)
-            throws KeyStoreException, CertificateException,
-            NoSuchAlgorithmException, Exception {
+    public DataSignVerifier(final VerificationContext config) {
         super(config);
     }
 
@@ -120,9 +116,11 @@ public class DataSignVerifier extends TrustCredentialAdapter {
      *             in case of ASN.1 encoding error
      * @throws CMSException
      *             in case of error in CMS processing
+     * @throws CertificateException
+     *             in case of error in certificate processing
      */
     public byte[] verifySignatureAndTrust(final byte[] encodedSignedData)
-            throws CMSException, IOException, Exception {
+            throws IOException, CertificateException, CMSException {
         return verifySignature(encodedSignedData,
                 (cert, additionalIntermediateCerts) -> {
                     try {
@@ -134,7 +132,7 @@ public class DataSignVerifier extends TrustCredentialAdapter {
     }
 
     public PrivateKey verifySignedKey(final byte[] encodedSignedData)
-            throws Exception {
+            throws CertificateException, IOException, CMSException {
         final byte[] verifiedContent =
                 verifySignatureAndTrust(encodedSignedData);
         if (verifiedContent == null) {
@@ -149,7 +147,7 @@ public class DataSignVerifier extends TrustCredentialAdapter {
                         CertUtility.BOUNCY_CASTLE_PROVIDER);
                 return factory.generatePrivate(pkcs8EncKeySpec);
             } catch (final Exception e) {
-                continue;
+                // try next key type
             }
         }
         LOGGER.error("could not load private key");
@@ -157,7 +155,8 @@ public class DataSignVerifier extends TrustCredentialAdapter {
     }
 
     private boolean validate(final X509CertificateHolder cert,
-            final List<X509Certificate> allCerts) throws Exception {
+            final List<X509Certificate> allCerts)
+            throws CertificateException, IOException {
         return validateCertAgainstTrust(
                 CertUtility.asX509Certificate(cert.getEncoded()),
                 allCerts) != null;

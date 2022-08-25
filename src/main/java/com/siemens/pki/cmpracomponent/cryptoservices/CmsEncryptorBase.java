@@ -62,7 +62,8 @@ public class CmsEncryptorBase {
                 new CMSProcessableByteArray(msg),
                 new JceCMSContentEncryptorBuilder(AlgorithmHelper
                         .getKeyEncryptionOID(config.getContentEncryptionAlg()))
-                                .setProvider(CertUtility.BOUNCY_CASTLE_PROVIDER)
+                                .setProvider(
+                                        CertUtility.getBouncyCastleProvider())
                                 .build());
         return EnvelopedData
                 .getInstance(cmsEnvData.toASN1Structure().getContent());
@@ -84,7 +85,7 @@ public class CmsEncryptorBase {
         final CMSEnvelopedData cmsEnvData = envGen.generate(
                 new CMSProcessableByteArray(data.getEncoded()),
                 new JceCMSContentEncryptorBuilder(CMSAlgorithm.AES256_CBC)
-                        .setProvider(CertUtility.BOUNCY_CASTLE_PROVIDER)
+                        .setProvider(CertUtility.getBouncyCastleProvider())
                         .build());
         return EnvelopedData
                 .getInstance(cmsEnvData.toASN1Structure().getContent());

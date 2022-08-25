@@ -63,10 +63,10 @@ public class CmsDecryptor {
         if (recipientCert != null && recipientKey != null) {
             transRecipientId = new JceKeyTransRecipientId(recipientCert);
             transRecipient = new JceKeyTransEnvelopedRecipient(recipientKey)
-                    .setProvider(CertUtility.BOUNCY_CASTLE_PROVIDER);
+                    .setProvider(CertUtility.getBouncyCastleProvider());
             agreeRecipientId = new JceKeyAgreeRecipientId(recipientCert);
             agreeRecipient = new JceKeyAgreeEnvelopedRecipient(recipientKey)
-                    .setProvider(CertUtility.BOUNCY_CASTLE_PROVIDER);
+                    .setProvider(CertUtility.getBouncyCastleProvider());
         } else {
             transRecipientId = null;
             transRecipient = null;

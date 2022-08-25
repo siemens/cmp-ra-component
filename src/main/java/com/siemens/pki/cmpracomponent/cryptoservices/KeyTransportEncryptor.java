@@ -53,7 +53,7 @@ public class KeyTransportEncryptor extends CmsEncryptorBase {
         addRecipientInfoGenerator(new JceKeyTransRecipientInfoGenerator(
                 jcaX509ExtensionUtils.createSubjectKeyIdentifier(publicKey)
                         .getKeyIdentifier(),
-                publicKey).setProvider(CertUtility.BOUNCY_CASTLE_PROVIDER));
+                publicKey).setProvider(CertUtility.getBouncyCastleProvider()));
     }
 
 }

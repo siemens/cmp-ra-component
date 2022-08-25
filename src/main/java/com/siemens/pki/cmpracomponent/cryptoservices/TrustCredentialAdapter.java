@@ -52,6 +52,10 @@ import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
  */
 public class TrustCredentialAdapter {
 
+    private static final String FALSE_STRING = "false";
+
+    private static final String OCSP_ENABLE_PROP = "ocsp.enable";
+
     private static final Logger LOGGER =
             LoggerFactory.getLogger(TrustCredentialAdapter.class);
 
@@ -114,33 +118,33 @@ public class TrustCredentialAdapter {
                 return null;
             }
             // initial state
-            java.security.Security.setProperty("ocsp.enable", "false");
+            java.security.Security.setProperty(OCSP_ENABLE_PROP, FALSE_STRING);
             boolean revocationEnabled = false;
 
             if (config.isAIAsEnabled()) {
                 revocationEnabled = true;
-                java.security.Security.setProperty("ocsp.enable", "true");
+                java.security.Security.setProperty(OCSP_ENABLE_PROP, "true");
                 System.setProperty("com.sun.security.enableAIAcaIssuers",
                         "true");
             } else {
                 System.setProperty("com.sun.security.enableAIAcaIssuers",
-                        "false");
+                        FALSE_STRING);
             }
 
             if (config.isCDPsEnabled()) {
                 revocationEnabled = true;
                 System.setProperty("com.sun.security.enableCRLDP", "true");
             } else {
-                System.setProperty("com.sun.security.enableCRLDP", "false");
+                System.setProperty("com.sun.security.enableCRLDP", FALSE_STRING);
             }
 
             final Set<Object> lstCertCrlStores = new HashSet<>();
 
             if (additionalIntermediateCerts != null) {
                 additionalIntermediateCerts.stream()
-                        .filter(x -> config.isIntermediateCertAcceptable(x))
+                        .filter(config::isIntermediateCertAcceptable)
                         .filter(CertUtility::isIntermediateCertificate)
-                        .forEach(x -> lstCertCrlStores.add(x));
+                        .forEach(lstCertCrlStores::add);
             }
 
             lstCertCrlStores.addAll(config.getAdditionalCerts());
@@ -157,7 +161,7 @@ public class TrustCredentialAdapter {
                     new CollectionCertStoreParameters(lstCertCrlStores);
 
             final CertStore store = CertStore.getInstance("Collection", ccsp,
-                    CertUtility.BOUNCY_CASTLE_PROVIDER);
+                    CertUtility.getBouncyCastleProvider());
 
             final X509CertSelector targetConstraints = new X509CertSelector();
             targetConstraints.setCertificate(cert);
@@ -172,7 +176,7 @@ public class TrustCredentialAdapter {
             params.addCertStore(store);
 
             final CertPathBuilder cpb = CertPathBuilder.getInstance("PKIX",
-                    CertUtility.BOUNCY_CASTLE_PROVIDER);
+                    CertUtility.getBouncyCastleProvider());
 
             final PKIXRevocationChecker revChecker =
                     (PKIXRevocationChecker) cpb.getRevocationChecker();
@@ -186,7 +190,7 @@ public class TrustCredentialAdapter {
             final URI ocspResponder = config.getOCSPResponder();
             if (ocspResponder != null) {
                 revocationEnabled = true;
-                java.security.Security.setProperty("ocsp.enable", "true");
+                java.security.Security.setProperty(OCSP_ENABLE_PROP, "true");
                 revChecker.setOcspResponder(ocspResponder);
             }
 

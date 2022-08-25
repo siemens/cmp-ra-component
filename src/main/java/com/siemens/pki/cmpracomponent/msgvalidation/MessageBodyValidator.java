@@ -29,7 +29,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Date;
 import java.util.Objects;
-import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1Encoding;
@@ -50,7 +50,6 @@ import org.bouncycastle.asn1.cmp.PKIBody;
 import org.bouncycastle.asn1.cmp.PKIConfirmContent;
 import org.bouncycastle.asn1.cmp.PKIFailureInfo;
 import org.bouncycastle.asn1.cmp.PKIMessage;
-import org.bouncycastle.asn1.cmp.PKIMessages;
 import org.bouncycastle.asn1.cmp.PKIStatus;
 import org.bouncycastle.asn1.cmp.PKIStatusInfo;
 import org.bouncycastle.asn1.cmp.PollRepContent;
@@ -82,6 +81,8 @@ import com.siemens.pki.cmpracomponent.util.MessageDumper;
  *
  */
 public class MessageBodyValidator implements ValidatorIF<String> {
+    private static final String CERT_REQ_ID_MUST_BE_0 = "CertReqId must be 0";
+
     /**
      *
      */
@@ -94,7 +95,7 @@ public class MessageBodyValidator implements ValidatorIF<String> {
 
     private final String interfaceName;
 
-    private final BiFunction<String, Integer, Boolean> isRaVerifiedAcceptable;
+    private final BiPredicate<String, Integer> isRaVerifiedAcceptable;
 
     private final CmpMessageInterface cmpInterfaceConfig;
 
@@ -112,7 +113,7 @@ public class MessageBodyValidator implements ValidatorIF<String> {
      *            certificate profile of this transaction
      */
     public MessageBodyValidator(final String interfaceName,
-            final BiFunction<String, Integer, Boolean> isRaVerifiedAcceptable,
+            final BiPredicate<String, Integer> isRaVerifiedAcceptable,
             final CmpMessageInterface cmpInterfaceConfig,
             final String certProfile) {
         this.interfaceName = interfaceName;
@@ -194,7 +195,6 @@ public class MessageBodyValidator implements ValidatorIF<String> {
                 validateErrorMsg((ErrorMsgContent) content);
                 break;
             case PKIBody.TYPE_NESTED:
-                validatePKIMessages((PKIMessages) content);
                 break;
             default:
                 throw new CmpValidationException(interfaceName,
@@ -292,7 +292,7 @@ public class MessageBodyValidator implements ValidatorIF<String> {
         assertValueNotNull(certStatus.getCertHash(),
                 PKIFailureInfo.badDataFormat, "CertHash");
         assertEqual(certStatus.getCertReqId(), ASN1INTEGER_0,
-                "CertReqId must be 0");
+                CERT_REQ_ID_MUST_BE_0);
     }
 
     private void validateCertRep(final CertRepMessage content)
@@ -301,7 +301,7 @@ public class MessageBodyValidator implements ValidatorIF<String> {
         assertExactlyOneElementInArray(responses, "CertResponse");
         final CertResponse response = responses[0];
         assertEqual(response.getCertReqId(), ASN1INTEGER_0,
-                "CertReqId must be 0");
+                CERT_REQ_ID_MUST_BE_0);
         final CertifiedKeyPair certifiedKeyPair =
                 response.getCertifiedKeyPair();
         if (certifiedKeyPair != null) {
@@ -318,8 +318,7 @@ public class MessageBodyValidator implements ValidatorIF<String> {
 
     }
 
-    private void validateConfirm(final PKIConfirmContent content)
-            throws CmpValidationException {
+    private void validateConfirm(final PKIConfirmContent content) {
         // always ASN1Null
     }
 
@@ -331,7 +330,7 @@ public class MessageBodyValidator implements ValidatorIF<String> {
         final CertReqMsg certReqMsg = certReqMsgs[0];
         final CertRequest certReq = certReqMsg.getCertReq();
         assertEnrollmentEqual(enrollmentType, certReq.getCertReqId(),
-                ASN1INTEGER_0, "CertReqId must be 0");
+                ASN1INTEGER_0, CERT_REQ_ID_MUST_BE_0);
         final CertTemplate certTemplate = certReq.getCertTemplate();
         final int versionInTemplate = certTemplate.getVersion();
         if (versionInTemplate != -1 && versionInTemplate != 2) {
@@ -356,7 +355,7 @@ public class MessageBodyValidator implements ValidatorIF<String> {
         } else {
             switch (popo.getType()) {
             case ProofOfPossession.TYPE_RA_VERIFIED:
-                if (!isRaVerifiedAcceptable.apply(certProfile, bodyType)) {
+                if (!isRaVerifiedAcceptable.test(certProfile, bodyType)) {
                     throw new CmpEnrollmentException(enrollmentType,
                             interfaceName, PKIFailureInfo.badPOP,
                             "POPO RaVerified not allowed");
@@ -375,13 +374,13 @@ public class MessageBodyValidator implements ValidatorIF<String> {
                     final PublicKey publicKey = KeyFactory
                             .getInstance(publicKeyInfo.getAlgorithm()
                                     .getAlgorithm().toString(),
-                                    CertUtility.BOUNCY_CASTLE_PROVIDER)
+                                    CertUtility.getBouncyCastleProvider())
                             .generatePublic(new X509EncodedKeySpec(publicKeyInfo
                                     .getEncoded(ASN1Encoding.DER)));
                     final Signature sig = Signature.getInstance(
                             popoSigningKey.getAlgorithmIdentifier()
                                     .getAlgorithm().getId(),
-                            CertUtility.BOUNCY_CASTLE_PROVIDER);
+                            CertUtility.getBouncyCastleProvider());
                     sig.initVerify(publicKey);
                     sig.update(certReq.getEncoded(ASN1Encoding.DER));
                     if (!sig.verify(popoSigningKey.getSignature().getBytes())) {
@@ -467,11 +466,6 @@ public class MessageBodyValidator implements ValidatorIF<String> {
                             + e.getLocalizedMessage());
         }
 
-    }
-
-    private void validatePKIMessages(final PKIMessages content)
-            throws BaseCmpException {
-        // will be done at top level
     }
 
     private void validatePollRep(final PollRepContent content)

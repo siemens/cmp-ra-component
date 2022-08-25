@@ -49,31 +49,30 @@ import org.slf4j.LoggerFactory;
  *
  * utility class to translate between Java JCE Strings, OIDs, {@link Mac},
  * {@link Digest} a.s.o.
- * TODO copy of org.bouncycastle.cms.CMSSignedHelper
  *
  */
 public class AlgorithmHelper {
 
-    static class AlgorithmTableEntry<CT> {
+    static class AlgorithmTableEntry<T> {
         final String javaId;
-        final CT cmpId;
+        final T cmpId;
 
-        private AlgorithmTableEntry(final String javaId, final CT cmpId) {
+        private AlgorithmTableEntry(final String javaId, final T cmpId) {
             this.javaId = javaId;
             this.cmpId = cmpId;
         }
     }
 
-    abstract static class JavaAlgorithmTable<CT> {
+    abstract static class JavaAlgorithmTable<T> {
         private static final Logger LOGGER = LoggerFactory
                 .getLogger(AlgorithmHelper.JavaAlgorithmTable.class);
 
-        private final Map<String, AlgorithmTableEntry<CT>> wrappedMap =
+        private final Map<String, AlgorithmTableEntry<T>> wrappedMap =
                 new HashMap<>();
 
-        void addEntry(final CT cmpId, final String javaId,
+        void addEntry(final T cmpId, final String javaId,
                 final String... aliases) {
-            final AlgorithmTableEntry<CT> entry =
+            final AlgorithmTableEntry<T> entry =
                     new AlgorithmTableEntry<>(javaId, cmpId);
             wrappedMap.put(normalizeId(javaId), entry);
             for (final String aktId : extractAliases(cmpId)) {
@@ -88,14 +87,14 @@ public class AlgorithmHelper {
             }
         }
 
-        abstract String[] extractAliases(CT cmpId);
+        abstract String[] extractAliases(T cmpId);
 
-        CT getCmpAlgorithm(final String id) {
+        T getCmpAlgorithm(final String id) {
             return ifNotNull(wrappedMap.get(normalizeId(id)), x -> x.cmpId);
         }
 
         String getJavaAlgorithm(final String id) {
-            final AlgorithmTableEntry<CT> ret = wrappedMap.get(normalizeId(id));
+            final AlgorithmTableEntry<T> ret = wrappedMap.get(normalizeId(id));
             if (ret == null) {
                 LOGGER.warn("unknown algorithm: " + id);
                 return null;
@@ -329,13 +328,13 @@ public class AlgorithmHelper {
 
     public static Mac getMac(final String macId)
             throws NoSuchAlgorithmException {
-        return Mac.getInstance(macId, CertUtility.BOUNCY_CASTLE_PROVIDER);
+        return Mac.getInstance(macId, CertUtility.getBouncyCastleProvider());
     }
 
     public static MessageDigest getMessageDigest(final String id)
             throws NoSuchAlgorithmException {
         return MessageDigest.getInstance(id.toUpperCase(),
-                CertUtility.BOUNCY_CASTLE_PROVIDER);
+                CertUtility.getBouncyCastleProvider());
     }
 
     public static ASN1ObjectIdentifier getOidForMac(final String macAlg) {

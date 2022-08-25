@@ -59,7 +59,7 @@ public class DataSigner {
             IOException, CMSException {
         final SignerInfoGenerator signerInfoGenerator =
                 new JcaSimpleSignerInfoGeneratorBuilder()
-                        .setProvider(CertUtility.BOUNCY_CASTLE_PROVIDER)
+                        .setProvider(CertUtility.getBouncyCastleProvider())
                         .build(credentialService.getSignatureAlgorithmName(),
                                 credentialService.getPrivateKey(),
                                 credentialService.getEndCertificate());
@@ -73,7 +73,9 @@ public class DataSigner {
     }
 
     public DataSigner(final PrivateKey privateKey,
-            final X509Certificate endCertificate) throws Exception {
+            final X509Certificate endCertificate)
+            throws CertificateEncodingException, OperatorCreationException,
+            IOException, CMSException {
         this(new BaseCredentialService(new SignatureCredentialContext() {
 
             @Override

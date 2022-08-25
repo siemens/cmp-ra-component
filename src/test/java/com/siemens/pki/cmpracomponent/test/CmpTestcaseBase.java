@@ -43,7 +43,7 @@ public class CmpTestcaseBase {
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        Security.addProvider(CertUtility.BOUNCY_CASTLE_PROVIDER);
+        Security.addProvider(CertUtility.getBouncyCastleProvider());
         ConfigFileLoader.setConfigFileBase(CONFIG_DIRECTORY);
     }
 

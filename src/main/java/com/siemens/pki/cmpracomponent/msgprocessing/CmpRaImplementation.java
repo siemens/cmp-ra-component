@@ -46,6 +46,8 @@ import com.siemens.pki.cmpracomponent.util.MessageDumper;
  */
 public class CmpRaImplementation implements CmpRaInterface {
 
+    private static final String UPSTREAM_INTERFACE_NAME = "upstream";
+
     private static final Logger LOGGER =
             LoggerFactory.getLogger(CmpRaImplementation.class);
 
@@ -82,7 +84,7 @@ public class CmpRaImplementation implements CmpRaInterface {
                                 + " >>>>>");
                         LOGGER.trace(MessageDumper.dumpPkiMessage(request));
                     }
-                    FileTracer.logMessage(request, "upstream");
+                    FileTracer.logMessage(request, UPSTREAM_INTERFACE_NAME);
                     if (rawUpstreamExchange == null) {
                         throw new CmpProcessingException(INTERFACE_NAME,
                                 PKIFailureInfo.systemUnavail,
@@ -100,7 +102,7 @@ public class CmpRaImplementation implements CmpRaInterface {
                             LOGGER.trace(
                                     MessageDumper.dumpPkiMessage(response));
                         }
-                        FileTracer.logMessage(response, "upstream");
+                        FileTracer.logMessage(response, UPSTREAM_INTERFACE_NAME);
                         return response;
                     } catch (final Throwable th) {
                         throw new CmpProcessingException(INTERFACE_NAME,
@@ -125,7 +127,7 @@ public class CmpRaImplementation implements CmpRaInterface {
             LOGGER.trace("ASYNC RESPONSE at upstream <<<<");
             LOGGER.trace(MessageDumper.dumpPkiMessage(response));
         }
-        FileTracer.logMessage(response, "upstream");
+        FileTracer.logMessage(response, UPSTREAM_INTERFACE_NAME);
         upstream.gotResponseAtUpstream(response);
 
     }

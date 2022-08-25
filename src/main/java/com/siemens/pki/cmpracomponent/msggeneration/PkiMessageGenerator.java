@@ -240,8 +240,8 @@ public class PkiMessageGenerator {
                 if (requestPvno < PKIHeader.CMP_2000) {
                     return PKIHeader.CMP_2000;
                 }
-                if (requestPvno > 3 /* PKIHeader.CMP_2021 */) {
-                    return 3;
+                if (requestPvno > PKIHeader.CMP_2021) {
+                    return PKIHeader.CMP_2021;
                 }
                 return requestPvno;
             }
