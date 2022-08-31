@@ -225,7 +225,7 @@ class RaDownstream {
                     .intValueExact() <= PKIHeader.CMP_2000) {
                 throw new CmpEnrollmentException(requestBodyType,
                         INTERFACE_NAME, PKIFailureInfo.unsupportedVersion,
-                        "would not be able to send encrypted key in response");
+                        "requester would not be able to decrypt encrypted key in response, CMP_2021 not supported");
             }
             final KeyPairGenerator kpgen;
             if (subjectPublicKeyInfo != null
