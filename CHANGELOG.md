@@ -11,3 +11,9 @@ Fix some SonarLint complains.
 ### 1.0.2 (Aug 31 2022)
 
 error message improved
+
+### 1.0.3 (Aug 31 2022)
+
+fix: validation of request/response type in case of CKG and delayed delivery
+fix: drop root certificates from provided signing/protecting cert chains
+

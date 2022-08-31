@@ -66,8 +66,13 @@ public class DataSigner {
         gen.addSignerInfoGenerator(signerInfoGenerator);
 
         final List<X509CertificateHolder> certChain = new ArrayList<>();
-        for (final X509Certificate aktCert : credentialService.getCertChain()) {
-            certChain.add(new X509CertificateHolder(aktCert.getEncoded()));
+        final List<X509Certificate> baseCredentialCertChain =
+                credentialService.getCertChain();
+        for (final X509Certificate aktCert : baseCredentialCertChain) {
+            if (baseCredentialCertChain.size() == 1
+                    || CertUtility.isIntermediateCertificate(aktCert)) {
+                certChain.add(new X509CertificateHolder(aktCert.getEncoded()));
+            }
         }
         gen.addCertificates(new CollectionStore<>(certChain));
     }

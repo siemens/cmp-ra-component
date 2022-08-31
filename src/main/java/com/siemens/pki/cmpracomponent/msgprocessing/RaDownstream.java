@@ -392,7 +392,7 @@ class RaDownstream {
         switch (incomingRequest.getBody().getType()) {
         case PKIBody.TYPE_INIT_REQ:
         case PKIBody.TYPE_CERT_REQ:
-        case PKIBody.TYPE_KEY_UPDATE_REQ: {
+        case PKIBody.TYPE_KEY_UPDATE_REQ:
             try {
                 preprocessedRequest = handleCrmfCertificateRequest(
                         incomingRequest, persistencyContext);
@@ -402,7 +402,6 @@ class RaDownstream {
                         PKIFailureInfo.systemFailure, ex.getLocalizedMessage());
             }
             break;
-        }
         case PKIBody.TYPE_P10_CERT_REQ:
             preprocessedRequest = handleP10CertificateRequest(incomingRequest,
                     persistencyContext);
@@ -427,7 +426,8 @@ class RaDownstream {
         case PKIBody.TYPE_INIT_REP:
         case PKIBody.TYPE_CERT_REP:
         case PKIBody.TYPE_KEY_UPDATE_REP:
-            return processCertResponse(incomingRequest, persistencyContext,
+            return processCertResponse(incomingRequest,
+                    preprocessedRequest.getBody().getType(), persistencyContext,
                     responseFromUpstream);
         default:
             // other message type without enrollment chain
@@ -436,17 +436,20 @@ class RaDownstream {
     }
 
     private PKIMessage processCertResponse(final PKIMessage incomingRequest,
+            final int preprocessedRequestType,
             final PersistencyContext persistencyContext,
             final PKIMessage responseFromUpstream) throws BaseCmpException {
         try {
-            // check request <-> response type mapping
             int responseType = responseFromUpstream.getBody().getType();
-            final int requestType = persistencyContext.getRequestType();
+            final int initialRequestType = persistencyContext.getRequestType();
+            // check request <-> response type mapping
             boolean responseTypeOk = false;
-            switch (requestType) {
+            switch (initialRequestType) {
             case PKIBody.TYPE_INIT_REQ:
             case PKIBody.TYPE_CERT_REQ:
-                if (responseType - requestType == 1) {
+                if (preprocessedRequestType == PKIBody.TYPE_POLL_REQ
+                        || responseType - preprocessedRequestType == 1) {
+                    responseType = initialRequestType + 1;
                     responseTypeOk = true;
                 }
                 break;
@@ -545,8 +548,8 @@ class RaDownstream {
                     persistencyContext.getCertProfile(), responseType);
 
             if (ckgConfiguration == null) {
-                throw new CmpEnrollmentException(requestType, INTERFACE_NAME,
-                        PKIFailureInfo.notAuthorized,
+                throw new CmpEnrollmentException(initialRequestType,
+                        INTERFACE_NAME, PKIFailureInfo.notAuthorized,
                         "no credentials for private key signing available");
             }
 

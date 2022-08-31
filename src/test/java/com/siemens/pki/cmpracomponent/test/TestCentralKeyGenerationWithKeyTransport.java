@@ -72,7 +72,7 @@ public class TestCentralKeyGenerationWithKeyTransport
     }
 
     /**
-     * Central Key Generation/Using Key Transport Key Managemen Technique
+     * Central Key Generation/Using Key Transport Key Management Technique
      *
      * @throws Exception
      */
@@ -80,6 +80,30 @@ public class TestCentralKeyGenerationWithKeyTransport
     public void testCrWithKeyTransport() throws Exception {
         executeCrmfCertificateRequestWithoutKey(PKIBody.TYPE_CERT_REQ,
                 PKIBody.TYPE_CERT_REP, eeRsaCredentials, getEeClient(),
+                keyTransportDecryptor);
+    }
+
+    /**
+     * Central Key Generation/Using Key Transport Key Management Technique
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testIrWithKeyTransport() throws Exception {
+        executeCrmfCertificateRequestWithoutKey(PKIBody.TYPE_INIT_REQ,
+                PKIBody.TYPE_INIT_REP, eeRsaCredentials, getEeClient(),
+                keyTransportDecryptor);
+    }
+
+    /**
+     * Central Key Generation/Using Key Transport Key Management Technique
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testKurWithKeyTransport() throws Exception {
+        executeCrmfCertificateRequestWithoutKey(PKIBody.TYPE_INIT_REQ,
+                PKIBody.TYPE_INIT_REP, eeRsaCredentials, getEeClient(),
                 keyTransportDecryptor);
     }
 
