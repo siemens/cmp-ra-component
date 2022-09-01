@@ -17,3 +17,6 @@ error message improved
 fix: validation of request/response type in case of CKG and delayed delivery
 fix: drop root certificates from provided signing/protecting cert chains
 
+### 1.0.4 (Sep 1 2022)
+
+fix: inconsistent config handling for incoming upstream messages

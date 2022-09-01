@@ -94,9 +94,6 @@ class CmpRaUpstream implements RaUpstream {
             throws BaseCmpException {
         try {
             final String certProfile = pesistencyContext.getCertProfile();
-            final CmpMessageInterface upstreamConfiguration =
-                    config.getUpstreamConfiguration(certProfile,
-                            in.getBody().getType());
             if (pesistencyContext.getDelayedDeliveryInProgress()) {
                 final PKIMessage delayedRequest =
                         pesistencyContext.getInitialRequest();
@@ -113,7 +110,7 @@ class CmpRaUpstream implements RaUpstream {
                     if (delayedResponse != null) {
                         final InputValidator inputValidator =
                                 new InputValidator(INTERFACE_NAME,
-                                        (x, y) -> upstreamConfiguration,
+                                        config::getUpstreamConfiguration,
                                         (x, y) -> false, supportedMessageTypes,
                                         x -> pesistencyContext);
                         inputValidator.validate(delayedResponse);
@@ -157,14 +154,15 @@ class CmpRaUpstream implements RaUpstream {
                 sentMessage = in;
             } else {
                 final MsgOutputProtector outputProtector =
-                        new MsgOutputProtector(upstreamConfiguration,
+                        new MsgOutputProtector(config.getUpstreamConfiguration(certProfile,
+                                in.getBody().getType()),
                                 pesistencyContext);
                 sentMessage =
                         outputProtector.protectAndForwardMessage(in, null);
             }
-
             final NestedEndpointContext nestedEndpointContext =
-                    upstreamConfiguration.getNestedEndpointContext();
+                    config.getUpstreamConfiguration(certProfile,
+                            in.getBody().getType()).getNestedEndpointContext();
             if (nestedEndpointContext != null) {
                 // wrap into nested message
                 final CredentialContext nestedOutputCredentials =
@@ -185,7 +183,7 @@ class CmpRaUpstream implements RaUpstream {
             if (receivedMessage != null) {
                 // synchronous transfer
                 final InputValidator inputValidator = new InputValidator(
-                        INTERFACE_NAME, (x, y) -> upstreamConfiguration,
+                        INTERFACE_NAME, config::getUpstreamConfiguration,
                         (x, y) -> false, supportedMessageTypes,
                         x -> pesistencyContext);
                 inputValidator.validate(receivedMessage);
