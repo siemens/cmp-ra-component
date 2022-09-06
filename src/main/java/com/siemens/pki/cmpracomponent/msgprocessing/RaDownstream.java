@@ -396,6 +396,8 @@ class RaDownstream {
             try {
                 preprocessedRequest = handleCrmfCertificateRequest(
                         incomingRequest, persistencyContext);
+            } catch (final BaseCmpException ex) {
+                throw ex;
             } catch (final Exception ex) {
                 throw new CmpEnrollmentException(
                         incomingRequest.getBody().getType(), INTERFACE_NAME,
@@ -587,11 +589,10 @@ class RaDownstream {
             final PKIBody responseBodyWithPrivateKey = PkiMessageGenerator
                     .generateIpCpKupBody(responseType, enrolledCertificate,
                             newGeneratedPrivateKey, keyEncryptor, keySigner);
-            return PkiMessageGenerator
-                    .generateUnprotectMessage(
-                            PkiMessageGenerator.buildForwardingHeaderProvider(3,
-                                    responseFromUpstream),
-                            responseBodyWithPrivateKey);
+            return PkiMessageGenerator.generateUnprotectMessage(
+                    PkiMessageGenerator.buildForwardingHeaderProvider(
+                            PKIHeader.CMP_2021, responseFromUpstream),
+                    responseBodyWithPrivateKey);
 
         } catch (final BaseCmpException ex) {
             throw ex;

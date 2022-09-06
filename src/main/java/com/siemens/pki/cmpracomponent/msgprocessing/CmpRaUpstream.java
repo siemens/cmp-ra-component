@@ -30,7 +30,6 @@ import org.bouncycastle.asn1.cmp.PKIMessages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
 import com.siemens.pki.cmpracomponent.configuration.Configuration;
 import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
@@ -154,8 +153,9 @@ class CmpRaUpstream implements RaUpstream {
                 sentMessage = in;
             } else {
                 final MsgOutputProtector outputProtector =
-                        new MsgOutputProtector(config.getUpstreamConfiguration(certProfile,
-                                in.getBody().getType()),
+                        new MsgOutputProtector(
+                                config.getUpstreamConfiguration(certProfile,
+                                        in.getBody().getType()),
                                 pesistencyContext);
                 sentMessage =
                         outputProtector.protectAndForwardMessage(in, null);
