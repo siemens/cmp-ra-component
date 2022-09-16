@@ -73,12 +73,16 @@ public class P10X509RaImplementation implements Function<byte[], byte[]> {
         final PersistencyContextManager persistencyContextManager =
                 new PersistencyContextManager(config.getPersistency());
         CmpFuncEx<CertificationRequest, CMPCertificate> upstreamExchange = null;
+        /* TODO throw error on rawUpstreamExchange == null ? */
         if (rawUpstreamExchange != null) {
             upstreamExchange =
                     (request, certProfile, bodyTypeOfFirstRequest) -> {
+                        final String atUpstream = " at upstream interface " +
+                                "for first bodyType " + bodyTypeOfFirstRequest +
+                                (certProfile == null ? "" :
+                                 " and certProfile " + certProfile);
                         if (LOGGER.isTraceEnabled()) {
-                            LOGGER.trace("REQUEST at upstream for "
-                                    + certProfile + " >>>>>");
+                            LOGGER.trace("REQUEST" + atUpstream + " >>>>>");
                             LOGGER.trace(MessageDumper.dumpAsn1Object(request));
                         }
                         try {
@@ -89,8 +93,7 @@ public class P10X509RaImplementation implements Function<byte[], byte[]> {
                             final CMPCertificate response = ifNotNull(
                                     rawResponse, CMPCertificate::getInstance);
                             if (LOGGER.isTraceEnabled()) {
-                                LOGGER.trace("RESPONSE at upstream for "
-                                        + certProfile + " <<<<");
+                                LOGGER.trace("RESPONSE" + atUpstream + " <<<<");
                                 LOGGER.trace(
                                         MessageDumper.dumpAsn1Object(response));
                             }
@@ -98,8 +101,7 @@ public class P10X509RaImplementation implements Function<byte[], byte[]> {
                         } catch (final Throwable th) {
                             throw new CmpProcessingException(INTERFACE_NAME,
                                     PKIFailureInfo.systemFailure,
-                                    "exception at external upstream while processing request for "
-                                            + certProfile,
+                                    "exception processing request" + atUpstream,
                                     th);
                         }
                     };

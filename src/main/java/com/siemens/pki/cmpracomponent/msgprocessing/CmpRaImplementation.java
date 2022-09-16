@@ -78,16 +78,19 @@ public class CmpRaImplementation implements CmpRaInterface {
                 new PersistencyContextManager(config.getPersistency());
         final CmpFuncEx<PKIMessage, PKIMessage> upstreamExchange =
                 (request, certProfile, bodyTypeOfFirstRequest) -> {
+                    final String atUpstream = " at upstream interface " +
+                            "for first bodyType " + bodyTypeOfFirstRequest +
+                            (certProfile == null ? "" :
+                             " and certProfile " + certProfile);
                     if (LOGGER.isTraceEnabled()) {
-                        LOGGER.trace("REQUEST at upstream for " + certProfile
-                                + " >>>>>");
+                        LOGGER.trace("REQUEST" + atUpstream + " >>>>>");
                         LOGGER.trace(MessageDumper.dumpPkiMessage(request));
                     }
                     FileTracer.logMessage(request, UPSTREAM_INTERFACE_NAME);
                     if (rawUpstreamExchange == null) {
                         throw new CmpProcessingException(INTERFACE_NAME,
                                 PKIFailureInfo.systemUnavail,
-                                "no upstream configured");
+                                "no upstream configured" + atUpstream);
                     }
                     try {
                         final byte[] rawResponse =
@@ -98,8 +101,7 @@ public class CmpRaImplementation implements CmpRaInterface {
                         final PKIMessage response =
                                 ifNotNull(rawResponse, PKIMessage::getInstance);
                         if (LOGGER.isTraceEnabled()) {
-                            LOGGER.trace("RESPONSE at upstream for "
-                                    + certProfile + " <<<<");
+                            LOGGER.trace("RESPONSE" + atUpstream + " <<<<");
                             LOGGER.trace(
                                     MessageDumper.dumpPkiMessage(response));
                         }
@@ -109,8 +111,7 @@ public class CmpRaImplementation implements CmpRaInterface {
                     } catch (final Throwable th) {
                         throw new CmpProcessingException(INTERFACE_NAME,
                                 PKIFailureInfo.systemFailure,
-                                "exception at external upstream while processing request for "
-                                        + certProfile,
+                                "exception processing request" + atUpstream,
                                 th);
                     }
                 };
