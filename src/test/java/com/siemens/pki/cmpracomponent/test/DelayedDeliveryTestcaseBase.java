@@ -25,7 +25,6 @@ import java.security.GeneralSecurityException;
 import java.security.Security;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.bouncycastle.asn1.ASN1Integer;
@@ -44,6 +43,7 @@ import com.siemens.pki.cmpracomponent.configuration.Configuration;
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.main.CmpRaComponent;
 import com.siemens.pki.cmpracomponent.main.CmpRaComponent.CmpRaInterface;
+import com.siemens.pki.cmpracomponent.main.CmpRaComponent.UpstreamExchange;
 import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
 import com.siemens.pki.cmpracomponent.test.framework.CmpCaMock;
@@ -144,16 +144,17 @@ public class DelayedDeliveryTestcaseBase {
                 new CmpCaMock("credentials/ENROLL_Keystore.p12",
                         "credentials/CMP_CA_Keystore.p12");
         // delay request for 10 seconds before delivery to the CA
-        final BiFunction<byte[], String, byte[]> delayedTransport =
-                (request, certProfile) -> {
+        final UpstreamExchange delayedTransport =
+                (request, certProfile, bodyTypeOfFirstRequest) -> {
                     new Timer().schedule(new TimerTask() {
 
                         @Override
                         public void run() {
                             try {
                                 raComponent.gotResponseAtUpstream(
-                                        caMock.processCmpRequest(request,
-                                                certProfile));
+                                        caMock.sendReceiveMessage(request,
+                                                certProfile,
+                                                bodyTypeOfFirstRequest));
                             } catch (final Exception e) {
                                 fail(e.getMessage());
                             }

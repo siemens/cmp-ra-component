@@ -128,7 +128,7 @@ public class PkiMessageGenerator {
     /**
      * needed to generate a cert hash
      */
-    static private DigestAlgorithmIdentifierFinder DIG_ALG_FINDER =
+    private static final DigestAlgorithmIdentifierFinder DIG_ALG_FINDER =
             new DefaultDigestAlgorithmIdentifierFinder();
 
     /**
@@ -631,6 +631,10 @@ public class PkiMessageGenerator {
             throws Exception {
         return generateAndProtectMessage(headerProvider,
                 ProtectionProvider.NO_PROTECTION, body, null);
+
+    }
+
+    private PkiMessageGenerator() {
 
     }
 

@@ -26,10 +26,8 @@ import java.util.Set;
 import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.PKIFailureInfo;
 import org.bouncycastle.asn1.cmp.PKIMessage;
-import org.bouncycastle.operator.OperatorCreationException;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.databind.DatabindException;
 import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 
@@ -74,14 +72,14 @@ public class PersistencyContext {
     }
 
     PersistencyContext(final PersistencyContextManager contextManager,
-            final byte[] transactionId) throws OperatorCreationException {
+            final byte[] transactionId) {
         this.transactionId = transactionId;
         this.contextManager = contextManager;
         lastTransactionState = LastTransactionState.INITIAL_STATE;
         this.certificateRequestType = -1;
     }
 
-    public void flush() throws DatabindException, IOException {
+    public void flush() throws IOException {
         if (transactionStateTracker.isTransactionTerminated()) {
             contextManager.clearPersistencyContext(transactionId);
         } else {
@@ -169,16 +167,6 @@ public class PersistencyContext {
         this.delayedDeliveryInProgress = delayedDeliveryInProgress;
     }
 
-    public void setPendingDelayedResponse(final PKIMessage delayedResponse)
-            throws Exception {
-        if (this.pendingDelayedResponse != null) {
-            throw new CmpProcessingException("upstream persistency",
-                    PKIFailureInfo.transactionIdInUse,
-                    "duplicate response for same transactionID");
-        }
-        this.pendingDelayedResponse = delayedResponse;
-    }
-
     public void setDigestToConfirm(final byte[] digestToConfirm) {
         this.digestToConfirm = digestToConfirm;
     }
@@ -211,8 +199,17 @@ public class PersistencyContext {
         this.newGeneratedPrivateKey = newGeneratedPrivateKey;
     }
 
-    public void setRequestedPublicKey(final byte[] requestedPublicKey)
-            throws IOException {
+    public void setPendingDelayedResponse(final PKIMessage delayedResponse)
+            throws CmpProcessingException {
+        if (this.pendingDelayedResponse != null) {
+            throw new CmpProcessingException("upstream persistency",
+                    PKIFailureInfo.transactionIdInUse,
+                    "duplicate response for same transactionID");
+        }
+        this.pendingDelayedResponse = delayedResponse;
+    }
+
+    public void setRequestedPublicKey(final byte[] requestedPublicKey) {
         this.requestedPublicKey = requestedPublicKey;
     }
 

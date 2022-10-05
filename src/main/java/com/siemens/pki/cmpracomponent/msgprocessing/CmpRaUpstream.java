@@ -42,7 +42,7 @@ import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContextManager;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProviderFactory;
-import com.siemens.pki.cmpracomponent.util.CmpBiFuncEx;
+import com.siemens.pki.cmpracomponent.util.CmpFuncEx;
 
 /**
  * representation of an CMP upstream interface of a RA
@@ -62,7 +62,7 @@ class CmpRaUpstream implements RaUpstream {
                     PKIBody.TYPE_REVOCATION_REP, PKIBody.TYPE_GEN_MSG,
                     PKIBody.TYPE_GEN_REP, PKIBody.TYPE_ERROR));
 
-    private final CmpBiFuncEx<PKIMessage, String, PKIMessage> upstreamMsgHandler;
+    private final CmpFuncEx<PKIMessage, PKIMessage> upstreamMsgHandler;
 
     private final Configuration config;
     private final PersistencyContextManager persistencyContextManager;
@@ -79,7 +79,7 @@ class CmpRaUpstream implements RaUpstream {
      */
     CmpRaUpstream(final PersistencyContextManager persistencyContextManager,
             final Configuration config,
-            final CmpBiFuncEx<PKIMessage, String, PKIMessage> upstreamExchange)
+            final CmpFuncEx<PKIMessage, PKIMessage> upstreamExchange)
             throws Exception {
         this.persistencyContextManager = persistencyContextManager;
         this.config = config;
@@ -178,7 +178,8 @@ class CmpRaUpstream implements RaUpstream {
                                 new PKIMessages(sentMessage)));
             }
             final PKIMessage receivedMessage =
-                    upstreamMsgHandler.apply(sentMessage, certProfile);
+                    upstreamMsgHandler.apply(sentMessage, certProfile,
+                            pesistencyContext.getRequestType());
 
             if (receivedMessage != null) {
                 // synchronous transfer

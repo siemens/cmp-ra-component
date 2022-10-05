@@ -62,21 +62,50 @@ public class CmpRaComponent {
     }
 
     /**
+     * this interface defines a function to send a ASN.1 DER-encoded CMP request
+     * upstream and potentially receive the related ASN.1 DER-encoded response.
+     *
+     */
+    public interface UpstreamExchange {
+        /**
+         * a function to send a ASN.1 DER-encoded CMP request upstream and
+         * potentially receive the related ASN.1 DER-encoded response from
+         * upstream.
+         *
+         * @param request
+         *            the ASN.1 DER-encoded CMP request to send
+         *
+         * @param certProfile
+         *            certificate profile extracted from
+         *            the CMP request header generalInfo field or
+         *            <code>null</code> if no certificate profile was found in
+         *            the header.
+         *
+         * @param bodyTypeOfFirstRequest
+         *            PKIBody type of the first request in this transaction.
+         *            e.g. 0 for ir, 2 for cr, 7 for kur, 11 for rr, 21 for
+         *            genm.
+         *
+         * @return the ASN.1 DER-encoded CMP response or <code>null</code> if
+         *         synchronous transfer is not supported or did not receive a
+         *         response after relatively short timeout.
+         *
+         * @throws Exception
+         *             in case of (non-recoverable) error.
+         */
+        byte[] sendReceiveMessage(byte[] request, String certProfile,
+                int bodyTypeOfFirstRequest) throws Exception;
+    }
+
+    /**
      * create an RA instance that can handle all CMP message types
      * and use cases described in the Lightweight CMP Profile
      *
      * @param configuration
      *            RA configuration provided by embedding application
      * @param upstreamExchange
-     *            function to send a ASN.1 DER-encoded CMP request upstream and
-     *            potentially receive the related ASN.1 DER-encoded response.
-     *            The second argument is the certificate profile extracted from
-     *            the CMP request header generalInfo field or <code>null</code>
-     *            if no certificate profile was specified.
-     *            Must return <code>null</code> if synchronous transfer is not
-     *            supported or did not receive a response after relatively short
-     *            timeout. May throw an exception on any other (non-recoverable)
-     *            error.
+     *            the {@link UpstreamExchange} interface implemented by the
+     *            wrapping application.
      *
      * @return interface to access the RA instance (a)synchronously
      * @throws Exception
@@ -84,8 +113,7 @@ public class CmpRaComponent {
      */
     public static final CmpRaInterface instantiateCmpRaComponent(
             final Configuration configuration,
-            final BiFunction<byte[], String, byte[]> upstreamExchange)
-            throws Exception {
+            final UpstreamExchange upstreamExchange) throws Exception {
         return new CmpRaImplementation(configuration, upstreamExchange);
     }
 

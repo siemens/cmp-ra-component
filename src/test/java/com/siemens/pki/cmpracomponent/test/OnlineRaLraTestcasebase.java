@@ -94,8 +94,8 @@ public class OnlineRaLraTestcasebase extends OnlineEnrollmentTestcaseBase {
             final Configuration raConfig, final Configuration lraConfig)
             throws GeneralSecurityException, InterruptedException, Exception {
         final Function<PKIMessage, PKIMessage> ra = launchCmpCaAndRa(raConfig);
-        final CmpRaInterface lra =
-                CmpRaComponent.instantiateCmpRaComponent(lraConfig, (x, y) -> {
+        final CmpRaInterface lra = CmpRaComponent
+                .instantiateCmpRaComponent(lraConfig, (x, y, z) -> {
                     try {
                         return ra.apply(PKIMessage.getInstance(x)).getEncoded();
                     } catch (final IOException e) {

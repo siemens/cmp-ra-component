@@ -18,6 +18,7 @@
 package com.siemens.pki.cmpracomponent.test.framework;
 
 import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.math.BigInteger;
 import java.security.NoSuchAlgorithmException;
@@ -26,6 +27,7 @@ import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -62,6 +64,7 @@ import org.slf4j.LoggerFactory;
 
 import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
 import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
+import com.siemens.pki.cmpracomponent.main.CmpRaComponent;
 import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
 import com.siemens.pki.cmpracomponent.protection.SignatureBasedProtection;
@@ -70,7 +73,7 @@ import com.siemens.pki.cmpracomponent.util.MessageDumper;
 /**
  * a mocked Certificate Authority
  */
-public class CmpCaMock {
+public class CmpCaMock implements CmpRaComponent.UpstreamExchange {
 
     private static final Logger LOGGER =
             LoggerFactory.getLogger(CmpCaMock.class);
@@ -113,8 +116,14 @@ public class CmpCaMock {
 
     }
 
-    public byte[] processCmpRequest(final byte[] rawReceivedMessage,
-            final String certProfile) {
+    @Override
+    public byte[] sendReceiveMessage(final byte[] rawReceivedMessage,
+            final String certProfile, final int bodyTypeOfFirstRequest) {
+        assertTrue("request message type",
+                Arrays.asList(PKIBody.TYPE_INIT_REQ, PKIBody.TYPE_CERT_REQ,
+                        PKIBody.TYPE_KEY_UPDATE_REQ,
+                        PKIBody.TYPE_REVOCATION_REQ)
+                        .contains(bodyTypeOfFirstRequest));
         try {
             final PKIMessage receivedMessage =
                     PKIMessage.getInstance(rawReceivedMessage);

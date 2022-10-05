@@ -410,12 +410,18 @@ class RaDownstream {
             break;
         case PKIBody.TYPE_GEN_MSG:
             //  try to handle locally
+            persistencyContext
+                    .setRequestType(incomingRequest.getBody().getType());
             final PKIMessage genmResponse = new ServiceImplementation(config)
                     .handleValidatedInputMessage(incomingRequest,
                             persistencyContext);
             if (genmResponse != null) {
                 return genmResponse;
             }
+            break;
+        case PKIBody.TYPE_REVOCATION_REQ:
+            persistencyContext
+                    .setRequestType(incomingRequest.getBody().getType());
             break;
         default:
         }

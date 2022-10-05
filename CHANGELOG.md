@@ -25,3 +25,7 @@ fix: inconsistent config handling for incoming upstream messages
 
 fix: ASN.1 type of CertProfileValue must be a SEQUENCE (of UTF8String)
 
+### 2.0.0 (Oct 5 2022)
+
+feat:  Let upstreamExchange depend on bodyType
+

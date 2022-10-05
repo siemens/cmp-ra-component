@@ -68,7 +68,7 @@ public class TestSupportMessages extends CmpTestcaseBase {
         launchCmpRa(
                 ConfigurationFactory
                         .buildSignatureBasedDownstreamOnlyConfiguration(),
-                (x, y) -> {
+                (x, y, z) -> {
                     fail();
                     return null;
                 });

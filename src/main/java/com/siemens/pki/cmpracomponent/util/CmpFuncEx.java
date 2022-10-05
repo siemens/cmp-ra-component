@@ -17,24 +17,32 @@
  */
 package com.siemens.pki.cmpracomponent.util;
 
-import java.util.function.BiFunction;
-
 import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
 
 /**
- * a {@link BiFunction} throwing {@link BaseCmpException}s
+ * a CMP related request/response function throwing {@link BaseCmpException}s
  *
  */
-public interface CmpBiFuncEx<T, U, R> {
+public interface CmpFuncEx<T, R> {
 
     /**
      * Applies this function to the given arguments.
      *
      * @param t
      *            the first function argument
-     * @param u
-     *            the second function argument
+     * 
+     * @param certProfile
+     *            certificate profile extracted from
+     *            the CMP request header generalInfo field or
+     *            <code>null</code> if no certificate profile was found in
+     *            the header.
+     *
+     * @param bodyTypeOfFirstRequest
+     *            PKIBody type of the first request in this transaction.
+     *            e.g. 0 for ir, 3 for cr, 7 for kur.
+     *
      * @return the function result
      */
-    R apply(T t, U u) throws BaseCmpException;
+    R apply(T t, String certProfile, int bodyTypeOfFirstRequest)
+            throws BaseCmpException;
 }

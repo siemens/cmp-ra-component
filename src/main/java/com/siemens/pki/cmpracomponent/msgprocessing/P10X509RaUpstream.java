@@ -31,7 +31,7 @@ import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpValidationException;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
-import com.siemens.pki.cmpracomponent.util.CmpBiFuncEx;
+import com.siemens.pki.cmpracomponent.util.CmpFuncEx;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 
 public class P10X509RaUpstream implements RaUpstream {
@@ -41,10 +41,10 @@ public class P10X509RaUpstream implements RaUpstream {
     private static final Logger LOGGER =
             LoggerFactory.getLogger(P10X509RaUpstream.class);
 
-    private final CmpBiFuncEx<CertificationRequest, String, CMPCertificate> upstreamMsgHandler;
+    private final CmpFuncEx<CertificationRequest, CMPCertificate> upstreamMsgHandler;
 
     P10X509RaUpstream(
-            final CmpBiFuncEx<CertificationRequest, String, CMPCertificate> upstreamExchange) {
+            final CmpFuncEx<CertificationRequest, CMPCertificate> upstreamExchange) {
         this.upstreamMsgHandler = upstreamExchange;
     }
 
@@ -71,7 +71,8 @@ public class P10X509RaUpstream implements RaUpstream {
                         (CertificationRequest) in.getBody().getContent();
                 final CMPCertificate responseFromUpstream =
                         upstreamMsgHandler.apply(certificationRequest,
-                                pesistencyContext.getCertProfile());
+                                pesistencyContext.getCertProfile(),
+                                pesistencyContext.getRequestType());
                 if (responseFromUpstream == null) {
                     throw new CmpProcessingException(INTERFACE_NAME,
                             PKIFailureInfo.systemUnavail,

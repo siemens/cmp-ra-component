@@ -37,7 +37,7 @@ import com.siemens.pki.cmpracomponent.configuration.Configuration;
 import com.siemens.pki.cmpracomponent.main.CmpRaComponent;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContextManager;
-import com.siemens.pki.cmpracomponent.util.CmpBiFuncEx;
+import com.siemens.pki.cmpracomponent.util.CmpFuncEx;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 
 /**
@@ -72,36 +72,37 @@ public class P10X509RaImplementation implements Function<byte[], byte[]> {
             throws Exception {
         final PersistencyContextManager persistencyContextManager =
                 new PersistencyContextManager(config.getPersistency());
-        CmpBiFuncEx<CertificationRequest, String, CMPCertificate> upstreamExchange =
-                null;
+        CmpFuncEx<CertificationRequest, CMPCertificate> upstreamExchange = null;
         if (rawUpstreamExchange != null) {
-            upstreamExchange = (request, certProfile) -> {
-                if (LOGGER.isTraceEnabled()) {
-                    LOGGER.trace("REQUEST at upstream for " + certProfile
-                            + " >>>>>");
-                    LOGGER.trace(MessageDumper.dumpAsn1Object(request));
-                }
-                try {
-                    final byte[] rawResponse = rawUpstreamExchange.apply(
-                            ifNotNull(request,
-                                    CertificationRequest::getEncoded),
-                            certProfile);
-                    final CMPCertificate response =
-                            ifNotNull(rawResponse, CMPCertificate::getInstance);
-                    if (LOGGER.isTraceEnabled()) {
-                        LOGGER.trace("RESPONSE at upstream for " + certProfile
-                                + " <<<<");
-                        LOGGER.trace(MessageDumper.dumpAsn1Object(response));
-                    }
-                    return response;
-                } catch (final Throwable th) {
-                    throw new CmpProcessingException(INTERFACE_NAME,
-                            PKIFailureInfo.systemFailure,
-                            "exception at external upstream while processing request for "
-                                    + certProfile,
-                            th);
-                }
-            };
+            upstreamExchange =
+                    (request, certProfile, bodyTypeOfFirstRequest) -> {
+                        if (LOGGER.isTraceEnabled()) {
+                            LOGGER.trace("REQUEST at upstream for "
+                                    + certProfile + " >>>>>");
+                            LOGGER.trace(MessageDumper.dumpAsn1Object(request));
+                        }
+                        try {
+                            final byte[] rawResponse =
+                                    rawUpstreamExchange.apply(ifNotNull(request,
+                                            CertificationRequest::getEncoded),
+                                            certProfile);
+                            final CMPCertificate response = ifNotNull(
+                                    rawResponse, CMPCertificate::getInstance);
+                            if (LOGGER.isTraceEnabled()) {
+                                LOGGER.trace("RESPONSE at upstream for "
+                                        + certProfile + " <<<<");
+                                LOGGER.trace(
+                                        MessageDumper.dumpAsn1Object(response));
+                            }
+                            return response;
+                        } catch (final Throwable th) {
+                            throw new CmpProcessingException(INTERFACE_NAME,
+                                    PKIFailureInfo.systemFailure,
+                                    "exception at external upstream while processing request for "
+                                            + certProfile,
+                                    th);
+                        }
+                    };
         }
         final P10X509RaUpstream upstream =
                 new P10X509RaUpstream(upstreamExchange);

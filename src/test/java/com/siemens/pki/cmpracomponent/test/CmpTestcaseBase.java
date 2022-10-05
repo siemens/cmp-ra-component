@@ -33,6 +33,7 @@ import com.siemens.pki.cmpracomponent.configuration.Configuration;
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.main.CmpRaComponent;
 import com.siemens.pki.cmpracomponent.main.CmpRaComponent.CmpRaInterface;
+import com.siemens.pki.cmpracomponent.main.CmpRaComponent.UpstreamExchange;
 import com.siemens.pki.cmpracomponent.test.framework.CmpCaMock;
 import com.siemens.pki.cmpracomponent.test.framework.ConfigFileLoader;
 
@@ -58,15 +59,15 @@ public class CmpTestcaseBase {
             throws Exception, GeneralSecurityException, InterruptedException {
         return launchCmpRa(config,
                 new CmpCaMock("credentials/ENROLL_Keystore.p12",
-                        "credentials/CMP_CA_Keystore.p12")::processCmpRequest);
+                        "credentials/CMP_CA_Keystore.p12")::sendReceiveMessage);
     }
 
     protected Function<PKIMessage, PKIMessage> launchCmpCaAndRaAndLra(
             final Configuration raConfig, final Configuration lraConfig)
             throws GeneralSecurityException, InterruptedException, Exception {
         final Function<PKIMessage, PKIMessage> ra = launchCmpCaAndRa(raConfig);
-        final CmpRaInterface lra =
-                CmpRaComponent.instantiateCmpRaComponent(lraConfig, (x, y) -> {
+        final CmpRaInterface lra = CmpRaComponent
+                .instantiateCmpRaComponent(lraConfig, (x, y, z) -> {
                     try {
                         return ra.apply(PKIMessage.getInstance(x)).getEncoded();
                     } catch (final IOException e) {
@@ -86,8 +87,7 @@ public class CmpTestcaseBase {
     }
 
     protected Function<PKIMessage, PKIMessage> launchCmpRa(
-            final Configuration config,
-            final BiFunction<byte[], String, byte[]> caMock)
+            final Configuration config, final UpstreamExchange caMock)
             throws Exception, GeneralSecurityException, InterruptedException {
         final CmpRaInterface raComponent =
                 CmpRaComponent.instantiateCmpRaComponent(config, caMock);

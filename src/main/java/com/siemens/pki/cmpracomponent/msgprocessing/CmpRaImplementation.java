@@ -22,7 +22,6 @@ import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.function.BiFunction;
 
 import org.bouncycastle.asn1.cmp.PKIBody;
 import org.bouncycastle.asn1.cmp.PKIFailureInfo;
@@ -33,9 +32,10 @@ import org.slf4j.LoggerFactory;
 import com.siemens.pki.cmpracomponent.configuration.Configuration;
 import com.siemens.pki.cmpracomponent.main.CmpRaComponent;
 import com.siemens.pki.cmpracomponent.main.CmpRaComponent.CmpRaInterface;
+import com.siemens.pki.cmpracomponent.main.CmpRaComponent.UpstreamExchange;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContextManager;
-import com.siemens.pki.cmpracomponent.util.CmpBiFuncEx;
+import com.siemens.pki.cmpracomponent.util.CmpFuncEx;
 import com.siemens.pki.cmpracomponent.util.FileTracer;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 
@@ -73,12 +73,11 @@ public class CmpRaImplementation implements CmpRaInterface {
      * @see CmpRaComponent
      */
     public CmpRaImplementation(final Configuration config,
-            final BiFunction<byte[], String, byte[]> rawUpstreamExchange)
-            throws Exception {
+            final UpstreamExchange rawUpstreamExchange) throws Exception {
         final PersistencyContextManager persistencyContextManager =
                 new PersistencyContextManager(config.getPersistency());
-        final CmpBiFuncEx<PKIMessage, String, PKIMessage> upstreamExchange =
-                (request, certProfile) -> {
+        final CmpFuncEx<PKIMessage, PKIMessage> upstreamExchange =
+                (request, certProfile, bodyTypeOfFirstRequest) -> {
                     if (LOGGER.isTraceEnabled()) {
                         LOGGER.trace("REQUEST at upstream for " + certProfile
                                 + " >>>>>");
@@ -91,9 +90,11 @@ public class CmpRaImplementation implements CmpRaInterface {
                                 "no upstream configured");
                     }
                     try {
-                        final byte[] rawResponse = rawUpstreamExchange.apply(
-                                ifNotNull(request, PKIMessage::getEncoded),
-                                certProfile);
+                        final byte[] rawResponse =
+                                rawUpstreamExchange.sendReceiveMessage(
+                                        ifNotNull(request,
+                                                PKIMessage::getEncoded),
+                                        certProfile, bodyTypeOfFirstRequest);
                         final PKIMessage response =
                                 ifNotNull(rawResponse, PKIMessage::getInstance);
                         if (LOGGER.isTraceEnabled()) {
@@ -102,7 +103,8 @@ public class CmpRaImplementation implements CmpRaInterface {
                             LOGGER.trace(
                                     MessageDumper.dumpPkiMessage(response));
                         }
-                        FileTracer.logMessage(response, UPSTREAM_INTERFACE_NAME);
+                        FileTracer.logMessage(response,
+                                UPSTREAM_INTERFACE_NAME);
                         return response;
                     } catch (final Throwable th) {
                         throw new CmpProcessingException(INTERFACE_NAME,
