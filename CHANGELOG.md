@@ -20,3 +20,8 @@ fix: drop root certificates from provided signing/protecting cert chains
 ### 1.0.4 (Sep 1 2022)
 
 fix: inconsistent config handling for incoming upstream messages
+
+### 1.0.6 (Oct 5 2022)
+
+fix: ASN.1 type of CertProfileValue must be a SEQUENCE (of UTF8String)
+

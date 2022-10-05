@@ -25,6 +25,7 @@ import org.bouncycastle.asn1.ASN1GeneralizedTime;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.DERGeneralizedTime;
 import org.bouncycastle.asn1.DEROctetString;
+import org.bouncycastle.asn1.DERSequence;
 import org.bouncycastle.asn1.DERUTF8String;
 import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
 import org.bouncycastle.asn1.cmp.InfoTypeAndValue;
@@ -72,7 +73,7 @@ public final class HeaderProviderForTest implements HeaderProvider {
         return ifNotNull(certProfile,
                 x -> new InfoTypeAndValue[] {new InfoTypeAndValue(
                         CMPObjectIdentifiers.id_it_certProfile,
-                        new DERUTF8String(x))});
+                        new DERSequence(new DERUTF8String(x)))});
     }
 
     @Override

@@ -19,8 +19,10 @@ package com.siemens.pki.cmpracomponent.msgvalidation;
 
 import java.util.Objects;
 
+import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1OctetString;
+import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.ASN1UTF8String;
 import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
 import org.bouncycastle.asn1.cmp.InfoTypeAndValue;
@@ -98,7 +100,8 @@ public class MessageHeaderValidator implements ValidatorIF<String> {
         }
     }
 
-    private String extractCertProfile(final PKIHeader header) {
+    private String extractCertProfile(final PKIHeader header)
+            throws CmpValidationException {
         if (header == null) {
             return null;
         }
@@ -107,11 +110,23 @@ public class MessageHeaderValidator implements ValidatorIF<String> {
             return null;
         }
         for (final InfoTypeAndValue aktGenInfo : generalInfo) {
-            if (aktGenInfo.getInfoType()
+            if (!aktGenInfo.getInfoType()
                     .equals(CMPObjectIdentifiers.id_it_certProfile)) {
-                return ASN1UTF8String.getInstance(aktGenInfo.getInfoValue())
-                        .getString();
+                continue;
             }
+            final ASN1Encodable infoValue = aktGenInfo.getInfoValue();
+            if (infoValue == null) {
+                return null;
+            }
+            final ASN1Sequence sequence =
+                    (ASN1Sequence) infoValue.toASN1Primitive();
+            if (sequence.size() != 1) {
+                throw new CmpValidationException(interfaceName,
+                        PKIFailureInfo.badDataFormat,
+                        "certProfile SEQUENCE must have exactly one element");
+            }
+            return ASN1UTF8String.getInstance(sequence.getObjectAt(0))
+                    .getString();
         }
         return null;
     }
