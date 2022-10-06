@@ -35,6 +35,8 @@ import org.slf4j.LoggerFactory;
 
 import com.siemens.pki.cmpracomponent.configuration.CheckAndModifyResult;
 import com.siemens.pki.cmpracomponent.configuration.CkgContext;
+import com.siemens.pki.cmpracomponent.configuration.CkgKeyAgreementContext;
+import com.siemens.pki.cmpracomponent.configuration.CkgKeyTransportContext;
 import com.siemens.pki.cmpracomponent.configuration.CkgPasswordContext;
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
 import com.siemens.pki.cmpracomponent.configuration.Configuration;
@@ -173,16 +175,34 @@ public class TestCentralKeyGenerationWithPassword
                 LOGGER.debug(
                         "getCkgConfiguration called with certprofile: {}, type: {}",
                         certProfile, MessageDumper.msgTypeAsString(bodyType));
-                return new CkgPasswordContext() {
+                return new CkgContext() {
 
                     @Override
-                    public SharedSecretCredentialContext getEncryptionCredentials() {
-                        return downstreamCredentials;
+                    public CkgKeyAgreementContext getKeyAgreementContext() {
+                        fail("getKeyAgreementContext");
+                        return null;
                     }
 
                     @Override
-                    public String getKekAlg() {
-                        return kekAlg;
+                    public CkgKeyTransportContext getKeyTransportContext() {
+                        fail("getKeyTransportContext");
+                        return null;
+                    }
+
+                    @Override
+                    public CkgPasswordContext getPasswordContext() {
+                        return new CkgPasswordContext() {
+
+                            @Override
+                            public SharedSecretCredentialContext getEncryptionCredentials() {
+                                return downstreamCredentials;
+                            }
+
+                            @Override
+                            public String getKekAlg() {
+                                return kekAlg;
+                            }
+                        };
                     }
 
                     @Override

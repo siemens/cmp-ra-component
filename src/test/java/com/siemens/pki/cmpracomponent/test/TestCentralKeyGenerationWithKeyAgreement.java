@@ -39,6 +39,8 @@ import org.slf4j.LoggerFactory;
 import com.siemens.pki.cmpracomponent.configuration.CheckAndModifyResult;
 import com.siemens.pki.cmpracomponent.configuration.CkgContext;
 import com.siemens.pki.cmpracomponent.configuration.CkgKeyAgreementContext;
+import com.siemens.pki.cmpracomponent.configuration.CkgKeyTransportContext;
+import com.siemens.pki.cmpracomponent.configuration.CkgPasswordContext;
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
 import com.siemens.pki.cmpracomponent.configuration.Configuration;
 import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
@@ -207,33 +209,52 @@ public class TestCentralKeyGenerationWithKeyAgreement
                 LOGGER.debug(
                         "getCkgConfiguration called with certprofile: {}, type: {}",
                         certProfile, MessageDumper.msgTypeAsString(bodyType));
-                return new CkgKeyAgreementContext() {
 
+                return new CkgContext() {
                     @Override
-                    public String getKeyAgreementAlg() {
-                        return keyAgreementAlg;
+                    public CkgKeyAgreementContext getKeyAgreementContext() {
+                        return new CkgKeyAgreementContext() {
+
+                            @Override
+                            public String getKeyAgreementAlg() {
+                                return keyAgreementAlg;
+                            }
+
+                            @Override
+                            public String getKeyEncryptionAlg() {
+                                return keyEncryptionAlg;
+                            }
+
+                            @Override
+                            public PrivateKey getOwnPrivateKey() {
+                                return raCredentials.getPrivateKey();
+                            }
+
+                            @Override
+                            public PublicKey getOwnPublicKey() {
+                                return raCredentials.getCertificateChain()
+                                        .get(0).getPublicKey();
+                            }
+
+                            @Override
+                            public X509Certificate getRecipient(
+                                    final X509Certificate protectingCertificate) {
+                                return protectingCertificate;
+                            }
+
+                        };
                     }
 
                     @Override
-                    public String getKeyEncryptionAlg() {
-                        return keyEncryptionAlg;
+                    public CkgKeyTransportContext getKeyTransportContext() {
+                        fail("getKeyTransportContext");
+                        return null;
                     }
 
                     @Override
-                    public PrivateKey getOwnPrivateKey() {
-                        return raCredentials.getPrivateKey();
-                    }
-
-                    @Override
-                    public PublicKey getOwnPublicKey() {
-                        return raCredentials.getCertificateChain().get(0)
-                                .getPublicKey();
-                    }
-
-                    @Override
-                    public X509Certificate getRecipient(
-                            final X509Certificate protectingCertificate) {
-                        return protectingCertificate;
+                    public CkgPasswordContext getPasswordContext() {
+                        fail("getPasswordContext");
+                        return null;
                     }
 
                     @Override
@@ -248,6 +269,7 @@ public class TestCentralKeyGenerationWithKeyAgreement
                         }
                     }
                 };
+
             }
 
             @Override

@@ -29,3 +29,9 @@ fix: ASN.1 type of CertProfileValue must be a SEQUENCE (of UTF8String)
 
 feat:  Let upstreamExchange depend on bodyType
 
+### 2.1.0 (Oct 6 2022)
+
+feat: Selection of central key generation variant should be dynamically
+
+
+

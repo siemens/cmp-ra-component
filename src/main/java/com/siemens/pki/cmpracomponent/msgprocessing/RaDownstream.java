@@ -20,6 +20,7 @@ package com.siemens.pki.cmpracomponent.msgprocessing;
 import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -71,9 +72,6 @@ import org.slf4j.LoggerFactory;
 
 import com.siemens.pki.cmpracomponent.configuration.CheckAndModifyResult;
 import com.siemens.pki.cmpracomponent.configuration.CkgContext;
-import com.siemens.pki.cmpracomponent.configuration.CkgKeyAgreementContext;
-import com.siemens.pki.cmpracomponent.configuration.CkgKeyTransportContext;
-import com.siemens.pki.cmpracomponent.configuration.CkgPasswordContext;
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
 import com.siemens.pki.cmpracomponent.configuration.Configuration;
 import com.siemens.pki.cmpracomponent.configuration.InventoryInterface;
@@ -565,32 +563,8 @@ class RaDownstream {
                     new DataSigner(new SignatureBasedProtection(
                             ckgConfiguration.getSigningCredentials()));
 
-            final CMPCertificate[] incomingFirstExtraCerts =
-                    incomingRequest.getExtraCerts();
-            CmsEncryptorBase keyEncryptor = null;
-            if (incomingFirstExtraCerts != null
-                    && incomingFirstExtraCerts.length > 0) {
-                final X509Certificate recipientCert = CertUtility
-                        .asX509Certificate(incomingFirstExtraCerts[0]);
-                if (ckgConfiguration instanceof CkgKeyAgreementContext) {
-                    keyEncryptor = new KeyAgreementEncryptor(
-                            (CkgKeyAgreementContext) ckgConfiguration,
-                            recipientCert);
-                } else if (ckgConfiguration instanceof CkgKeyTransportContext) {
-                    keyEncryptor = new KeyTransportEncryptor(
-                            (CkgKeyTransportContext) ckgConfiguration,
-                            recipientCert);
-                }
-            }
-            if (ckgConfiguration instanceof CkgPasswordContext) {
-                keyEncryptor = new PasswordEncryptor(
-                        (CkgPasswordContext) ckgConfiguration);
-            }
-            if (keyEncryptor == null) {
-                throw new CmpProcessingException(INTERFACE_NAME,
-                        PKIFailureInfo.systemUnavail,
-                        "could not build key encryption context");
-            }
+            final CmsEncryptorBase keyEncryptor =
+                    buildEncryptor(incomingRequest, ckgConfiguration);
 
             final PKIBody responseBodyWithPrivateKey = PkiMessageGenerator
                     .generateIpCpKupBody(responseType, enrolledCertificate,
@@ -609,6 +583,33 @@ class RaDownstream {
                     "could not validate enrolled certificate: "
                             + ex.getLocalizedMessage());
         }
+    }
+
+    protected CmsEncryptorBase buildEncryptor(final PKIMessage incomingRequest,
+            final CkgContext ckgConfiguration)
+            throws GeneralSecurityException, CmpProcessingException {
+        final ASN1ObjectIdentifier protectingAlgOID =
+                incomingRequest.getHeader().getProtectionAlg().getAlgorithm();
+        if (CMPObjectIdentifiers.passwordBasedMac.equals(protectingAlgOID)
+                || PKCSObjectIdentifiers.id_PBMAC1.equals(protectingAlgOID)) {
+            return new PasswordEncryptor(ckgConfiguration);
+        }
+        final CMPCertificate[] incomingFirstExtraCerts =
+                incomingRequest.getExtraCerts();
+        if (incomingFirstExtraCerts == null
+                || incomingFirstExtraCerts.length < 1) {
+            throw new CmpProcessingException(INTERFACE_NAME,
+                    PKIFailureInfo.systemUnavail,
+                    "could not build key encryption context, no protecting cert in incoming request");
+        }
+        final X509Certificate recipientCert =
+                CertUtility.asX509Certificate(incomingFirstExtraCerts[0]);
+
+        if (recipientCert.getKeyUsage()[4]/* keyAgreement */) {
+            return new KeyAgreementEncryptor(ckgConfiguration, recipientCert);
+        }
+        // fall back to key transport
+        return new KeyTransportEncryptor(ckgConfiguration, recipientCert);
     }
 
     /**

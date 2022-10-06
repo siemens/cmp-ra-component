@@ -23,6 +23,7 @@ import java.security.cert.X509Certificate;
 
 import org.bouncycastle.cms.jcajce.JceKeyAgreeRecipientInfoGenerator;
 
+import com.siemens.pki.cmpracomponent.configuration.CkgContext;
 import com.siemens.pki.cmpracomponent.configuration.CkgKeyAgreementContext;
 
 /**
@@ -41,19 +42,22 @@ public class KeyAgreementEncryptor extends CmsEncryptorBase {
      * @throws NoSuchAlgorithmException
      *             if some predefined algorithms are not supported
      */
-    public KeyAgreementEncryptor(final CkgKeyAgreementContext config,
+    public KeyAgreementEncryptor(final CkgContext config,
             final X509Certificate protectingCert)
             throws GeneralSecurityException {
         super(config);
+        final CkgKeyAgreementContext keyAgreementContext =
+                config.getKeyAgreementContext();
         final JceKeyAgreeRecipientInfoGenerator infGen =
                 new JceKeyAgreeRecipientInfoGenerator(
                         AlgorithmHelper.getKeyAgreementOID(
-                                config.getKeyAgreementAlg()),
-                        config.getOwnPrivateKey(), config.getOwnPublicKey(),
-                        AlgorithmHelper
-                                .getKekOID(config.getKeyEncryptionAlg()));
+                                keyAgreementContext.getKeyAgreementAlg()),
+                        keyAgreementContext.getOwnPrivateKey(),
+                        keyAgreementContext.getOwnPublicKey(),
+                        AlgorithmHelper.getKekOID(
+                                keyAgreementContext.getKeyEncryptionAlg()));
 
-        infGen.addRecipient(config.getRecipient(protectingCert));
+        infGen.addRecipient(keyAgreementContext.getRecipient(protectingCert));
         addRecipientInfoGenerator(
                 infGen.setProvider(CertUtility.getBouncyCastleProvider()));
     }

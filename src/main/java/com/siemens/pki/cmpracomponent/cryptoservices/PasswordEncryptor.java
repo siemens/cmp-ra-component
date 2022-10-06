@@ -20,6 +20,7 @@ package com.siemens.pki.cmpracomponent.cryptoservices;
 import org.bouncycastle.cms.PasswordRecipient;
 import org.bouncycastle.cms.jcajce.JcePasswordRecipientInfoGenerator;
 
+import com.siemens.pki.cmpracomponent.configuration.CkgContext;
 import com.siemens.pki.cmpracomponent.configuration.CkgPasswordContext;
 import com.siemens.pki.cmpracomponent.configuration.SharedSecretCredentialContext;
 
@@ -37,13 +38,14 @@ public class PasswordEncryptor extends CmsEncryptorBase {
      * @throws Exception
      *             in case of error
      */
-    public PasswordEncryptor(final CkgPasswordContext config) {
+    public PasswordEncryptor(final CkgContext config) {
         super(config);
-
+        final CkgPasswordContext passwordContext = config.getPasswordContext();
         final SharedSecretCredentialContext encryptionCredentials =
-                config.getEncryptionCredentials();
+                passwordContext.getEncryptionCredentials();
         addRecipientInfoGenerator(new JcePasswordRecipientInfoGenerator(
-                AlgorithmHelper.getKeyEncryptionOID(config.getKekAlg()),
+                AlgorithmHelper
+                        .getKeyEncryptionOID(passwordContext.getKekAlg()),
                 AlgorithmHelper.convertSharedSecretToPassword(
                         encryptionCredentials.getSharedSecret()))
                                 .setProvider(

@@ -24,7 +24,7 @@ import org.bouncycastle.cms.CMSAlgorithm;
  * encryption
  *
  */
-public interface CkgPasswordContext extends CkgContext {
+public interface CkgPasswordContext {
 
     /**
      * provide credentials to encrypt the central generated private key

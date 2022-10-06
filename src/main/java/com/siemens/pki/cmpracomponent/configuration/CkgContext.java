@@ -35,6 +35,30 @@ public interface CkgContext {
     }
 
     /**
+     * get a context to support key agreement in context of central key
+     * generation
+     *
+     * @return a key agreement context
+     */
+    CkgKeyAgreementContext getKeyAgreementContext();
+
+    /**
+     * get a context to support key transport in context of central key
+     * generation
+     *
+     * @return a key transport context
+     */
+    CkgKeyTransportContext getKeyTransportContext();
+
+    /**
+     * get a context to support password-based key management technique for key
+     * encryption
+     *
+     * @return a password context
+     */
+    CkgPasswordContext getPasswordContext();
+
+    /**
      * Provide credentials to sign the central generated private key.
      * This shall be done also for the CkgPasswordContext instance.
      *

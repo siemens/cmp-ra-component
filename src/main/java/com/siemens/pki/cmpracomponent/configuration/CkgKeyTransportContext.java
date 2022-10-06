@@ -24,7 +24,7 @@ import java.security.cert.X509Certificate;
  * key transport in context of central key generation
  *
  */
-public interface CkgKeyTransportContext extends CkgContext {
+public interface CkgKeyTransportContext {
     /**
      * specifies the intended recipient by its certificate. The public key
      * in the certificate is used for encryption.

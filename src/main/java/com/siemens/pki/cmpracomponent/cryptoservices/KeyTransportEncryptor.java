@@ -24,6 +24,7 @@ import java.security.cert.X509Certificate;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.cms.jcajce.JceKeyTransRecipientInfoGenerator;
 
+import com.siemens.pki.cmpracomponent.configuration.CkgContext;
 import com.siemens.pki.cmpracomponent.configuration.CkgKeyTransportContext;
 
 /**
@@ -40,15 +41,16 @@ public class KeyTransportEncryptor extends CmsEncryptorBase {
      * @throws NoSuchAlgorithmException
      *             if some predefined algorithms are not supported
      */
-    public KeyTransportEncryptor(final CkgKeyTransportContext config,
+    public KeyTransportEncryptor(final CkgContext config,
             final X509Certificate protectingCert)
             throws NoSuchAlgorithmException {
         super(config);
-
+        final CkgKeyTransportContext transportContext =
+                config.getKeyTransportContext();
         final JcaX509ExtensionUtils jcaX509ExtensionUtils =
                 new JcaX509ExtensionUtils();
         final X509Certificate encryptionCert =
-                config.getRecipient(protectingCert);
+                transportContext.getRecipient(protectingCert);
         final PublicKey publicKey = encryptionCert.getPublicKey();
         addRecipientInfoGenerator(new JceKeyTransRecipientInfoGenerator(
                 jcaX509ExtensionUtils.createSubjectKeyIdentifier(publicKey)

@@ -31,7 +31,9 @@ import org.slf4j.LoggerFactory;
 
 import com.siemens.pki.cmpracomponent.configuration.CheckAndModifyResult;
 import com.siemens.pki.cmpracomponent.configuration.CkgContext;
+import com.siemens.pki.cmpracomponent.configuration.CkgKeyAgreementContext;
 import com.siemens.pki.cmpracomponent.configuration.CkgKeyTransportContext;
+import com.siemens.pki.cmpracomponent.configuration.CkgPasswordContext;
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
 import com.siemens.pki.cmpracomponent.configuration.Configuration;
 import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
@@ -145,12 +147,29 @@ public class TestCentralKeyGenerationWithKeyTransport
                 LOGGER.debug(
                         "getCkgConfiguration called with certprofile: {}, type: {}",
                         certProfile, MessageDumper.msgTypeAsString(bodyType));
-                return new CkgKeyTransportContext() {
+                return new CkgContext() {
 
                     @Override
-                    public X509Certificate getRecipient(
-                            final X509Certificate protectingCertificate) {
-                        return protectingCertificate;
+                    public CkgKeyAgreementContext getKeyAgreementContext() {
+                        fail("getKeyAgreementContext");
+                        return null;
+                    }
+
+                    @Override
+                    public CkgKeyTransportContext getKeyTransportContext() {
+                        return new CkgKeyTransportContext() {
+                            @Override
+                            public X509Certificate getRecipient(
+                                    final X509Certificate protectingCertificate) {
+                                return protectingCertificate;
+                            }
+                        };
+                    }
+
+                    @Override
+                    public CkgPasswordContext getPasswordContext() {
+                        fail("getPasswordContext");
+                        return null;
                     }
 
                     @Override

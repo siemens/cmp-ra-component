@@ -29,7 +29,7 @@ import org.bouncycastle.cms.CMSAlgorithm;
  * key agreement in context of central key generation
  *
  */
-public interface CkgKeyAgreementContext extends CkgContext {
+public interface CkgKeyAgreementContext {
     /**
      * specifies the algorithm used for key agreement, see
      * <a href=
