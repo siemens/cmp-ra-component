@@ -57,7 +57,6 @@ import com.siemens.pki.cmpracomponent.configuration.GetRootCaCertificateUpdateHa
 import com.siemens.pki.cmpracomponent.configuration.SupportMessageHandlerInterface;
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
-import com.siemens.pki.cmpracomponent.msgprocessing.cmpextension.NewCMPObjectIdentifiers;
 import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
@@ -135,7 +134,8 @@ class ServiceImplementation {
                 final List<X509CRL> crlsToAdd = messageHandler.getCrls(
                         ifNotNull(crlSource.getDpn(),
                                 x -> x.getName().toString()),
-                        issuers, ifNotNull(crlStatus.getTime(), Time::getDate));
+                        issuers,
+                        ifNotNull(crlStatus.getThisUpdate(), Time::getDate));
                 if (crlsToAdd != null) {
                     if (responseCrl == null) {
                         responseCrl = new ASN1EncodableVector();
@@ -150,13 +150,12 @@ class ServiceImplementation {
                 }
             }
             if (responseCrl == null) {
-                return new PKIBody(PKIBody.TYPE_GEN_REP,
-                        new GenRepContent(new InfoTypeAndValue(
-                                NewCMPObjectIdentifiers.id_it_crls)));
+                return new PKIBody(PKIBody.TYPE_GEN_REP, new GenRepContent(
+                        new InfoTypeAndValue(CMPObjectIdentifiers.id_it_crls)));
             }
             return new PKIBody(PKIBody.TYPE_GEN_REP,
                     new GenRepContent(new InfoTypeAndValue(
-                            NewCMPObjectIdentifiers.id_it_crls,
+                            CMPObjectIdentifiers.id_it_crls,
                             new DERSequence(responseCrl))));
         } catch (final RuntimeException e) {
             final Throwable cause = e.getCause();

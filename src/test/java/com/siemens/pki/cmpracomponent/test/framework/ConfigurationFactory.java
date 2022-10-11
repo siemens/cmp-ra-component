@@ -62,7 +62,6 @@ import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
 import com.siemens.pki.cmpracomponent.configuration.SupportMessageHandlerInterface;
 import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import com.siemens.pki.cmpracomponent.cryptoservices.KeyPairGeneratorFactory;
-import com.siemens.pki.cmpracomponent.msgprocessing.cmpextension.NewCMPObjectIdentifiers;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProviderFactory;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
@@ -377,7 +376,7 @@ public class ConfigurationFactory {
                         }
                     };
                 }
-                if (NewCMPObjectIdentifiers.id_it_crlStatusList.getId()
+                if (CMPObjectIdentifiers.id_it_crlStatusList.getId()
                         .equals(infoTypeOid)) {
                     LOGGER.debug(
                             "id_it_crlStatusList called with certprofile: {}",
