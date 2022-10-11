@@ -90,7 +90,7 @@ class ServiceImplementation {
         final RootCaCertificateUpdateResponse response =
                 messageHandler.getRootCaCertificateUpdate(
                         ifNotNull(oldRoot, CertUtility::asX509Certificate));
-        if (response != null) {
+        if (response != null && response.getNewWithNew() != null) {
             final X509Certificate newWithNew = response.getNewWithNew();
             final X509Certificate newWithOld = response.getNewWithOld();
             final X509Certificate oldWithNew = response.getOldWithNew();

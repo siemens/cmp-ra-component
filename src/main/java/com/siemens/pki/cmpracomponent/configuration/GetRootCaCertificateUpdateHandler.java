@@ -30,7 +30,8 @@ public interface GetRootCaCertificateUpdateHandler
         /**
          * return the new root CA certificate
          *
-         * @return the new root CA certificate
+         * @return the new root CA certificate or <code>null</code> if the
+         *         infoValue should be absent
          */
         X509Certificate getNewWithNew();
 
@@ -39,7 +40,8 @@ public interface GetRootCaCertificateUpdateHandler
          * root CA key signed with the old private root CA key
          *
          * @return a certificate containing the new public
-         *         root CA key signed with the old private root CA key
+         *         root CA key signed with the old private root CA key or
+         *         <code>null</code> if absent
          */
         X509Certificate getNewWithOld();
 
@@ -49,7 +51,7 @@ public interface GetRootCaCertificateUpdateHandler
          *
          * @return a certificate containing the old public
          *         root CA key signed with the new private root CA key or
-         *         <code>null</code>
+         *         <code>null</code> if absent
          */
         X509Certificate getOldWithNew();
     }
