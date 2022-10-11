@@ -35,8 +35,6 @@ public class PasswordEncryptor extends CmsEncryptorBase {
      *
      * @param config
      *            specific configuration
-     * @throws Exception
-     *             in case of error
      */
     public PasswordEncryptor(final CkgContext config) {
         super(config);

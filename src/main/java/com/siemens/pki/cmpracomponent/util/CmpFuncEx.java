@@ -30,7 +30,7 @@ public interface CmpFuncEx<T, R> {
      *
      * @param t
      *            the first function argument
-     * 
+     *
      * @param certProfile
      *            certificate profile extracted from
      *            the CMP request header generalInfo field or
@@ -42,6 +42,8 @@ public interface CmpFuncEx<T, R> {
      *            e.g. 0 for ir, 3 for cr, 7 for kur.
      *
      * @return the function result
+     * @throws BaseCmpException
+     *             in case of error
      */
     R apply(T t, String certProfile, int bodyTypeOfFirstRequest)
             throws BaseCmpException;

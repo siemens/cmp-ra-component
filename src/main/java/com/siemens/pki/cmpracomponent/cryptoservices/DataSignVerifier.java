@@ -110,8 +110,6 @@ public class DataSignVerifier extends TrustCredentialAdapter {
      * @param encodedSignedData
      *            the BER encoding of the SignedData
      * @return signed content or null if not trusted
-     * @throws Exception
-     *             in case of general error
      * @throws IOException
      *             in case of ASN.1 encoding error
      * @throws CMSException
