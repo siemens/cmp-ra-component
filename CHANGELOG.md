@@ -33,5 +33,9 @@ feat:  Let upstreamExchange depend on bodyType
 
 feat: Selection of central key generation variant should be dynamically
 
+### 2.1.1 (Oct 13 2022)
+
+fix: some minor issues
+
 
 

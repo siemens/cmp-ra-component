@@ -18,7 +18,6 @@
 package com.siemens.pki.cmpracomponent.configuration;
 
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
-import org.bouncycastle.cms.PasswordRecipient;
 
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 
@@ -73,7 +72,7 @@ public interface SharedSecretCredentialContext extends CredentialContext {
      * @return a pseudo-random or owf function
      */
     default String getPrf() {
-        return PasswordRecipient.PRF.HMacSHA256.getName();
+        return "SHA256";
     }
 
     /**

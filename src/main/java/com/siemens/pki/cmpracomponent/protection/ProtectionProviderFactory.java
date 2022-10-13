@@ -55,14 +55,16 @@ public class ProtectionProviderFactory {
             case "1.2.840.113533.7.66.13":
             case "id-passwordbasedmac":
             case "passwordbasedmac":
+            case "pbm":
                 return new PasswordBasedMacProtection(ssConfig);
             case "1.2.840.113549.1.5.14":
             case "id-pbmac1":
             case "pbmac1":
                 return new PBMAC1Protection(ssConfig);
+            default:
+                throw new NoSuchAlgorithmException(
+                        ssConfig.getPasswordBasedMacAlgorithm());
             }
-            return null;
-
         }
         if (config instanceof SignatureCredentialContext) {
             return new SignatureBasedProtection(

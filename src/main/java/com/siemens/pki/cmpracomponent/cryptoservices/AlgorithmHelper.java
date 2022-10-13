@@ -90,7 +90,9 @@ public class AlgorithmHelper {
         abstract String[] extractAliases(T cmpId);
 
         T getCmpAlgorithm(final String id) {
-            return ifNotNull(wrappedMap.get(normalizeId(id)), x -> x.cmpId);
+            final T ret =
+                    ifNotNull(wrappedMap.get(normalizeId(id)), x -> x.cmpId);
+            return ret;
         }
 
         String getJavaAlgorithm(final String id) {
@@ -107,8 +109,13 @@ public class AlgorithmHelper {
 
         private static final long serialVersionUID = 1L;
 
-        public ASN1ObjectIdentifier get(final String key) {
-            return super.get(normalizeId(key));
+        public ASN1ObjectIdentifier getOid(final String key)
+                throws NoSuchAlgorithmException {
+            final ASN1ObjectIdentifier ret = super.get(normalizeId(key));
+            if (ret == null) {
+                throw new NoSuchAlgorithmException(key);
+            }
+            return ret;
         }
 
         void addAll(final ASN1ObjectIdentifier oid, final String... names) {
@@ -300,9 +307,13 @@ public class AlgorithmHelper {
      * @param id
      *            name of KEK algorithm
      * @return KEK OID
+     *
+     * @throws NoSuchAlgorithmException
+     *             if id is unknown
      */
-    public static ASN1ObjectIdentifier getKekOID(final String id) {
-        return KEK_OIDS.get(id);
+    public static ASN1ObjectIdentifier getKekOID(final String id)
+            throws NoSuchAlgorithmException {
+        return KEK_OIDS.getOid(id);
     }
 
     /**
@@ -310,10 +321,12 @@ public class AlgorithmHelper {
      * @param id
      *            name of key agreement algorithm
      * @return key agreement OID
+     * @throws NoSuchAlgorithmException
+     *             if id is unknown
      */
-    public static final ASN1ObjectIdentifier getKeyAgreementOID(
-            final String id) {
-        return KEY_AGREEMENT_OIDS.get(id);
+    public static final ASN1ObjectIdentifier getKeyAgreementOID(final String id)
+            throws NoSuchAlgorithmException {
+        return KEY_AGREEMENT_OIDS.getOid(id);
     }
 
     /**
@@ -321,11 +334,23 @@ public class AlgorithmHelper {
      * @param id
      *            name of key encryption algorithm
      * @return key encryption OID
+     *
+     * @throws NoSuchAlgorithmException
+     *             if id is unknown
      */
-    public static ASN1ObjectIdentifier getKeyEncryptionOID(final String id) {
-        return KEY_ENCRYPTION_OIDS.get(id);
+    public static ASN1ObjectIdentifier getKeyEncryptionOID(final String id)
+            throws NoSuchAlgorithmException {
+        return KEY_ENCRYPTION_OIDS.getOid(id);
     }
 
+    /**
+     *
+     * @param macId
+     *            name of MAC
+     * @return mac
+     * @throws NoSuchAlgorithmException
+     *             if macId is unknown
+     */
     public static Mac getMac(final String macId)
             throws NoSuchAlgorithmException {
         return Mac.getInstance(macId, CertUtility.getBouncyCastleProvider());
@@ -337,7 +362,16 @@ public class AlgorithmHelper {
                 CertUtility.getBouncyCastleProvider());
     }
 
-    public static ASN1ObjectIdentifier getOidForMac(final String macAlg) {
+    /**
+     *
+     * @param macAlg
+     *            mac algorithm
+     * @return OID for mac
+     * @throws NoSuchAlgorithmException
+     *             if macAlg is unknown
+     */
+    public static ASN1ObjectIdentifier getOidForMac(final String macAlg)
+            throws NoSuchAlgorithmException {
         final ASN1ObjectIdentifier ret = MAC_ALG_OIDS.getCmpAlgorithm(macAlg);
         if (ret != null) {
             return ret;
@@ -345,8 +379,21 @@ public class AlgorithmHelper {
         return new ASN1ObjectIdentifier(macAlg);
     }
 
-    public static PasswordRecipient.PRF getPrf(final String id) {
-        return PBKDF2_ALG_NAMES.getCmpAlgorithm(id);
+    /**
+     *
+     * @param id
+     *            id of PRF
+     * @return PRF
+     * @throws NoSuchAlgorithmException
+     *             if id is unknown
+     */
+    public static PasswordRecipient.PRF getPrf(final String id)
+            throws NoSuchAlgorithmException {
+        final PRF ret = PBKDF2_ALG_NAMES.getCmpAlgorithm(id);
+        if (ret == null) {
+            throw new NoSuchAlgorithmException(id);
+        }
+        return ret;
     }
 
     /**

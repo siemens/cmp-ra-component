@@ -17,6 +17,8 @@
  */
 package com.siemens.pki.cmpracomponent.cryptoservices;
 
+import java.security.NoSuchAlgorithmException;
+
 import org.bouncycastle.cms.PasswordRecipient;
 import org.bouncycastle.cms.jcajce.JcePasswordRecipientInfoGenerator;
 
@@ -35,8 +37,11 @@ public class PasswordEncryptor extends CmsEncryptorBase {
      *
      * @param config
      *            specific configuration
+     * @throws NoSuchAlgorithmException
+     *             if KEK in config is unknown
      */
-    public PasswordEncryptor(final CkgContext config) {
+    public PasswordEncryptor(final CkgContext config)
+            throws NoSuchAlgorithmException {
         super(config);
         final CkgPasswordContext passwordContext = config.getPasswordContext();
         final SharedSecretCredentialContext encryptionCredentials =

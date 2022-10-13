@@ -18,6 +18,7 @@
 package com.siemens.pki.cmpracomponent.cryptoservices;
 
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 
 import org.bouncycastle.asn1.cms.EnvelopedData;
 import org.bouncycastle.asn1.cms.SignedData;
@@ -56,8 +57,11 @@ public class CmsEncryptorBase {
      *
      * @throws CMSException
      *             in case of an CMS processing error
+     * @throws NoSuchAlgorithmException
+     *             if getContentEncryptionAlg in config is unknown
      */
-    public EnvelopedData encrypt(final byte[] msg) throws CMSException {
+    public EnvelopedData encrypt(final byte[] msg)
+            throws CMSException, NoSuchAlgorithmException {
         final CMSEnvelopedData cmsEnvData = envGen.generate(
                 new CMSProcessableByteArray(msg),
                 new JceCMSContentEncryptorBuilder(AlgorithmHelper
