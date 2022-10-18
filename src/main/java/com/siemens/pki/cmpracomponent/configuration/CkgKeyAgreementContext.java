@@ -22,6 +22,7 @@ import java.security.PublicKey;
 import java.security.cert.X509Certificate;
 
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
+import org.bouncycastle.asn1.sec.SECObjectIdentifiers;
 import org.bouncycastle.cms.CMSAlgorithm;
 
 /**
@@ -40,7 +41,7 @@ public interface CkgKeyAgreementContext {
      * @return name or OID of an key agreement algorithm
      */
     default String getKeyAgreementAlg() {
-        return PKCSObjectIdentifiers.id_alg_ESDH.getId();
+        return SECObjectIdentifiers.dhSinglePass_stdDH_sha224kdf_scheme.getId();
     }
 
     /**
