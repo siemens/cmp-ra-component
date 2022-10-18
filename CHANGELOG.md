@@ -41,5 +41,9 @@ fix: some minor issues
 
 fix: Poor and misleading error message
 
+### 2.1.3 (Oct 18 2022)
+
+fix: use ECDH_SHA224KDF as default KeyAgreementAlg
+
 
 
