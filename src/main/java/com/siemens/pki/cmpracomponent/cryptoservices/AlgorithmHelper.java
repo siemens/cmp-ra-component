@@ -90,9 +90,7 @@ public class AlgorithmHelper {
         abstract String[] extractAliases(T cmpId);
 
         T getCmpAlgorithm(final String id) {
-            final T ret =
-                    ifNotNull(wrappedMap.get(normalizeId(id)), x -> x.cmpId);
-            return ret;
+            return ifNotNull(wrappedMap.get(normalizeId(id)), x -> x.cmpId);
         }
 
         String getJavaAlgorithm(final String id) {
@@ -367,11 +365,8 @@ public class AlgorithmHelper {
      * @param macAlg
      *            mac algorithm
      * @return OID for mac
-     * @throws NoSuchAlgorithmException
-     *             if macAlg is unknown
      */
-    public static ASN1ObjectIdentifier getOidForMac(final String macAlg)
-            throws NoSuchAlgorithmException {
+    public static ASN1ObjectIdentifier getOidForMac(final String macAlg) {
         final ASN1ObjectIdentifier ret = MAC_ALG_OIDS.getCmpAlgorithm(macAlg);
         if (ret != null) {
             return ret;

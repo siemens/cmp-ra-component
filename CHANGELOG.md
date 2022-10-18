@@ -37,5 +37,9 @@ feat: Selection of central key generation variant should be dynamically
 
 fix: some minor issues
 
+### 2.1.2 (Oct 18 2022)
+
+fix: Poor and misleading error message
+
 
 

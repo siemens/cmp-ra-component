@@ -573,15 +573,13 @@ class RaDownstream {
                     PkiMessageGenerator.buildForwardingHeaderProvider(
                             PKIHeader.CMP_2021, responseFromUpstream),
                     responseBodyWithPrivateKey);
-
         } catch (final BaseCmpException ex) {
             throw ex;
         } catch (final Exception ex) {
-            // response broken, without certificate or could not build enrollment chain
+            LOGGER.warn("could not properly process certificate response", ex);
             throw new CmpProcessingException(INTERFACE_NAME,
                     PKIFailureInfo.wrongAuthority,
-                    "could not validate enrolled certificate: "
-                            + ex.getLocalizedMessage());
+                    "could not properly process certificate response: " + ex);
         }
     }
 
