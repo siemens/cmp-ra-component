@@ -45,5 +45,9 @@ fix: Poor and misleading error message
 
 fix: use ECDH_SHA224KDF as default KeyAgreementAlg
 
+### 2.1.4 (Oct 19 2022)
+
+fix: misleading error messages
+
 
 

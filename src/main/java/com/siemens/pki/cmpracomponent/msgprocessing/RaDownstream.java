@@ -76,6 +76,7 @@ import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
 import com.siemens.pki.cmpracomponent.configuration.Configuration;
 import com.siemens.pki.cmpracomponent.configuration.InventoryInterface;
 import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
+import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.cryptoservices.CmsEncryptorBase;
 import com.siemens.pki.cmpracomponent.cryptoservices.DataSigner;
@@ -559,12 +560,19 @@ class RaDownstream {
                         "no credentials for private key signing available");
             }
 
-            final DataSigner keySigner =
-                    new DataSigner(new SignatureBasedProtection(
-                            ckgConfiguration.getSigningCredentials()));
+            final SignatureCredentialContext signingCredentials =
+                    ckgConfiguration.getSigningCredentials();
+            if (signingCredentials == null) {
+                throw new CmpEnrollmentException(initialRequestType,
+                        INTERFACE_NAME, PKIFailureInfo.notAuthorized,
+                        "central key generation configuration is missing signature credentials");
+            }
+            final DataSigner keySigner = new DataSigner(
+                    new SignatureBasedProtection(signingCredentials));
 
             final CmsEncryptorBase keyEncryptor =
-                    buildEncryptor(incomingRequest, ckgConfiguration);
+                    buildEncryptor(incomingRequest, ckgConfiguration,
+                            initialRequestType, INTERFACE_NAME);
 
             final PKIBody responseBodyWithPrivateKey = PkiMessageGenerator
                     .generateIpCpKupBody(responseType, enrolledCertificate,
@@ -584,13 +592,15 @@ class RaDownstream {
     }
 
     protected CmsEncryptorBase buildEncryptor(final PKIMessage incomingRequest,
-            final CkgContext ckgConfiguration)
-            throws GeneralSecurityException, CmpProcessingException {
+            final CkgContext ckgConfiguration, final int initialRequestType,
+            final String interfaceName) throws GeneralSecurityException,
+            CmpProcessingException, CmpEnrollmentException {
         final ASN1ObjectIdentifier protectingAlgOID =
                 incomingRequest.getHeader().getProtectionAlg().getAlgorithm();
         if (CMPObjectIdentifiers.passwordBasedMac.equals(protectingAlgOID)
                 || PKCSObjectIdentifiers.id_PBMAC1.equals(protectingAlgOID)) {
-            return new PasswordEncryptor(ckgConfiguration);
+            return new PasswordEncryptor(ckgConfiguration, initialRequestType,
+                    interfaceName);
         }
         final CMPCertificate[] incomingFirstExtraCerts =
                 incomingRequest.getExtraCerts();
@@ -604,10 +614,12 @@ class RaDownstream {
                 CertUtility.asX509Certificate(incomingFirstExtraCerts[0]);
 
         if (recipientCert.getKeyUsage()[4]/* keyAgreement */) {
-            return new KeyAgreementEncryptor(ckgConfiguration, recipientCert);
+            return new KeyAgreementEncryptor(ckgConfiguration, recipientCert,
+                    initialRequestType, interfaceName);
         }
         // fall back to key transport
-        return new KeyTransportEncryptor(ckgConfiguration, recipientCert);
+        return new KeyTransportEncryptor(ckgConfiguration, recipientCert,
+                initialRequestType, interfaceName);
     }
 
     /**
