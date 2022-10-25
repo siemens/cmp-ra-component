@@ -667,7 +667,7 @@ public class ConfigurationFactory {
             throws InvalidKeyException, NoSuchAlgorithmException,
             InvalidKeySpecException {
         if (eePasswordbasedProtectionProvider == null) {
-            eePasswordbasedProtectionProvider = new ProtectionProviderFactory()
+            eePasswordbasedProtectionProvider = ProtectionProviderFactory
                     .createProtectionProvider(new SharedSecret(
                             "PASSWORDBASEDMAC", TestUtils.PASSWORD));
         }
@@ -679,7 +679,7 @@ public class ConfigurationFactory {
             InvalidKeySpecException {
         if (eePbmac1ProtectionProvider == null) {
             eePbmac1ProtectionProvider =
-                    new ProtectionProviderFactory().createProtectionProvider(
+                    ProtectionProviderFactory.createProtectionProvider(
                             new SharedSecret("PBMAC1", TestUtils.PASSWORD));
         }
         return eePbmac1ProtectionProvider;
@@ -689,7 +689,7 @@ public class ConfigurationFactory {
             throws InvalidKeyException, NoSuchAlgorithmException,
             InvalidKeySpecException, KeyStoreException, Exception {
         if (eeSignaturebasedProtectionProvider == null) {
-            eeSignaturebasedProtectionProvider = new ProtectionProviderFactory()
+            eeSignaturebasedProtectionProvider = ProtectionProviderFactory
                     .createProtectionProvider(new TrustChainAndPrivateKey(
                             // "credentials/CMP_EE_Keystore_EdDSA.p12",
                             // "credentials/CMP_EE_Keystore_RSA.p12",

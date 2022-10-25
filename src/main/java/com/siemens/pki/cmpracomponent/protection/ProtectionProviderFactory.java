@@ -45,7 +45,7 @@ public class ProtectionProviderFactory {
      * @throws InvalidKeySpecException
      *             in case of internal error
      */
-    public ProtectionProvider createProtectionProvider(
+    public static ProtectionProvider createProtectionProvider(
             final CredentialContext config) throws InvalidKeyException,
             NoSuchAlgorithmException, InvalidKeySpecException {
         if (config instanceof SharedSecretCredentialContext) {
@@ -71,6 +71,11 @@ public class ProtectionProviderFactory {
                     (SignatureCredentialContext) config);
         }
         return ProtectionProvider.NO_PROTECTION;
+
+    }
+
+    // utility class
+    private ProtectionProviderFactory() {
 
     }
 

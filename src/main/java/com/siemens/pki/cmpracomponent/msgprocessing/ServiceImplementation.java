@@ -84,7 +84,7 @@ class ServiceImplementation {
     private PKIBody handelGetRootCaCertificateUpdate(
             final InfoTypeAndValue itav,
             final GetRootCaCertificateUpdateHandler messageHandler)
-            throws CertificateException, BaseCmpException {
+            throws CertificateException {
         final CMPCertificate oldRoot =
                 ifNotNull(itav.getInfoValue(), CMPCertificate::getInstance);
         final RootCaCertificateUpdateResponse response =
@@ -235,7 +235,7 @@ class ServiceImplementation {
             }
             return PkiMessageGenerator.generateAndProtectMessage(
                     PkiMessageGenerator.buildRespondingHeaderProvider(msg),
-                    new ProtectionProviderFactory().createProtectionProvider(
+                    ProtectionProviderFactory.createProtectionProvider(
                             config.getDownstreamConfiguration(
                                     ifNotNull(persistencyContext,
                                             PersistencyContext::getCertProfile),

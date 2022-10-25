@@ -149,7 +149,7 @@ class RaDownstream {
         return new MsgOutputProtector(
                 config.getDownstreamConfiguration(ifNotNull(persistencyContext,
                         PersistencyContext::getCertProfile), bodyType),
-                persistencyContext);
+                INTERFACE_NAME, persistencyContext);
     }
 
     /**

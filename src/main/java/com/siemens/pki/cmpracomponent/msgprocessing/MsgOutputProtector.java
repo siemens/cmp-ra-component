@@ -19,6 +19,7 @@ package com.siemens.pki.cmpracomponent.msgprocessing;
 
 import static com.siemens.pki.cmpracomponent.util.NullUtil.defaultIfNull;
 
+import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -28,13 +29,17 @@ import java.util.stream.Stream;
 
 import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.PKIBody;
+import org.bouncycastle.asn1.cmp.PKIFailureInfo;
 import org.bouncycastle.asn1.cmp.PKIMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
+import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface.ReprotectMode;
+import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
 import com.siemens.pki.cmpracomponent.msggeneration.HeaderProvider;
 import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
+import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProviderFactory;
@@ -46,7 +51,8 @@ import com.siemens.pki.cmpracomponent.protection.ProtectionProviderFactory;
  */
 public class MsgOutputProtector {
 
-    private static final CMPCertificate[] EMPTY_CERTIFCATE_ARRAY = new CMPCertificate[0];
+    private static final CMPCertificate[] EMPTY_CERTIFCATE_ARRAY =
+            new CMPCertificate[0];
 
     private static final Logger LOGGER =
             LoggerFactory.getLogger(MsgOutputProtector.class);
@@ -60,18 +66,32 @@ public class MsgOutputProtector {
     /**
      * @param config
      *            specific configuration
+     * @param interfaceName
      * @param persistencyContext
      *            reference to transaction specific {@link PersistencyContext}
-     * @throws Exception
-     *             in case of error
+     * @throws CmpProcessingException
+     *             in case of inconsistent configuration
+     * @throws GeneralSecurityException
+     *             in case of broken configuration
+     *
      */
     MsgOutputProtector(final CmpMessageInterface config,
-            final PersistencyContext persistencyContext) throws Exception {
+            final String interfaceName,
+            final PersistencyContext persistencyContext)
+            throws CmpProcessingException, GeneralSecurityException {
         this.persistencyContext = persistencyContext;
         this.config = config;
-        protector = new ProtectionProviderFactory()
-                .createProtectionProvider(config.getOutputCredentials());
         reprotectMode = config.getReprotectMode();
+        final CredentialContext outputCredentials =
+                config.getOutputCredentials();
+        if (reprotectMode == ReprotectMode.reprotect
+                && outputCredentials == null) {
+            throw new CmpProcessingException(interfaceName,
+                    PKIFailureInfo.wrongAuthority,
+                    "reprotectMode is reprotect, but no output credentials are given");
+        }
+        protector = ProtectionProviderFactory
+                .createProtectionProvider(outputCredentials);
     }
 
     private synchronized PKIMessage stripRedundantExtraCerts(PKIMessage msg) {

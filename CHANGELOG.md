@@ -49,5 +49,11 @@ fix: use ECDH_SHA224KDF as default KeyAgreementAlg
 
 fix: misleading error messages
 
+### 2.1.5 (Oct 25 2022)
+
+fix: report re-protection without given credentials
+
+
+
 
 
