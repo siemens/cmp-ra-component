@@ -206,4 +206,14 @@ class CmpRaUpstream implements RaUpstream {
             throw new CmpProcessingException(INTERFACE_NAME, PKIFailureInfo.systemFailure, ex);
         }
     }
+
+    void gotResponseAtUpstream(final PKIMessage responseMessage) throws Exception {
+        final PersistencyContext persistencyContext = persistencyContextManager.loadPersistencyContext(
+                responseMessage.getHeader().getTransactionID().getOctets());
+        if (persistencyContext == null) {
+            throw new IllegalStateException("no related request known for provided response");
+        }
+        persistencyContext.setPendingDelayedResponse(responseMessage);
+        persistencyContext.flush();
+    }
 }

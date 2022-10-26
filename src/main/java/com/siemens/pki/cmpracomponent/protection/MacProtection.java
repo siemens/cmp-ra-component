@@ -38,6 +38,10 @@ public abstract class MacProtection implements ProtectionProvider {
 
     private final SharedSecretCredentialContext config;
 
+    public byte[] getSharedSecret() {
+        return config.getSharedSecret();
+    }
+
     private AlgorithmIdentifier protectionAlg;
 
     private WrappedMac protectingMac;

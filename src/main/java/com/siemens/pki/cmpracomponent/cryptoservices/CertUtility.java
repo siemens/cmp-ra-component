@@ -210,12 +210,17 @@ public class CertUtility {
         }
     }
 
-    private static class BouncyCastleInitializer {
-        private static synchronized Provider getInstance() {
-            return Arrays.stream(Security.getProviders())
-                    .filter(it -> Objects.equals(it.getName(), BouncyCastleProvider.PROVIDER_NAME))
-                    .findFirst()
-                    .orElseGet(BouncyCastleProvider::new);
+    /**
+     * Function to retrieve the static certificate factory object
+     *
+     * @return static certificate factory object
+     * @throws CertificateException thrown if the certificate factory could not be
+     *                              instantiated
+     * @throws Exception            in case of an error
+     */
+    public static synchronized CertificateFactory getCertificateFactory() throws CertificateException {
+        if (certificateFactory == null) {
+            certificateFactory = CertificateFactory.getInstance("X.509", BOUNCY_CASTLE_PROVIDER);
         }
     }
     // utility class

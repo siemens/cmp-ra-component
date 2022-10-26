@@ -17,11 +17,11 @@
  */
 package com.siemens.pki.cmpclientcomponent.main;
 
-import static com.siemens.pki.cmpracomponent.util.NullUtil.defaultIfNull;
 import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
 import com.siemens.pki.cmpclientcomponent.configuration.ClientContext;
 import com.siemens.pki.cmpclientcomponent.configuration.EnrollmentContext;
+import com.siemens.pki.cmpclientcomponent.configuration.EnrollmentContext.TemplateExtension;
 import com.siemens.pki.cmpclientcomponent.configuration.RevocationContext;
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
 import com.siemens.pki.cmpracomponent.configuration.CrlUpdateRetrievalHandler;
@@ -41,6 +41,7 @@ import com.siemens.pki.cmpracomponent.protection.SignatureBasedProtection;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
@@ -49,10 +50,9 @@ import java.security.cert.X509CRL;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Stream;
+import java.util.Set;
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
@@ -136,7 +136,6 @@ public class CmpClient
     private final ClientContext clientContext;
 
     /**
-     * ctor
      * @param certProfile           certificate profile to be used for enrollment.
      *                              <code>null</code> if no certificate profile
      *                              should be used.
@@ -148,14 +147,14 @@ public class CmpClient
      *                              towards the CA
      *
      * @param clientContext         client specific configuration
-     * @throws Exception in case of error
+     * @throws GeneralSecurityException
      */
     public CmpClient(
             String certProfile,
             final UpstreamExchange upstreamExchange,
             final CmpMessageInterface upstreamConfiguration,
             final ClientContext clientContext)
-            throws Exception {
+            throws GeneralSecurityException {
         requestHandler = new ClientRequestHandler(certProfile, upstreamExchange, upstreamConfiguration, clientContext);
         this.clientContext = clientContext;
     }
@@ -174,19 +173,6 @@ public class CmpClient
             }
         });
         return ret;
-    }
-
-    private Extension fetchSubjectAlternativeName(final X509Certificate cert) {
-        final Stream<Extension> criticalOids =
-                defaultIfNull(cert.getCriticalExtensionOIDs(), Collections.<String>emptySet()).stream()
-                        .map(oid -> new Extension(new ASN1ObjectIdentifier(oid), true, cert.getExtensionValue(oid)));
-        final Stream<Extension> nonCriticalOids =
-                defaultIfNull(cert.getNonCriticalExtensionOIDs(), Collections.<String>emptySet()).stream()
-                        .map(oid -> new Extension(new ASN1ObjectIdentifier(oid), false, cert.getExtensionValue(oid)));
-        final Extension[] ret = Stream.concat(criticalOids, nonCriticalOids)
-                .filter(x -> x.getExtnId().equals(Extension.subjectAlternativeName))
-                .toArray(Extension[]::new);
-        return ret.length > 0 ? ret[0] : null;
     }
 
     /**
@@ -401,7 +387,13 @@ public class CmpClient
     public EnrollmentResult invokeEnrollment() {
 
         try {
+
+            int pvno = PKIHeader.CMP_2000;
+
             final EnrollmentContext enrollmentContext = clientContext.getEnrollmentContext();
+
+            final int enrollmentType = enrollmentContext.getEnrollmentType();
+
             final KeyPair certificateKeypair = enrollmentContext.getCertificateKeypair();
 
             PrivateKey enrolledPrivateKey = null;
@@ -411,62 +403,99 @@ public class CmpClient
                 enrolledPublicKeyInfo = SubjectPublicKeyInfo.getInstance(
                         certificateKeypair.getPublic().getEncoded());
             }
-            PKIBody requestBody;
-            int pvno;
-            final int enrollmentType = enrollmentContext.getEnrollmentType();
-            switch (enrollmentType) {
-                case PKIBody.TYPE_P10_CERT_REQ: {
-                    final PKCS10CertificationRequest p10Request =
-                            new PKCS10CertificationRequest(enrollmentContext.getCertificationRequest());
-                    enrolledPublicKeyInfo = p10Request.getSubjectPublicKeyInfo();
-                    requestBody = new PKIBody(PKIBody.TYPE_P10_CERT_REQ, p10Request.toASN1Structure());
-                    pvno = PKIHeader.CMP_2000;
-                    break;
-                }
-                case PKIBody.TYPE_KEY_UPDATE_REQ: {
-                    final X509Certificate oldCert = enrollmentContext.getOldCert();
-                    if (oldCert == null) {
-                        LOGGER.error("oldCertificate for EnrollmentType 7(kur) reqired");
-                        return null;
+            final PKIBody requestBody;
+            if (enrollmentType == PKIBody.TYPE_P10_CERT_REQ) {
+                final PKCS10CertificationRequest p10Request =
+                        new PKCS10CertificationRequest(enrollmentContext.getCertificationRequest());
+                enrolledPublicKeyInfo = p10Request.getSubjectPublicKeyInfo();
+                requestBody = new PKIBody(PKIBody.TYPE_P10_CERT_REQ, p10Request.toASN1Structure());
+            } else {
+                String subject = enrollmentContext.getSubject();
+                List<TemplateExtension> extensions = enrollmentContext.getExtensions();
+                final X509Certificate oldCert = enrollmentContext.getOldCert();
+                if (oldCert != null) {
+                    if (subject == null) {
+                        subject = oldCert.getSubjectDN().getName();
                     }
-                    final CertTemplateBuilder ctb = new CertTemplateBuilder()
-                            .setSubject(new X500Name(
-                                    oldCert.getSubjectX500Principal().getName()))
-                            .setPublicKey(enrolledPublicKeyInfo);
-                    final Extension sanExtension = fetchSubjectAlternativeName(oldCert);
-                    if (sanExtension != null) {
-                        ctb.setExtensions(new Extensions(sanExtension));
+                    if (extensions == null) {
+                        extensions = new ArrayList<>();
+                        final Set<String> criticalExtensionOIDs = oldCert.getCriticalExtensionOIDs();
+                        if (criticalExtensionOIDs != null) {
+                            for (final String oid : criticalExtensionOIDs) {
+                                extensions.add(new TemplateExtension() {
+
+                                    @Override
+                                    public String getId() {
+                                        return oid;
+                                    }
+
+                                    @Override
+                                    public byte[] getValue() {
+                                        return oldCert.getExtensionValue(oid);
+                                    }
+
+                                    @Override
+                                    public boolean isCritical() {
+                                        return true;
+                                    }
+                                });
+                            }
+                        }
+                        final Set<String> nonCriticalExtensionOIDs = oldCert.getNonCriticalExtensionOIDs();
+                        if (nonCriticalExtensionOIDs != null) {
+                            for (final String oid : nonCriticalExtensionOIDs) {
+                                extensions.add(new TemplateExtension() {
+
+                                    @Override
+                                    public String getId() {
+                                        return oid;
+                                    }
+
+                                    @Override
+                                    public byte[] getValue() {
+                                        return oldCert.getExtensionValue(oid);
+                                    }
+
+                                    @Override
+                                    public boolean isCritical() {
+                                        return false;
+                                    }
+                                });
+                            }
+                        }
                     }
-                    final Controls controls = new Controls(new AttributeTypeAndValue(
-                            CMPObjectIdentifiers.regCtrl_oldCertID,
-                            new CertId(
-                                    new GeneralName(new X500Name(
-                                            oldCert.getIssuerX500Principal().getName())),
-                                    oldCert.getSerialNumber())));
-                    requestBody = PkiMessageGenerator.generateIrCrKurBody(
-                            enrollmentType, ctb.build(), controls, enrolledPrivateKey);
-                    pvno = enrolledPrivateKey == null ? PKIHeader.CMP_2021 : PKIHeader.CMP_2000;
-                    break;
                 }
-                case PKIBody.TYPE_CERT_REQ:
-                case PKIBody.TYPE_INIT_REQ: {
-                    final String subject = enrollmentContext.getSubject();
-                    final Extension[] extensions = ifNotNull(enrollmentContext.getExtensions(), exts -> exts.stream()
-                            .map(ext -> new Extension(
-                                    new ASN1ObjectIdentifier(ext.getId()), ext.isCritical(), ext.getValue()))
-                            .toArray(Extension[]::new));
-                    final CertTemplateBuilder ctb = new CertTemplateBuilder()
-                            .setSubject(ifNotNull(subject, X500Name::new))
-                            .setPublicKey(enrolledPublicKeyInfo)
-                            .setExtensions((Extensions) ifNotNull(extensions, Extensions::new));
-                    requestBody = PkiMessageGenerator.generateIrCrKurBody(
-                            enrollmentType, ctb.build(), null, enrolledPrivateKey);
-                    pvno = enrolledPrivateKey == null ? PKIHeader.CMP_2021 : PKIHeader.CMP_2000;
-                    break;
+
+                final CertTemplateBuilder ctb = new CertTemplateBuilder()
+                        .setSubject(ifNotNull(subject, X500Name::new))
+                        .setPublicKey(enrolledPublicKeyInfo);
+                if (extensions != null) {
+                    final Extension[] extensionsAsArray = new Extension[extensions.size()];
+                    int aktIndex = 0;
+                    for (final TemplateExtension aktTemplateExtension : extensions) {
+                        extensionsAsArray[aktIndex++] = new Extension(
+                                new ASN1ObjectIdentifier(aktTemplateExtension.getId()),
+                                aktTemplateExtension.isCritical(),
+                                aktTemplateExtension.getValue());
+                    }
+                    ctb.setExtensions(new Extensions(extensionsAsArray));
                 }
-                default:
-                    LOGGER.error("EnrollmentType must be 0(ir), 2(cr), 7(kur) or 4(p10cr)");
-                    return null;
+
+                final Controls controls = ifNotNull(
+                        oldCert,
+                        oc -> new Controls(new AttributeTypeAndValue(
+                                CMPObjectIdentifiers.regCtrl_oldCertID,
+                                new CertId(
+                                        new GeneralName(new X500Name(
+                                                oc.getIssuerX500Principal().getName())),
+                                        oc.getSerialNumber()))));
+
+                requestBody = PkiMessageGenerator.generateIrCrKurBody(
+                        enrollmentType, ctb.build(), controls, enrolledPrivateKey);
+                if (enrolledPrivateKey == null) {
+                    // CKG in place
+                    pvno = PKIHeader.CMP_2021;
+                }
             }
             final PKIMessage responseMessage = requestHandler.sendReceiveValidateMessage(
                     requestHandler.buildInitialRequest(requestBody, enrollmentContext.getRequestImplictConfirm(), pvno),
@@ -498,8 +527,7 @@ public class CmpClient
             if (enrollmentType != PKIBody.TYPE_P10_CERT_REQ && enrolledPrivateKey == null) {
                 // central key generation in place, decrypt private key
                 CmsDecryptor decryptor = null;
-                final ProtectionProvider outputProtection =
-                        requestHandler.getOutputProtection().getProtector();
+                final ProtectionProvider outputProtection = requestHandler.getOutputProtection();
                 if (outputProtection instanceof SignatureBasedProtection) {
                     final SignatureBasedProtection sigProtector = (SignatureBasedProtection) outputProtection;
                     decryptor = new CmsDecryptor(sigProtector.getEndCertificate(), sigProtector.getPrivateKey(), null);
@@ -527,29 +555,6 @@ public class CmpClient
                 LOGGER.error("wrong public key in enrolled cerificate");
                 return null;
             }
-
-            final X509Certificate enrolledCertAsX509 = CertUtility.asX509Certificate(enrolledCertificate);
-            final List<X509Certificate> enrollmentChain;
-            if (enrollmentContext.getEnrollmentTrust() != null) {
-                try {
-                    final List<? extends X509Certificate> validationResult = new TrustCredentialAdapter(
-                                    enrollmentContext.getEnrollmentTrust())
-                            .validateCertAgainstTrust(
-                                    enrolledCertAsX509,
-                                    CertUtility.asX509Certificates(responseMessage.getExtraCerts()));
-                    if (validationResult == null) {
-                        LOGGER.error("error building enrollment chain");
-                        return null;
-                    }
-                    enrollmentChain = new ArrayList<>(validationResult.size());
-                    enrollmentChain.addAll(validationResult);
-                } catch (final CertificateException e) {
-                    LOGGER.error("error building enrollment chain", e);
-                    return null;
-                }
-            } else {
-                enrollmentChain = null;
-            }
             if (!grantsImplicitConfirm(responseMessage) || !enrollmentContext.getRequestImplictConfirm()) {
                 final PKIMessage certConf = requestHandler.buildFurtherRequest(
                         responseMessage, PkiMessageGenerator.generateCertConfBody(enrolledCertificate));
@@ -567,12 +572,26 @@ public class CmpClient
 
                 @Override
                 public X509Certificate getEnrolledCertificate() {
-                    return enrolledCertAsX509;
+                    try {
+                        return CertUtility.asX509Certificate(enrolledCertificate);
+                    } catch (final CertificateException e) {
+                        return null;
+                    }
                 }
 
                 @Override
                 public List<X509Certificate> getEnrollmentChain() {
-                    return enrollmentChain;
+                    final List<X509Certificate> ret = new ArrayList<>();
+                    try {
+                        ret.addAll(new TrustCredentialAdapter(enrollmentContext.getEnrollmentTrust())
+                                .validateCertAgainstTrust(
+                                        getEnrolledCertificate(),
+                                        CertUtility.asX509Certificates(responseMessage.getExtraCerts())));
+                        return ret;
+                    } catch (final CertificateException e) {
+                        LOGGER.error("error building enrollment chain", e);
+                        return null;
+                    }
                 }
 
                 @Override

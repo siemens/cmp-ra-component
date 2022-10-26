@@ -91,13 +91,14 @@ public class ConfigurationFactory {
         final SignatureValidationCredentials enrollmentTrust =
                 new SignatureValidationCredentials("credentials/ENROLL_Root.pem", null);
 
-        return buildSimpleRaConfiguration(
+        final Configuration config = buildSimpleRaConfiguration(
                 downstreamCredentials,
                 ReprotectMode.reprotect,
                 downstreamTrust,
                 upstreamCredentials,
                 upstreamTrust,
                 enrollmentTrust);
+        return config;
     }
 
     public static Configuration buildSignatureBasedDownstreamConfiguration() throws Exception {
@@ -710,6 +711,12 @@ public class ConfigurationFactory {
         return eePasswordbasedProtectionProvider;
     }
 
+    private static SharedSecret getEeSharedSecretCredentials() {
+        if (eeSharedSecretCredentials == null)
+            eeSharedSecretCredentials = new SharedSecret("PASSWORDBASEDMAC", TestUtils.PASSWORD);
+        return eeSharedSecretCredentials;
+    }
+
     public static ProtectionProvider getEePbmac1ProtectionProvider()
             throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException {
         if (eePbmac1ProtectionProvider == null) {
@@ -742,6 +749,18 @@ public class ConfigurationFactory {
                     ProtectionProviderFactory.createProtectionProvider(getEeSignaturebasedCredentials());
         }
         return eeSignaturebasedProtectionProvider;
+    }
+
+    private static TrustChainAndPrivateKey eeSignaturebasedCredentials;
+    private static SharedSecret eeSharedSecretCredentials;
+
+    public static TrustChainAndPrivateKey getEeSignaturebasedCredentials() throws Exception {
+        if (eeSignaturebasedCredentials == null)
+            eeSignaturebasedCredentials = new TrustChainAndPrivateKey(
+                    // "credentials/CMP_EE_Keystore_EdDSA.p12",
+                    // "credentials/CMP_EE_Keystore_RSA.p12",
+                    "credentials/CMP_EE_Keystore.p12", TestUtils.PASSWORD_AS_CHAR_ARRAY);
+        return eeSignaturebasedCredentials;
     }
 
     public static KeyPairGenerator getKeyGenerator() {

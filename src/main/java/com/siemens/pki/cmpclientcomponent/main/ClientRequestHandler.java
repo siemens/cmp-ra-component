@@ -21,20 +21,21 @@ import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
 import com.siemens.pki.cmpclientcomponent.configuration.ClientContext;
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
+import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
 import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.main.CmpRaComponent.UpstreamExchange;
 import com.siemens.pki.cmpracomponent.msggeneration.HeaderProvider;
-import com.siemens.pki.cmpracomponent.msggeneration.MsgOutputProtector;
 import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
 import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
-import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpValidationException;
 import com.siemens.pki.cmpracomponent.msgvalidation.MessageBodyValidator;
 import com.siemens.pki.cmpracomponent.msgvalidation.MessageHeaderValidator;
 import com.siemens.pki.cmpracomponent.msgvalidation.ProtectionValidator;
 import com.siemens.pki.cmpracomponent.msgvalidation.ValidatorIF;
+import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
+import com.siemens.pki.cmpracomponent.protection.ProtectionProviderFactory;
 import com.siemens.pki.cmpracomponent.util.FileTracer;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.security.GeneralSecurityException;
@@ -56,6 +57,7 @@ import org.bouncycastle.asn1.cmp.PKIMessage;
 import org.bouncycastle.asn1.cmp.PKIMessages;
 import org.bouncycastle.asn1.cmp.PKIStatus;
 import org.bouncycastle.asn1.cmp.PollRepContent;
+import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.GeneralName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,7 +71,7 @@ class ClientRequestHandler {
 
     class ValidatorAndProtector {
 
-        private final MsgOutputProtector outputProtection;
+        private final ProtectionProvider outputProtection;
 
         private final ProtectionValidator protectionValidator;
 
@@ -79,31 +81,46 @@ class ClientRequestHandler {
 
         private final VerificationContext inputVerification;
 
-        public ValidatorAndProtector(NestedEndpointContext nestedEndpoint)
-                throws GeneralSecurityException, CmpProcessingException {
-            final VerificationContext inputVerification = nestedEndpoint.getInputVerification();
-            headerValidator = new MessageHeaderValidator(NESTED_INTERFACE_NAME);
-            outputProtection = new MsgOutputProtector(nestedEndpoint, NESTED_INTERFACE_NAME);
-            this.inputVerification = inputVerification;
-            protectionValidator = new ProtectionValidator(NESTED_INTERFACE_NAME, inputVerification);
-            bodyValidator = new MessageBodyValidator(NESTED_INTERFACE_NAME, (x, y) -> false, null, certProfile);
+        public ValidatorAndProtector(NestedEndpointContext nestedEndpoint) throws GeneralSecurityException {
+            this(
+                    NESTED_INTERFACE_NAME,
+                    nestedEndpoint.getInputVerification(),
+                    nestedEndpoint.getOutputCredentials(),
+                    null);
         }
 
         private ValidatorAndProtector(String certProfile, final CmpMessageInterface upstreamConfiguration)
-                throws GeneralSecurityException, CmpProcessingException {
-            this.inputVerification = upstreamConfiguration.getInputVerification();
-            headerValidator = new MessageHeaderValidator(INTERFACE_NAME);
-            outputProtection = new MsgOutputProtector(upstreamConfiguration, INTERFACE_NAME, null);
-            protectionValidator = new ProtectionValidator(INTERFACE_NAME, inputVerification);
-            bodyValidator =
-                    new MessageBodyValidator(INTERFACE_NAME, (x, y) -> false, upstreamConfiguration, certProfile);
+                throws GeneralSecurityException {
+            this(
+                    INTERFACE_NAME,
+                    upstreamConfiguration.getInputVerification(),
+                    upstreamConfiguration.getOutputCredentials(),
+                    upstreamConfiguration);
+        }
+
+        private ValidatorAndProtector(
+                String intefaceName,
+                VerificationContext inputVerification,
+                CredentialContext outputCredentials,
+                CmpMessageInterface upstreamConfiguration)
+                throws GeneralSecurityException {
+            headerValidator = new MessageHeaderValidator(intefaceName);
+            outputProtection = ProtectionProviderFactory.createProtectionProvider(outputCredentials);
+            this.inputVerification = inputVerification;
+            protectionValidator = new ProtectionValidator(intefaceName, inputVerification);
+            if (upstreamConfiguration != null) {
+                bodyValidator =
+                        new MessageBodyValidator(intefaceName, (x, y) -> false, upstreamConfiguration, certProfile);
+            } else {
+                bodyValidator = DUMMY_VALIDATOR;
+            }
         }
 
         public VerificationContext getInputVerification() {
             return inputVerification;
         }
 
-        public MsgOutputProtector getOutputProtection() {
+        public ProtectionProvider getOutputProtection() {
             return outputProtection;
         }
 
@@ -114,6 +131,8 @@ class ClientRequestHandler {
             bodyValidator.validate(response);
         }
     }
+
+    private static final ValidatorIF<String> DUMMY_VALIDATOR = messageToValidate -> null;
 
     private static final int DEFAULT_PVNO = PKIHeader.CMP_2000;
 
@@ -127,6 +146,8 @@ class ClientRequestHandler {
     private final ValidatorAndProtector validatorAndProtector;
 
     private final UpstreamExchange upstreamExchange;
+
+    private final GeneralName recipient;
 
     private final String certProfile;
 
@@ -144,15 +165,16 @@ class ClientRequestHandler {
      *                              towards the CA
      *
      * @param clientContext         client specific configuration
-     * @throws Exception
+     * @throws GeneralSecurityException
      */
     ClientRequestHandler(
             String certProfile,
             final UpstreamExchange upstreamExchange,
             final CmpMessageInterface upstreamConfiguration,
             final ClientContext clientContext)
-            throws Exception {
+            throws GeneralSecurityException {
         this.upstreamExchange = upstreamExchange;
+        recipient = ifNotNull(clientContext.getRecipient(), r -> new GeneralName(new X500Name(r)));
         this.certProfile = certProfile;
         validatorAndProtector = new ValidatorAndProtector(certProfile, upstreamConfiguration);
         nestedValidatorAndProtector =
@@ -212,7 +234,7 @@ class ClientRequestHandler {
 
             @Override
             public GeneralName getRecipient() {
-                return null;
+                return recipient;
             }
 
             @Override
@@ -235,14 +257,15 @@ class ClientRequestHandler {
                 return transactionId;
             }
         };
-        return validatorAndProtector.getOutputProtection().createOutgoingMessage(headerProvider, body);
+        return PkiMessageGenerator.generateAndProtectMessage(
+                headerProvider, validatorAndProtector.getOutputProtection(), body);
     }
 
     public VerificationContext getInputVerification() {
         return validatorAndProtector.getInputVerification();
     }
 
-    public MsgOutputProtector getOutputProtection() {
+    public ProtectionProvider getOutputProtection() {
         return validatorAndProtector.getOutputProtection();
     }
 
@@ -284,11 +307,10 @@ class ClientRequestHandler {
 
     PKIMessage sendReceiveValidateMessage(PKIMessage request, final int firstRequestType) throws Exception {
         if (nestedValidatorAndProtector != null) {
-            request = nestedValidatorAndProtector
-                    .getOutputProtection()
-                    .createOutgoingMessage(
-                            PkiMessageGenerator.buildForwardingHeaderProvider(request),
-                            new PKIBody(PKIBody.TYPE_NESTED, new PKIMessages(request)));
+            request = PkiMessageGenerator.generateAndProtectMessage(
+                    PkiMessageGenerator.buildForwardingHeaderProvider(request),
+                    nestedValidatorAndProtector.getOutputProtection(),
+                    new PKIBody(PKIBody.TYPE_NESTED, new PKIMessages(request)));
         }
         FileTracer.logMessage(request, INTERFACE_NAME);
         byte[] rawresponse = upstreamExchange.sendReceiveMessage(request.getEncoded(), certProfile, firstRequestType);
@@ -305,16 +327,11 @@ class ClientRequestHandler {
             response = PKIMessages.getInstance(response.getBody().getContent()).toPKIMessageArray()[0];
         }
         validatorAndProtector.validateResponse(response);
-        final PKIHeader requestHeader = request.getHeader();
-        final ASN1OctetString firstRequestSenderNonce = requestHeader.getSenderNonce();
-        final PKIHeader responseHeader = response.getHeader();
-        if (!Objects.equals(firstRequestSenderNonce, responseHeader.getRecipNonce())) {
+        final ASN1OctetString requestSenderNonce = request.getHeader().getSenderNonce();
+        final ASN1OctetString recipNonce = response.getHeader().getRecipNonce();
+        if (!Objects.equals(requestSenderNonce, recipNonce)) {
             throw new CmpValidationException(
                     INTERFACE_NAME, PKIFailureInfo.badRecipientNonce, "nonce mismatch on upstream");
-        }
-        if (!Objects.equals(requestHeader.getTransactionID(), responseHeader.getTransactionID())) {
-            throw new CmpValidationException(
-                    INTERFACE_NAME, PKIFailureInfo.badMessageCheck, "transactionId mismatch on upstream");
         }
         if (!isWaitingIndication(response.getBody())) {
             // no delayed delivery
@@ -331,20 +348,14 @@ class ClientRequestHandler {
             response = PKIMessage.getInstance(rawresponse);
             FileTracer.logMessage(response, INTERFACE_NAME);
             validatorAndProtector.validateResponse(response);
-            final PKIBody responseBody = response.getBody();
-            final ASN1OctetString pollSenderNonce = pollReq.getHeader().getSenderNonce();
-            final ASN1OctetString pollRecipNonce = response.getHeader().getRecipNonce();
-            if (responseBody.getType() != PKIBody.TYPE_POLL_REP) {
-                if (!Objects.equals(firstRequestSenderNonce, pollRecipNonce)
-                        && !Objects.equals(pollSenderNonce, pollRecipNonce)) {
-                    throw new CmpValidationException(
-                            INTERFACE_NAME, PKIFailureInfo.badRecipientNonce, "nonce mismatch on upstream");
-                }
-                return response;
-            }
-            if (!Objects.equals(pollSenderNonce, pollRecipNonce)) {
+            if (!Objects.equals(requestSenderNonce, recipNonce)
+                    && !Objects.equals(pollReq.getHeader().getSenderNonce(), recipNonce)) {
                 throw new CmpValidationException(
                         INTERFACE_NAME, PKIFailureInfo.badRecipientNonce, "nonce mismatch on upstream");
+            }
+            final PKIBody responseBody = response.getBody();
+            if (responseBody.getType() != PKIBody.TYPE_POLL_REP) {
+                return response;
             }
             final int checkAfterTime = ((PollRepContent) responseBody.getContent())
                     .getCheckAfter(0)

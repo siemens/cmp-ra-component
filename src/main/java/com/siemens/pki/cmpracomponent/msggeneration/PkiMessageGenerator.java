@@ -520,8 +520,8 @@ public class PkiMessageGenerator {
     /**
      * generate a RR body
      *
-     * @param issuer           issuer of certificate to revoke
-     * @param serialNumber     serialNumber of certificate to revoke
+     * @param issuer       issuer of certificate to revoke
+     * @param serialNumber serialNumber of certificate to revoke
      * @param revocationReason the reason for this revocation
      * @return generated RR body
      * @throws IOException in case of ASN.1 processing errors
