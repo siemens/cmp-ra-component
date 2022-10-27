@@ -41,7 +41,9 @@ public class KeyTransportEncryptor extends CmsEncryptorBase {
      * @param protectingCert
      *            the public key certificate for the targeted recipients.
      * @param interfaceName
+     *            CMP interface name for logging
      * @param initialRequestType
+     *            type of initial request (cr, ir, kur)
      * @throws NoSuchAlgorithmException
      *             if some predefined algorithms are not supported
      * @throws CmpEnrollmentException

@@ -39,8 +39,10 @@ public class PasswordEncryptor extends CmsEncryptorBase {
      *
      * @param config
      *            specific configuration
-     * @param initialRequestType
      * @param interfaceName
+     *            CMP interface name for logging
+     * @param initialRequestType
+     *            type of initial request (cr, ir, kur)
      * @throws NoSuchAlgorithmException
      *             if KEK in config is unknown
      * @throws CmpEnrollmentException
