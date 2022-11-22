@@ -110,7 +110,8 @@ class RaDownstream {
             LoggerFactory.getLogger(RaDownstream.class);
 
     private static final JcaX509ContentVerifierProviderBuilder X509_CVPB =
-            new JcaX509ContentVerifierProviderBuilder();
+            new JcaX509ContentVerifierProviderBuilder()
+                    .setProvider(CertUtility.getBouncyCastleProvider());
 
     private final Collection<Integer> supportedMessageTypes;
 

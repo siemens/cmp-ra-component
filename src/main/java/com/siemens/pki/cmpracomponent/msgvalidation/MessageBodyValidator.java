@@ -91,7 +91,8 @@ public class MessageBodyValidator implements ValidatorIF<String> {
     private static final BigInteger MINUS_ONE = BigInteger.ONE.negate();
 
     private static final JcaX509ContentVerifierProviderBuilder jcaX509ContentVerifierProviderBuilder =
-            new JcaX509ContentVerifierProviderBuilder();
+            new JcaX509ContentVerifierProviderBuilder()
+                    .setProvider(CertUtility.getBouncyCastleProvider());
 
     private final String interfaceName;
 

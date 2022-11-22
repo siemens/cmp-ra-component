@@ -64,6 +64,7 @@ import org.slf4j.LoggerFactory;
 
 import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
 import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
+import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.main.CmpRaComponent;
 import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
@@ -82,7 +83,8 @@ public class CmpCaMock implements CmpRaComponent.UpstreamExchange {
             new JcaPEMKeyConverter();
 
     private static final JcaX509ContentVerifierProviderBuilder X509_CVPB =
-            new JcaX509ContentVerifierProviderBuilder();
+            new JcaX509ContentVerifierProviderBuilder()
+                    .setProvider(CertUtility.getBouncyCastleProvider());
 
     private final ProtectionProvider caProtectionProvider;
 

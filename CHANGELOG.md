@@ -53,7 +53,8 @@ fix: misleading error messages
 
 fix: report re-protection without given credentials
 
+### 2.1.6 (Nov 22 2022)
 
-
+fix: change default provider to BC provider for content verification
 
 
