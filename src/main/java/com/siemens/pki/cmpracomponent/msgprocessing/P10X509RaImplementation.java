@@ -38,6 +38,7 @@ import com.siemens.pki.cmpracomponent.main.CmpRaComponent;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContextManager;
 import com.siemens.pki.cmpracomponent.util.CmpFuncEx;
+import com.siemens.pki.cmpracomponent.util.FileTracer;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 
 /**
@@ -77,10 +78,10 @@ public class P10X509RaImplementation implements Function<byte[], byte[]> {
         if (rawUpstreamExchange != null) {
             upstreamExchange =
                     (request, certProfile, bodyTypeOfFirstRequest) -> {
-                        final String atUpstream = " at upstream interface " +
-                                "for first bodyType " + bodyTypeOfFirstRequest +
-                                (certProfile == null ? "" :
-                                 " and certProfile " + certProfile);
+                        final String atUpstream = " at upstream interface "
+                                + "for first bodyType " + bodyTypeOfFirstRequest
+                                + (certProfile == null ? ""
+                                        : " and certProfile " + certProfile);
                         if (LOGGER.isTraceEnabled()) {
                             LOGGER.trace("REQUEST" + atUpstream + " >>>>>");
                             LOGGER.trace(MessageDumper.dumpAsn1Object(request));
@@ -120,11 +121,13 @@ public class P10X509RaImplementation implements Function<byte[], byte[]> {
                 LOGGER.trace("REQUEST at downstream >>>>>");
                 LOGGER.trace(MessageDumper.dumpPkiMessage(request));
             }
+            FileTracer.logMessage(request, "downstream");
             final PKIMessage response = downstream.handleInputMessage(request);
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("RESPONSE at downstream <<<<");
                 LOGGER.trace(MessageDumper.dumpPkiMessage(response));
             }
+            FileTracer.logMessage(response, "downstream");
             return ifNotNull(response, PKIMessage::getEncoded);
         } catch (final Exception e) {
             LOGGER.error("exception on downstream", e);
