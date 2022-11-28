@@ -25,13 +25,12 @@ package com.siemens.pki.cmpracomponent.configuration;
 public interface InventoryInterface {
 
     /**
-     * check and optionally modify a CRMF certificate request if an ir, cr or,
-     * kur was received.
+     * check and optionally modify a CRMF certificate request
+     * that was received in a CMP ir, cr or, kur message.
      * @param transactionID
      *            the transactionID of the CMP request message.
      *            The transactionID can be used to correlate calls of
-     *            {@link #checkAndModifyCertRequest(byte[], String, byte[], String)},
-     *            {@link #checkP10CertRequest(byte[], String, byte[], String)}
+     *            {@link #checkAndModifyCertRequest(byte[], String, byte[], String)}
      *            and
      *            {@link #learnEnrollmentResult(byte[], byte[], String, String, String)}.
      * @param requesterDn
@@ -40,11 +39,15 @@ public interface InventoryInterface {
      *            the CMP request or the sender extracted from the PKI message
      *            header. If neither signature-based protection was used nor the
      *            sender field was set the requesterDn is <code>null</code>.
+     *            TODO given in which format?
      * @param certTemplate
-     *            the CertTemplate of the certificate request as received from
-     *            the requester. The CertTemplate should be ASN.1 DER encoded.
+     *            the ASN.1 DER-encoded CertTemplate of the certificate request
+     *            as received from the requester. Note that it may indicate
+     *            central key generation, optionally specifying key parameters.
      * @param requestedSubjectDn
      *            subject DN extracted from the CertTemplate of the request.
+     *            TODO given in which format?
+     *            TODO what if no subject was provided?
      *            This parameter is provided for convenience.
      *
      * @return result of validation check
@@ -53,13 +56,12 @@ public interface InventoryInterface {
             String requesterDn, byte[] certTemplate, String requestedSubjectDn);
 
     /**
-     * check PKCS#10 certificate request if a p10cr was received. Note that such
-     * certificate request cannot be modified because it is self-signed by the
-     * requester.
+     * check PKCS#10 certificate request that was received in CMP p10cr mesage.
+     * Note that such certificate request cannot be modified
+     * because it is self-signed by the requester.
      * @param transactionID
      *            the transactionID of the CMP request message.
      *            The transactionID can be used to correlate calls of
-     *            {@link #checkAndModifyCertRequest(byte[], String, byte[], String)},
      *            {@link #checkP10CertRequest(byte[], String, byte[], String)}
      *            and
      *            {@link #learnEnrollmentResult(byte[],byte[], String, String, String)}.
@@ -69,12 +71,14 @@ public interface InventoryInterface {
      *            the CMP request or the sender extracted from the PKI message
      *            header. If neither signature-based protection was used nor the
      *            sender field was set the requesterDn is <code>null</code>.
+     *            TODO given in which format?
      * @param pkcs10CertRequest
-     *            the PKCS#10 certificate request received from a requester in
-     *            a p10cr request. The PKCS#10 certificate request should be
-     *            ASN.1 DER encoded.
+     *            the ASN.1 DER-encoded.PKCS#10 certificate request
+     *            as received from a requester in a p10cr request.
      * @param requestedSubjectDn
-     *            subject DN extracted from the CertTemplate of the request.
+     *            subject DN extracted from the CertificationRequestInfo of the
+     *            pkcs10CertRequest.
+     *            TODO given in which format?
      *            This parameter is provided for convenience.
      *
      * @return <code>true</code> if the request is granted.
@@ -88,7 +92,8 @@ public interface InventoryInterface {
      * @param transactionID
      *            the transactionID of the CMP request/response message.
      *            The transactionID can be used to correlate calls of
-     *            {@link #checkAndModifyCertRequest(byte[], String, byte[], String)},
+     *            {@link #checkAndModifyCertRequest(byte[], String, byte[], String)}
+     *            or
      *            {@link #checkP10CertRequest(byte[], String, byte[], String)}
      *            and
      *            {@link #learnEnrollmentResult(byte[], byte[], String, String, String)}.
