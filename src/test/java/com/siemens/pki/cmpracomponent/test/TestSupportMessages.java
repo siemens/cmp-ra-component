@@ -31,6 +31,7 @@ import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.DERSequence;
+import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
 import org.bouncycastle.asn1.cmp.CRLSource;
 import org.bouncycastle.asn1.cmp.CRLStatus;
 import org.bouncycastle.asn1.cmp.CertReqTemplateContent;
@@ -194,7 +195,7 @@ public class TestSupportMessages extends CmpTestcaseBase {
         final AttributeTypeAndValue[] controls = Controls
                 .getInstance(crt.getKeySpec()).toAttributeTypeAndValueArray();
 
-        assertEquals(new ASN1ObjectIdentifier("1.3.6.1.5.5.7.5.1.11"),
+        assertEquals(CMPObjectIdentifiers.id_regCtrl_rsaKeyLen,
                 controls[0].getType());
 
         assertNotNull("parse INTEGER",

@@ -57,4 +57,7 @@ fix: report re-protection without given credentials
 
 fix: change default provider to BC provider for content verification
 
+### 2.1.7 (Nov 29 2022)
+
+fix: TODOs in InventoryInterface.java, wrong OID for rsaKeyLen
 

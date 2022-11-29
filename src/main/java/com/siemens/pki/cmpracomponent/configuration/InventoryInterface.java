@@ -27,6 +27,7 @@ public interface InventoryInterface {
     /**
      * check and optionally modify a CRMF certificate request
      * that was received in a CMP ir, cr or, kur message.
+     *
      * @param transactionID
      *            the transactionID of the CMP request message.
      *            The transactionID can be used to correlate calls of
@@ -39,15 +40,17 @@ public interface InventoryInterface {
      *            the CMP request or the sender extracted from the PKI message
      *            header. If neither signature-based protection was used nor the
      *            sender field was set the requesterDn is <code>null</code>.
-     *            TODO given in which format?
+     *            The DN is an X500 name formatted as string according to the
+     *            BouncyCastle library defaults.
      * @param certTemplate
      *            the ASN.1 DER-encoded CertTemplate of the certificate request
      *            as received from the requester. Note that it may indicate
      *            central key generation, optionally specifying key parameters.
      * @param requestedSubjectDn
-     *            subject DN extracted from the CertTemplate of the request.
-     *            TODO given in which format?
-     *            TODO what if no subject was provided?
+     *            subject DN extracted from the CertTemplate of the request or
+     *            <code>null</code> if subject was not present.
+     *            The DN is an X500 name formatted as string according to the
+     *            BouncyCastle library defaults.
      *            This parameter is provided for convenience.
      *
      * @return result of validation check
@@ -59,6 +62,7 @@ public interface InventoryInterface {
      * check PKCS#10 certificate request that was received in CMP p10cr mesage.
      * Note that such certificate request cannot be modified
      * because it is self-signed by the requester.
+     *
      * @param transactionID
      *            the transactionID of the CMP request message.
      *            The transactionID can be used to correlate calls of
@@ -71,14 +75,15 @@ public interface InventoryInterface {
      *            the CMP request or the sender extracted from the PKI message
      *            header. If neither signature-based protection was used nor the
      *            sender field was set the requesterDn is <code>null</code>.
-     *            TODO given in which format?
+     *            The DN is an X500 name formatted as string according to the
+     *            BouncyCastle library defaults.
      * @param pkcs10CertRequest
      *            the ASN.1 DER-encoded.PKCS#10 certificate request
      *            as received from a requester in a p10cr request.
      * @param requestedSubjectDn
      *            subject DN extracted from the CertificationRequestInfo of the
-     *            pkcs10CertRequest.
-     *            TODO given in which format?
+     *            pkcs10CertRequest. The DN is an X500 name formatted as string
+     *            according to the BouncyCastle library defaults.
      *            This parameter is provided for convenience.
      *
      * @return <code>true</code> if the request is granted.
@@ -89,6 +94,7 @@ public interface InventoryInterface {
     /**
      * learn the enrollment status including any new certificate.
      * May respond false in case of internal processing error.
+     *
      * @param transactionID
      *            the transactionID of the CMP request/response message.
      *            The transactionID can be used to correlate calls of

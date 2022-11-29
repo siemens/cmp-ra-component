@@ -36,7 +36,6 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.Collections;
 
 import org.bouncycastle.asn1.ASN1Integer;
-import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
 import org.bouncycastle.asn1.cmp.CertReqTemplateContent;
@@ -657,7 +656,7 @@ public class ConfigurationFactory {
         final CertTemplateBuilder ctb = new CertTemplateBuilder();
         ctb.setSubject(new X500Name("CN=test"));
         final Controls controls = new Controls(new AttributeTypeAndValue(
-                new ASN1ObjectIdentifier("1.3.6.1.5.5.7.5.1.11"),
+                CMPObjectIdentifiers.id_regCtrl_rsaKeyLen,
                 new ASN1Integer(2048)));
         return new CertReqTemplateContent(ctb.build(),
                 (ASN1Sequence) controls.toASN1Primitive());

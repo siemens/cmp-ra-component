@@ -60,6 +60,7 @@ import org.bouncycastle.asn1.crmf.ProofOfPossession;
 import org.bouncycastle.asn1.edec.EdECObjectIdentifiers;
 import org.bouncycastle.asn1.pkcs.CertificationRequest;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
+import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.asn1.x9.X9ObjectIdentifiers;
@@ -197,7 +198,8 @@ class RaDownstream {
                     inventory.checkAndModifyCertRequest(
                             persistencyContext.getTransactionId(), requesterDn,
                             certTemplate.getEncoded(),
-                            certTemplate.getSubject().toString());
+                            ifNotNull(certTemplate.getSubject(),
+                                    X500Name::toString));
 
             if (checkResult == null || !checkResult.isGranted()) {
                 throw new CmpEnrollmentException(requestBodyType,
