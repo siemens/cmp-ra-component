@@ -380,12 +380,14 @@ public class ConfigurationFactory {
                     LOGGER.debug(
                             "id_it_crlStatusList called with certprofile: {}",
                             certProfile);
-                    return (CrlUpdateRetrievalHandler) (dpn, issuer,
-                            thisUpdate) -> {
+                    return (CrlUpdateRetrievalHandler) (dpnFullName,
+                            dpnNameRelativeToCRLIssuer, issuer, thisUpdate) -> {
                         try {
                             LOGGER.debug(
-                                    "CrlUpdateRetrieval OID: {}, dpn:{}, issuer:{}, thisUpdate: {}",
-                                    infoTypeOid, dpn, issuer, thisUpdate);
+                                    "CrlUpdateRetrieval OID: {}, dpnFullName:{}, dpnNameRelativeToCRLIssuer:{}, issuer:{}, thisUpdate: {}",
+                                    infoTypeOid, dpnFullName,
+                                    dpnNameRelativeToCRLIssuer, issuer,
+                                    thisUpdate);
                             return Collections
                                     .singletonList((X509CRL) CertificateFactory
                                             .getInstance("X.509")

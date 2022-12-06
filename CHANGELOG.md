@@ -61,3 +61,6 @@ fix: change default provider to BC provider for content verification
 
 fix: TODOs in InventoryInterface.java, wrong OID for rsaKeyLen
 
+### 2.2.0 (Dec 06 2022)
+feat: more sophisticated DPN handling in CrlUpdateRerival
+

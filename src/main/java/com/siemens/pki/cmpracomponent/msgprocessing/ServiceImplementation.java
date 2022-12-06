@@ -44,8 +44,12 @@ import org.bouncycastle.asn1.cmp.PKIBody;
 import org.bouncycastle.asn1.cmp.PKIFailureInfo;
 import org.bouncycastle.asn1.cmp.PKIMessage;
 import org.bouncycastle.asn1.cmp.RootCaKeyUpdateContent;
+import org.bouncycastle.asn1.x500.RDN;
+import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.CertificateList;
+import org.bouncycastle.asn1.x509.DistributionPointName;
 import org.bouncycastle.asn1.x509.GeneralName;
+import org.bouncycastle.asn1.x509.GeneralNames;
 import org.bouncycastle.asn1.x509.Time;
 
 import com.siemens.pki.cmpracomponent.configuration.Configuration;
@@ -81,7 +85,12 @@ class ServiceImplementation {
 
     }
 
-    private PKIBody handelGetRootCaCertificateUpdate(
+    private String[] generalNamesToStrings(final GeneralNames generalNames) {
+        return Arrays.stream(generalNames.getNames()).map(GeneralName::getName)
+                .map(ASN1Encodable::toString).toArray(String[]::new);
+    }
+
+    private PKIBody handleGetRootCaCertificateUpdate(
             final InfoTypeAndValue itav,
             final GetRootCaCertificateUpdateHandler messageHandler)
             throws CertificateException {
@@ -127,14 +136,26 @@ class ServiceImplementation {
                         CRLStatus.getInstance(rawCrlStatus.toASN1Primitive());
                 final CRLSource crlSource = crlStatus.getSource();
                 final String[] issuers = ifNotNull(crlSource.getIssuer(),
-                        issuer -> Arrays.stream(issuer.getNames())
-                                .map(GeneralName::getName)
-                                .map(ASN1Encodable::toString)
-                                .toArray(String[]::new));
+                        this::generalNamesToStrings);
+                String[] dpnFullName = null;
+                String dpnNameRelativeToCRLIssuer = null;
+                final DistributionPointName dpn = crlSource.getDpn();
+                if (dpn != null) {
+                    final ASN1Encodable dpnName = dpn.getName();
+                    if (dpnName != null) {
+                        final int dpnType = dpn.getType();
+                        if (dpnType == DistributionPointName.FULL_NAME) {
+                            dpnFullName = generalNamesToStrings(
+                                    GeneralNames.getInstance(dpnName));
+                        } else if (dpnType == DistributionPointName.NAME_RELATIVE_TO_CRL_ISSUER) {
+                            dpnNameRelativeToCRLIssuer = new X500Name(
+                                    new RDN[] {RDN.getInstance(dpnName)})
+                                            .toString();
+                        }
+                    }
+                }
                 final List<X509CRL> crlsToAdd = messageHandler.getCrls(
-                        ifNotNull(crlSource.getDpn(),
-                                x -> x.getName().toString()),
-                        issuers,
+                        dpnFullName, dpnNameRelativeToCRLIssuer, issuers,
                         ifNotNull(crlStatus.getThisUpdate(), Time::getDate));
                 if (crlsToAdd != null) {
                     if (responseCrl == null) {
@@ -219,7 +240,7 @@ class ServiceImplementation {
                 body = handleGetCertificateRequestTemplate(infoType,
                         (GetCertificateRequestTemplateHandler) messageHandler);
             } else if (messageHandler instanceof GetRootCaCertificateUpdateHandler) {
-                body = handelGetRootCaCertificateUpdate(itav,
+                body = handleGetRootCaCertificateUpdate(itav,
                         (GetRootCaCertificateUpdateHandler) messageHandler);
             } else if (messageHandler instanceof CrlUpdateRetrievalHandler) {
                 body = handleCrlUpdateRetrieval(itav,
