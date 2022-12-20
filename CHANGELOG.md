@@ -64,3 +64,7 @@ fix: TODOs in InventoryInterface.java, wrong OID for rsaKeyLen
 ### 2.2.0 (Dec 06 2022)
 feat: more sophisticated DPN handling in CrlUpdateRerival
 
+### 2.2.1 (Dec 20 2022)
+
+fix: Improve choice of key management technique for CKG, fix NPE
+

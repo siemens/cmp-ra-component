@@ -111,9 +111,8 @@ public class TrustCredentialAdapter {
             }
         }
         try {
-            if (cert.getKeyUsage() != null &&
-            // digitalSignature
-                    !cert.getKeyUsage()[0]
+            final boolean[] leafKeyUsage = cert.getKeyUsage();
+            if (leafKeyUsage != null && !leafKeyUsage[0] // digitalSignature
                     || !config.isLeafCertAcceptable(cert)) {
                 return null;
             }
@@ -135,7 +134,8 @@ public class TrustCredentialAdapter {
                 revocationEnabled = true;
                 System.setProperty("com.sun.security.enableCRLDP", "true");
             } else {
-                System.setProperty("com.sun.security.enableCRLDP", FALSE_STRING);
+                System.setProperty("com.sun.security.enableCRLDP",
+                        FALSE_STRING);
             }
 
             final Set<Object> lstCertCrlStores = new HashSet<>();
@@ -212,9 +212,8 @@ public class TrustCredentialAdapter {
                 if (aktCert.equals(cert)) {
                     continue;
                 }
-                if (aktCert.getKeyUsage() != null
-                        // keyCertSign
-                        && !aktCert.getKeyUsage()[5]
+                final boolean[] intermediateKeyUsage = aktCert.getKeyUsage();
+                if (intermediateKeyUsage != null && !intermediateKeyUsage[5] // keyCertSign
                         || !config.isIntermediateCertAcceptable(aktCert)) {
                     return null;
                 }

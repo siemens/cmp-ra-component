@@ -616,7 +616,16 @@ class RaDownstream {
         final X509Certificate recipientCert =
                 CertUtility.asX509Certificate(incomingFirstExtraCerts[0]);
 
-        if (recipientCert.getKeyUsage()[4]/* keyAgreement */) {
+        final boolean[] keyUsage = recipientCert.getKeyUsage();
+        if (keyUsage == null) {
+            if ("RSA".equals(recipientCert.getPublicKey().getAlgorithm())) {
+                return new KeyTransportEncryptor(ckgConfiguration,
+                        recipientCert, initialRequestType, interfaceName);
+            }
+            return new KeyAgreementEncryptor(ckgConfiguration, recipientCert,
+                    initialRequestType, interfaceName);
+        }
+        if (keyUsage[4]/* keyAgreement */) {
             return new KeyAgreementEncryptor(ckgConfiguration, recipientCert,
                     initialRequestType, interfaceName);
         }
