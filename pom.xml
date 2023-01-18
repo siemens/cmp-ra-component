@@ -10,12 +10,14 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<parent.basedir>.</parent.basedir>
-		<spotless.version>1.24.3</spotless.version>
+		<spotless.version>2.30.0</spotless.version>
 		<jacoco.version>0.8.4</jacoco.version>
 		<maven.compiler.source>11</maven.compiler.source>
 		<maven.compiler.target>11</maven.compiler.target>
 		<maven-failsafe-plugin.version>3.0.0-M3</maven-failsafe-plugin.version>
 		<maven-site-plugin.version>3.8.2</maven-site-plugin.version>
+		<sonar.organization>ralienpp</sonar.organization>
+		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
 	</properties>
 	<build>
 		<plugins>
@@ -73,6 +75,25 @@
 				<artifactId>maven-javadoc-plugin</artifactId>
 				<version>3.3.1</version>
 				<configuration />
+			</plugin>
+			<plugin>
+				<groupId>com.diffplug.spotless</groupId>
+				<artifactId>spotless-maven-plugin</artifactId>
+				<version>${spotless.version}</version>
+				<configuration>
+					<java>
+						<includes>
+							<include>src/main/java/**/*.java</include>
+							<include>src/test/java/**/*.java</include>
+						</includes>
+
+						<palantirJavaFormat />
+						<importOrder />
+						<removeUnusedImports />
+						<formatAnnotations />
+						<endWithNewline/>
+					</java>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
