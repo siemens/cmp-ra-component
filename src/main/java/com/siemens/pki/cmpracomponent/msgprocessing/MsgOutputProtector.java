@@ -19,21 +19,6 @@ package com.siemens.pki.cmpracomponent.msgprocessing;
 
 import static com.siemens.pki.cmpracomponent.util.NullUtil.defaultIfNull;
 
-import java.security.GeneralSecurityException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Stream;
-
-import org.bouncycastle.asn1.cmp.CMPCertificate;
-import org.bouncycastle.asn1.cmp.PKIBody;
-import org.bouncycastle.asn1.cmp.PKIFailureInfo;
-import org.bouncycastle.asn1.cmp.PKIMessage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface.ReprotectMode;
 import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
@@ -43,19 +28,25 @@ import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProviderFactory;
+import java.security.GeneralSecurityException;
+import java.util.*;
+import java.util.stream.Stream;
+import org.bouncycastle.asn1.cmp.CMPCertificate;
+import org.bouncycastle.asn1.cmp.PKIBody;
+import org.bouncycastle.asn1.cmp.PKIFailureInfo;
+import org.bouncycastle.asn1.cmp.PKIMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * the {@link MsgOutputProtector} sets the right protection for outgoing
  * messages
- *
  */
 public class MsgOutputProtector {
 
-    private static final CMPCertificate[] EMPTY_CERTIFCATE_ARRAY =
-            new CMPCertificate[0];
+    private static final CMPCertificate[] EMPTY_CERTIFCATE_ARRAY = new CMPCertificate[0];
 
-    private static final Logger LOGGER =
-            LoggerFactory.getLogger(MsgOutputProtector.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(MsgOutputProtector.class);
 
     private final CmpMessageInterface.ReprotectMode reprotectMode;
 
@@ -64,39 +55,31 @@ public class MsgOutputProtector {
     private final CmpMessageInterface config;
 
     /**
-     * @param config
-     *            specific configuration
+     * @param config             specific configuration
      * @param interfaceName
-     * @param persistencyContext
-     *            reference to transaction specific {@link PersistencyContext}
-     * @throws CmpProcessingException
-     *             in case of inconsistent configuration
-     * @throws GeneralSecurityException
-     *             in case of broken configuration
-     *
+     * @param persistencyContext reference to transaction specific
+     *                           {@link PersistencyContext}
+     * @throws CmpProcessingException   in case of inconsistent configuration
+     * @throws GeneralSecurityException in case of broken configuration
      */
-    MsgOutputProtector(final CmpMessageInterface config,
-            final String interfaceName,
-            final PersistencyContext persistencyContext)
+    MsgOutputProtector(
+            final CmpMessageInterface config, final String interfaceName, final PersistencyContext persistencyContext)
             throws CmpProcessingException, GeneralSecurityException {
         this.persistencyContext = persistencyContext;
         this.config = config;
         reprotectMode = config.getReprotectMode();
-        final CredentialContext outputCredentials =
-                config.getOutputCredentials();
-        if (reprotectMode == ReprotectMode.reprotect
-                && outputCredentials == null) {
-            throw new CmpProcessingException(interfaceName,
+        final CredentialContext outputCredentials = config.getOutputCredentials();
+        if (reprotectMode == ReprotectMode.reprotect && outputCredentials == null) {
+            throw new CmpProcessingException(
+                    interfaceName,
                     PKIFailureInfo.wrongAuthority,
                     "reprotectMode is reprotect, but no output credentials are given");
         }
-        protector = ProtectionProviderFactory
-                .createProtectionProvider(outputCredentials);
+        protector = ProtectionProviderFactory.createProtectionProvider(outputCredentials);
     }
 
     private synchronized PKIMessage stripRedundantExtraCerts(PKIMessage msg) {
-        if (!config.getSuppressRedundantExtraCerts()
-                || persistencyContext == null) {
+        if (!config.getSuppressRedundantExtraCerts() || persistencyContext == null) {
             return msg;
         }
         final CMPCertificate[] extraCerts = msg.getExtraCerts();
@@ -105,24 +88,22 @@ public class MsgOutputProtector {
             return msg;
         }
 
-        final List<CMPCertificate> extraCertsAsList =
-                new LinkedList<>(Arrays.asList(extraCerts));
-        final Set<CMPCertificate> alreadySentExtraCerts =
-                persistencyContext.getAlreadySentExtraCerts();
+        final List<CMPCertificate> extraCertsAsList = new LinkedList<>(Arrays.asList(extraCerts));
+        final Set<CMPCertificate> alreadySentExtraCerts = persistencyContext.getAlreadySentExtraCerts();
 
         if (extraCertsAsList.removeAll(alreadySentExtraCerts)) {
             // were able to drop some extra certs
             if (LOGGER.isDebugEnabled()) {
                 // avoid unnecessary string processing, if debug isn't enabled
-                LOGGER.debug("drop from " + msg.getExtraCerts().length + " to "
-                        + extraCertsAsList.size());
+                LOGGER.debug("drop from " + msg.getExtraCerts().length + " to " + extraCertsAsList.size());
             }
-            msg = new PKIMessage(msg.getHeader(), msg.getBody(),
+            msg = new PKIMessage(
+                    msg.getHeader(),
+                    msg.getBody(),
                     msg.getProtection(),
-                    extraCertsAsList.isEmpty() ? null
-                            : extraCertsAsList
-                                    .toArray(new CMPCertificate[extraCertsAsList
-                                            .size()]));
+                    extraCertsAsList.isEmpty()
+                            ? null
+                            : extraCertsAsList.toArray(new CMPCertificate[extraCertsAsList.size()]));
         }
         alreadySentExtraCerts.addAll(extraCertsAsList);
         return msg;
@@ -131,67 +112,54 @@ public class MsgOutputProtector {
     /**
      * generate and protect a new message
      *
-     * @param headerProvider
-     *            header of new message
-     * @param body
-     *            body of new message
+     * @param headerProvider header of new message
+     * @param body           body of new message
      * @return new message
-     * @throws Exception
-     *             in case of error
+     * @throws Exception in case of error
      */
-    PKIMessage generateAndProtectMessage(final HeaderProvider headerProvider,
-            final PKIBody body) throws Exception {
-        return stripRedundantExtraCerts(PkiMessageGenerator
-                .generateAndProtectMessage(headerProvider, protector, body));
+    PKIMessage generateAndProtectMessage(final HeaderProvider headerProvider, final PKIBody body) throws Exception {
+        return stripRedundantExtraCerts(PkiMessageGenerator.generateAndProtectMessage(headerProvider, protector, body));
     }
 
     /**
      * protect and forward a PKI message
      *
-     * @param in
-     *            message to forward
-     * @param issuingChain
-     *            trust chain of issued certificate to add to extracerts or
-     *            <code>null</code>
+     * @param in           message to forward
+     * @param issuingChain trust chain of issued certificate to add to extracerts or
+     *                     <code>null</code>
      * @return protected message
-     * @throws Exception
-     *             in case of processing error
+     * @throws Exception in case of processing error
      */
-    PKIMessage protectAndForwardMessage(final PKIMessage in,
-            final List<CMPCertificate> issuingChain) throws Exception {
+    PKIMessage protectAndForwardMessage(final PKIMessage in, final List<CMPCertificate> issuingChain) throws Exception {
         switch (reprotectMode) {
-        case reprotect:
-            return stripRedundantExtraCerts(
-                    PkiMessageGenerator.generateAndProtectMessage(
-                            PkiMessageGenerator
-                                    .buildForwardingHeaderProvider(in),
-                            protector, in.getBody(), issuingChain));
-        case strip:
-            return PkiMessageGenerator.generateAndProtectMessage(
-                    PkiMessageGenerator.buildForwardingHeaderProvider(in),
-                    ProtectionProvider.NO_PROTECTION, in.getBody(),
-                    issuingChain);
-        case keep:
-            if (in.getHeader().getProtectionAlg() == null) {
-                // message protection lost during processing, reprotect
-                return stripRedundantExtraCerts(
-                        PkiMessageGenerator.generateAndProtectMessage(
-                                PkiMessageGenerator
-                                        .buildForwardingHeaderProvider(in),
-                                protector, in.getBody(), issuingChain));
-            }
-            final CMPCertificate[] extraCerts = Stream
-                    .concat(Arrays.stream(defaultIfNull(in.getExtraCerts(),
-                            EMPTY_CERTIFCATE_ARRAY)),
-                            defaultIfNull(issuingChain, Collections.emptyList())
-                                    .stream())
-                    .distinct().toArray(CMPCertificate[]::new);
+            case reprotect:
+                return stripRedundantExtraCerts(PkiMessageGenerator.generateAndProtectMessage(
+                        PkiMessageGenerator.buildForwardingHeaderProvider(in), protector, in.getBody(), issuingChain));
+            case strip:
+                return PkiMessageGenerator.generateAndProtectMessage(
+                        PkiMessageGenerator.buildForwardingHeaderProvider(in),
+                        ProtectionProvider.NO_PROTECTION,
+                        in.getBody(),
+                        issuingChain);
+            case keep:
+                if (in.getHeader().getProtectionAlg() == null) {
+                    // message protection lost during processing, reprotect
+                    return stripRedundantExtraCerts(PkiMessageGenerator.generateAndProtectMessage(
+                            PkiMessageGenerator.buildForwardingHeaderProvider(in),
+                            protector,
+                            in.getBody(),
+                            issuingChain));
+                }
+                final CMPCertificate[] extraCerts = Stream.concat(
+                                Arrays.stream(defaultIfNull(in.getExtraCerts(), EMPTY_CERTIFCATE_ARRAY)),
+                                defaultIfNull(issuingChain, Collections.emptyList()).stream())
+                        .distinct()
+                        .toArray(CMPCertificate[]::new);
 
-            return stripRedundantExtraCerts(new PKIMessage(in.getHeader(),
-                    in.getBody(), in.getProtection(), extraCerts));
-        default:
-            throw new IllegalArgumentException(
-                    "internal error: invalid reprotectMode mode");
+                return stripRedundantExtraCerts(
+                        new PKIMessage(in.getHeader(), in.getBody(), in.getProtection(), extraCerts));
+            default:
+                throw new IllegalArgumentException("internal error: invalid reprotectMode mode");
         }
     }
 }

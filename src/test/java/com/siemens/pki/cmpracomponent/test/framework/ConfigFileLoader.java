@@ -24,14 +24,15 @@ import java.io.InputStream;
 
 /**
  * load configuration files in different runtime environments
- *
  */
 public class ConfigFileLoader {
 
     private static File fileBase = null;
 
-    public static InputStream getConfigFileAsStream(
-            final String nameOfConfigFile) throws IOException {
+    // utility class
+    private ConfigFileLoader() {}
+
+    public static InputStream getConfigFileAsStream(final String nameOfConfigFile) throws IOException {
         final File configFile = new File(nameOfConfigFile);
         if (configFile.isAbsolute()) {
             return new FileInputStream(configFile);
@@ -42,10 +43,4 @@ public class ConfigFileLoader {
     public static void setConfigFileBase(final File fileBase) {
         ConfigFileLoader.fileBase = fileBase;
     }
-
-    // utility class
-    private ConfigFileLoader() {
-
-    }
-
 }

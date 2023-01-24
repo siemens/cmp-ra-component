@@ -17,21 +17,18 @@
  */
 package com.siemens.pki.cmpracomponent.msgvalidation;
 
-import java.util.Collection;
-import java.util.function.BiFunction;
-import java.util.function.BiPredicate;
-
-import org.bouncycastle.asn1.cmp.PKIFailureInfo;
-import org.bouncycastle.asn1.cmp.PKIMessage;
-
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import com.siemens.pki.cmpracomponent.util.NullUtil.ExFunction;
+import java.util.Collection;
+import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
+import org.bouncycastle.asn1.cmp.PKIFailureInfo;
+import org.bouncycastle.asn1.cmp.PKIMessage;
 
 /**
  * validator for an incoming message
- *
  */
 public class InputValidator implements ValidatorIF<PersistencyContext> {
 
@@ -42,21 +39,17 @@ public class InputValidator implements ValidatorIF<PersistencyContext> {
     private final ExFunction<byte[], PersistencyContext, Exception> persistencyContextCreator;
 
     /**
-     *
-     * @param interfaceName
-     *            name of the attached interface used for logging
-     * @param config
-     *            specific configuration
-     * @param isRaVerifiedAcceptable
-     *            should raVerified accepted for POPO?
-     * @param supportedMessageTypes
-     *            acceptable CMP message types
-     * @param persistencyContextCreator
-     *            function to (re-)create a {@link PersistencyContext} out of a
-     *            transaction id
-     *
+     * @param interfaceName             name of the attached interface used for
+     *                                  logging
+     * @param config                    specific configuration
+     * @param isRaVerifiedAcceptable    should raVerified accepted for POPO?
+     * @param supportedMessageTypes     acceptable CMP message types
+     * @param persistencyContextCreator function to (re-)create a
+     *                                  {@link PersistencyContext} out of a
+     *                                  transaction id
      */
-    public InputValidator(final String interfaceName,
+    public InputValidator(
+            final String interfaceName,
             final BiFunction<String, Integer, CmpMessageInterface> config,
             final BiPredicate<String, Integer> isRaVerifiedAcceptable,
             final Collection<Integer> supportedMessageTypes,
@@ -73,35 +66,28 @@ public class InputValidator implements ValidatorIF<PersistencyContext> {
      * validate a message according to the given configuration and acceptable
      * message types
      *
-     * @param in
-     *            message to validate
-     * @throws CmpProcessingException
-     *             if validation failed
+     * @param in message to validate
+     * @throws CmpProcessingException if validation failed
      */
     @Override
-    public PersistencyContext validate(final PKIMessage in)
-            throws BaseCmpException {
+    public PersistencyContext validate(final PKIMessage in) throws BaseCmpException {
         if (!supportedMessageTypes.contains(in.getBody().getType())) {
-            throw new CmpValidationException(interfaceName,
+            throw new CmpValidationException(
+                    interfaceName,
                     PKIFailureInfo.badMessageCheck,
-                    "message " + MessageDumper.msgTypeAsString(in)
-                            + " not supported ");
+                    "message " + MessageDumper.msgTypeAsString(in) + " not supported ");
         }
-        String certProfile =
-                new MessageHeaderValidator(interfaceName).validate(in);
+        String certProfile = new MessageHeaderValidator(interfaceName).validate(in);
         try {
-            final PersistencyContext persistencyContext =
-                    persistencyContextCreator.apply(
-                            in.getHeader().getTransactionID().getOctets());
+            final PersistencyContext persistencyContext = persistencyContextCreator.apply(
+                    in.getHeader().getTransactionID().getOctets());
             persistencyContext.setCertProfile(certProfile);
             certProfile = persistencyContext.getCertProfile();
             final CmpMessageInterface cmpInterface =
                     config.apply(certProfile, in.getBody().getType());
-            new MessageBodyValidator(interfaceName, isRaVerifiedAcceptable,
-                    cmpInterface, certProfile).validate(in);
+            new MessageBodyValidator(interfaceName, isRaVerifiedAcceptable, cmpInterface, certProfile).validate(in);
             final ProtectionValidator protectionValidator =
-                    new ProtectionValidator(interfaceName,
-                            cmpInterface.getInputVerification());
+                    new ProtectionValidator(interfaceName, cmpInterface.getInputVerification());
             protectionValidator.validate(in);
             return persistencyContext;
         } catch (final BaseCmpException ce) {

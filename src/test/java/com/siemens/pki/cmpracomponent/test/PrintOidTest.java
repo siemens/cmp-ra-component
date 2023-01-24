@@ -17,11 +17,10 @@
  */
 package com.siemens.pki.cmpracomponent.test;
 
-import org.bouncycastle.asn1.ASN1ObjectIdentifier;
-import org.junit.Ignore;
-
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import com.siemens.pki.cmpracomponent.util.MessageDumper.OidDescription;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.junit.Ignore;
 
 public class PrintOidTest {
     /**
@@ -31,32 +30,29 @@ public class PrintOidTest {
     @Ignore
     public void test() {
         final String[] oidStrings = new String[] {
-                //
-                "1.3.6.1.5.5.7.4.22",
-                //
-                "1.3.132.1.11.0",
-                //
-                "1.3.132.1.11.1",
-                //
-                "1.3.132.1.14.0",
-                //
-                "1.3.132.1.15.0",
-                //
-                "1.2.840.10045.3.1.1",
-                //
-                "1.3.132.0.33",
-                //
-                "1.3.101.111",
-                //
-                "2.16.840.1.101.3.4.1.5"
-
+            //
+            "1.3.6.1.5.5.7.4.22",
+            //
+            "1.3.132.1.11.0",
+            //
+            "1.3.132.1.11.1",
+            //
+            "1.3.132.1.14.0",
+            //
+            "1.3.132.1.15.0",
+            //
+            "1.2.840.10045.3.1.1",
+            //
+            "1.3.132.0.33",
+            //
+            "1.3.101.111",
+            //
+            "2.16.840.1.101.3.4.1.5"
         };
         for (final String str : oidStrings) {
-            final OidDescription oidDescriptionForOid = MessageDumper
-                    .getOidDescriptionForOid(new ASN1ObjectIdentifier(str));
-            System.out.println(oidDescriptionForOid.toString() + "->"
-                    + oidDescriptionForOid.getBcDeclaration());
+            final OidDescription oidDescriptionForOid =
+                    MessageDumper.getOidDescriptionForOid(new ASN1ObjectIdentifier(str));
+            System.out.println(oidDescriptionForOid + "->" + oidDescriptionForOid.getBcDeclaration());
         }
     }
-
 }

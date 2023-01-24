@@ -19,23 +19,21 @@ package com.siemens.pki.cmpracomponent.test;
 
 import static org.junit.Assert.assertEquals;
 
-import org.bouncycastle.asn1.cmp.PKIBody;
-import org.bouncycastle.asn1.cmp.PKIMessage;
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
 import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
 import com.siemens.pki.cmpracomponent.test.framework.EnrollmentResult;
 import com.siemens.pki.cmpracomponent.test.framework.HeaderProviderForTest;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
+import org.bouncycastle.asn1.cmp.PKIBody;
+import org.bouncycastle.asn1.cmp.PKIMessage;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TestSignaturebasedRr extends SignatureEnrollmentTestcaseBase {
 
-    private static final Logger LOGGER =
-            LoggerFactory.getLogger(TestSignaturebasedRr.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(TestSignaturebasedRr.class);
 
     /**
      * Revoking a Certificate
@@ -44,19 +42,17 @@ public class TestSignaturebasedRr extends SignatureEnrollmentTestcaseBase {
      */
     @Test
     public void testRr() throws Exception {
-        final EnrollmentResult certificateToRevoke =
-                executeCrmfCertificateRequest(PKIBody.TYPE_CERT_REQ,
-                        PKIBody.TYPE_CERT_REP,
-                        ConfigurationFactory
-                                .getEeSignaturebasedProtectionProvider(),
-                        getEeClient());
+        final EnrollmentResult certificateToRevoke = executeCrmfCertificateRequest(
+                PKIBody.TYPE_CERT_REQ,
+                PKIBody.TYPE_CERT_REP,
+                ConfigurationFactory.getEeSignaturebasedProtectionProvider(),
+                getEeClient());
         final ProtectionProvider rrProtector = getEnrollmentCredentials()
-                .setEndEntityToProtect(certificateToRevoke.getCertificate(),
-                        certificateToRevoke.getPrivateKey());
+                .setEndEntityToProtect(certificateToRevoke.getCertificate(), certificateToRevoke.getPrivateKey());
         final PKIMessage rr = PkiMessageGenerator.generateAndProtectMessage(
-                new HeaderProviderForTest("certProfileForRr"), rrProtector,
-                PkiMessageGenerator
-                        .generateRrBody(certificateToRevoke.getCertificate()));
+                new HeaderProviderForTest("certProfileForRr"),
+                rrProtector,
+                PkiMessageGenerator.generateRrBody(certificateToRevoke.getCertificate()));
         if (LOGGER.isDebugEnabled()) {
             // avoid unnecessary string processing, if debug isn't enabled
             LOGGER.debug("send:\n" + MessageDumper.dumpPkiMessage(rr));
@@ -66,8 +62,9 @@ public class TestSignaturebasedRr extends SignatureEnrollmentTestcaseBase {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("got:\n" + MessageDumper.dumpPkiMessage(rrResponse));
         }
-        assertEquals("message type", PKIBody.TYPE_REVOCATION_REP,
+        assertEquals(
+                "message type",
+                PKIBody.TYPE_REVOCATION_REP,
                 rrResponse.getBody().getType());
-
     }
 }

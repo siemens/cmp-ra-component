@@ -19,10 +19,16 @@ package com.siemens.pki.cmpracomponent.test;
 
 import static org.junit.Assert.assertEquals;
 
+import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
+import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
+import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
+import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
+import com.siemens.pki.cmpracomponent.test.framework.EnrollmentResult;
+import com.siemens.pki.cmpracomponent.test.framework.HeaderProviderForTest;
+import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.util.function.Function;
-
 import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.CertRepMessage;
 import org.bouncycastle.asn1.cmp.PKIBody;
@@ -37,37 +43,27 @@ import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
-import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
-import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
-import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
-import com.siemens.pki.cmpracomponent.test.framework.EnrollmentResult;
-import com.siemens.pki.cmpracomponent.test.framework.HeaderProviderForTest;
-import com.siemens.pki.cmpracomponent.util.MessageDumper;
-
 public class OnlineEnrollmentTestcaseBase extends EnrollmentTestcaseBase {
 
-    private static final Logger LOGGER =
-            LoggerFactory.getLogger(OnlineEnrollmentTestcaseBase.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(OnlineEnrollmentTestcaseBase.class);
 
-    static public EnrollmentResult executeCrmfCertificateRequest(
+    public static EnrollmentResult executeCrmfCertificateRequest(
             final int requestMesssageType,
             final int expectedResponseMessageType,
             final ProtectionProvider protectionProvider,
-            final Function<PKIMessage, PKIMessage> cmpClient) throws Exception {
-        final KeyPair keyPair =
-                ConfigurationFactory.getKeyGenerator().generateKeyPair();
+            final Function<PKIMessage, PKIMessage> cmpClient)
+            throws Exception {
+        final KeyPair keyPair = ConfigurationFactory.getKeyGenerator().generateKeyPair();
         final CertTemplateBuilder ctb = new CertTemplateBuilder()
-                .setPublicKey(SubjectPublicKeyInfo
-                        .getInstance(keyPair.getPublic().getEncoded()))
+                .setPublicKey(
+                        SubjectPublicKeyInfo.getInstance(keyPair.getPublic().getEncoded()))
                 .setSubject(new X500Name("CN=Subject"));
 
-        final PKIBody crBody = PkiMessageGenerator.generateIrCrKurBody(
-                requestMesssageType, ctb.build(), null, keyPair.getPrivate());
+        final PKIBody crBody =
+                PkiMessageGenerator.generateIrCrKurBody(requestMesssageType, ctb.build(), null, keyPair.getPrivate());
 
         final PKIMessage cr = PkiMessageGenerator.generateAndProtectMessage(
-                new HeaderProviderForTest("theCertProfileForOnlineEnrollment"),
-                protectionProvider, crBody);
+                new HeaderProviderForTest("theCertProfileForOnlineEnrollment"), protectionProvider, crBody);
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("send:\n" + MessageDumper.dumpPkiMessage(cr));
         }
@@ -77,19 +73,22 @@ public class OnlineEnrollmentTestcaseBase extends EnrollmentTestcaseBase {
             // avoid unnecessary string processing, if debug isn't enabled
             LOGGER.debug("got:\n" + MessageDumper.dumpPkiMessage(crResponse));
         }
-        assertEquals("message type", expectedResponseMessageType,
+        assertEquals(
+                "message type",
+                expectedResponseMessageType,
                 crResponse.getBody().getType());
 
-        final CMPCertificate enrolledCertificate =
-                ((CertRepMessage) crResponse.getBody().getContent())
-                        .getResponse()[0].getCertifiedKeyPair()
-                                .getCertOrEncCert().getCertificate();
+        final CMPCertificate enrolledCertificate = ((CertRepMessage)
+                        crResponse.getBody().getContent())
+                .getResponse()[0]
+                .getCertifiedKeyPair()
+                .getCertOrEncCert()
+                .getCertificate();
 
-        final PKIMessage certConf =
-                PkiMessageGenerator.generateAndProtectMessage(
-                        new HeaderProviderForTest(crResponse.getHeader()),
-                        protectionProvider, PkiMessageGenerator
-                                .generateCertConfBody(enrolledCertificate));
+        final PKIMessage certConf = PkiMessageGenerator.generateAndProtectMessage(
+                new HeaderProviderForTest(crResponse.getHeader()),
+                protectionProvider,
+                PkiMessageGenerator.generateCertConfBody(enrolledCertificate));
 
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("send:\n" + MessageDumper.dumpPkiMessage(certConf));
@@ -99,31 +98,24 @@ public class OnlineEnrollmentTestcaseBase extends EnrollmentTestcaseBase {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("got:\n" + MessageDumper.dumpPkiMessage(pkiConf));
         }
-        assertEquals("message type", PKIBody.TYPE_CONFIRM,
-                pkiConf.getBody().getType());
+        assertEquals("message type", PKIBody.TYPE_CONFIRM, pkiConf.getBody().getType());
 
         return new EnrollmentResult(enrolledCertificate, keyPair.getPrivate());
     }
 
-    static public EnrollmentResult executeP10CertificateRequest(
-            final ProtectionProvider protectionProvider,
-            final Function<PKIMessage, PKIMessage> cmpClient) throws Exception {
-        final KeyPair keyPair =
-                ConfigurationFactory.getKeyGenerator().generateKeyPair();
+    public static EnrollmentResult executeP10CertificateRequest(
+            final ProtectionProvider protectionProvider, final Function<PKIMessage, PKIMessage> cmpClient)
+            throws Exception {
+        final KeyPair keyPair = ConfigurationFactory.getKeyGenerator().generateKeyPair();
         final JcaPKCS10CertificationRequestBuilder p10Builder =
-                new JcaPKCS10CertificationRequestBuilder(
-                        new X500Name("CN=Subject"), keyPair.getPublic());
+                new JcaPKCS10CertificationRequestBuilder(new X500Name("CN=Subject"), keyPair.getPublic());
         final PrivateKey privateKey = keyPair.getPrivate();
-        final ContentSigner signer = new JcaContentSignerBuilder(
-                AlgorithmHelper.getSigningAlgNameFromKey(privateKey))
-                        .build(privateKey);
+        final ContentSigner signer =
+                new JcaContentSignerBuilder(AlgorithmHelper.getSigningAlgNameFromKey(privateKey)).build(privateKey);
         final PKCS10CertificationRequest p10Request = p10Builder.build(signer);
-        final PKIBody p10Body = new PKIBody(PKIBody.TYPE_P10_CERT_REQ,
-                p10Request.toASN1Structure());
+        final PKIBody p10Body = new PKIBody(PKIBody.TYPE_P10_CERT_REQ, p10Request.toASN1Structure());
         final PKIMessage cr = PkiMessageGenerator.generateAndProtectMessage(
-                new HeaderProviderForTest(
-                        "certProfileForP10CertificateRequest"),
-                protectionProvider, p10Body);
+                new HeaderProviderForTest("certProfileForP10CertificateRequest"), protectionProvider, p10Body);
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("send:\n" + MessageDumper.dumpPkiMessage(cr));
         }
@@ -133,19 +125,19 @@ public class OnlineEnrollmentTestcaseBase extends EnrollmentTestcaseBase {
             LOGGER.debug("got:\n" + MessageDumper.dumpPkiMessage(crResponse));
         }
 
-        assertEquals("message type", PKIBody.TYPE_CERT_REP,
-                crResponse.getBody().getType());
+        assertEquals("message type", PKIBody.TYPE_CERT_REP, crResponse.getBody().getType());
 
-        final CMPCertificate enrolledCertificate =
-                ((CertRepMessage) crResponse.getBody().getContent())
-                        .getResponse()[0].getCertifiedKeyPair()
-                                .getCertOrEncCert().getCertificate();
+        final CMPCertificate enrolledCertificate = ((CertRepMessage)
+                        crResponse.getBody().getContent())
+                .getResponse()[0]
+                .getCertifiedKeyPair()
+                .getCertOrEncCert()
+                .getCertificate();
 
-        final PKIMessage certConf =
-                PkiMessageGenerator.generateAndProtectMessage(
-                        new HeaderProviderForTest(crResponse.getHeader()),
-                        protectionProvider, PkiMessageGenerator
-                                .generateCertConfBody(enrolledCertificate));
+        final PKIMessage certConf = PkiMessageGenerator.generateAndProtectMessage(
+                new HeaderProviderForTest(crResponse.getHeader()),
+                protectionProvider,
+                PkiMessageGenerator.generateCertConfBody(enrolledCertificate));
 
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("send:\n" + MessageDumper.dumpPkiMessage(certConf));
@@ -155,8 +147,7 @@ public class OnlineEnrollmentTestcaseBase extends EnrollmentTestcaseBase {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("got:\n" + MessageDumper.dumpPkiMessage(pkiConf));
         }
-        assertEquals("message type", PKIBody.TYPE_CONFIRM,
-                pkiConf.getBody().getType());
+        assertEquals("message type", PKIBody.TYPE_CONFIRM, pkiConf.getBody().getType());
 
         return new EnrollmentResult(enrolledCertificate, privateKey);
     }

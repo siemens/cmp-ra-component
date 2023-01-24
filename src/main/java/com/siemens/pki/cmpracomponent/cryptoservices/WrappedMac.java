@@ -19,18 +19,14 @@ package com.siemens.pki.cmpracomponent.cryptoservices;
 
 /**
  * interface for all the different MACs
- *
- *
  */
 public interface WrappedMac {
 
     /**
      * calculate a MAC over the in bytes
      *
-     * @param in
-     *            input
+     * @param in input
      * @return calculated MAC
      */
     byte[] calculateMac(byte[] in);
-
 }

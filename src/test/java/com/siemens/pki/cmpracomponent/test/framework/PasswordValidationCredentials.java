@@ -30,5 +30,4 @@ public class PasswordValidationCredentials implements VerificationContext {
     public byte[] getSharedSecret(final byte[] senderKID) {
         return sharedSecret;
     }
-
 }

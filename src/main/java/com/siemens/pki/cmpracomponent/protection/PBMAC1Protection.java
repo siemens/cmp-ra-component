@@ -17,65 +17,54 @@
  */
 package com.siemens.pki.cmpracomponent.protection;
 
+import com.siemens.pki.cmpracomponent.configuration.SharedSecretCredentialContext;
+import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
+import com.siemens.pki.cmpracomponent.cryptoservices.WrappedMac;
+import com.siemens.pki.cmpracomponent.cryptoservices.WrappedMacFactory;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
-
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
-
 import org.bouncycastle.asn1.pkcs.PBKDF2Params;
 import org.bouncycastle.asn1.pkcs.PBMAC1Params;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 
-import com.siemens.pki.cmpracomponent.configuration.SharedSecretCredentialContext;
-import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
-import com.siemens.pki.cmpracomponent.cryptoservices.WrappedMac;
-import com.siemens.pki.cmpracomponent.cryptoservices.WrappedMacFactory;
-
 /**
- * a {@link ProtectionProvider} enforcing a CMP message with PBMAC1
- * protection
+ * a {@link ProtectionProvider} enforcing a CMP message with PBMAC1 protection
  */
 public class PBMAC1Protection extends MacProtection {
 
     /**
-     *
-     * @param config
-     *            specific configuration
-     * @throws InvalidKeySpecException
-     *             in case of internal error
-     * @throws NoSuchAlgorithmException
-     *             in case of unsupported algorithm
-     * @throws InvalidKeyException
-     *             in case of internal error
+     * @param config specific configuration
+     * @throws InvalidKeySpecException  in case of internal error
+     * @throws NoSuchAlgorithmException in case of unsupported algorithm
+     * @throws InvalidKeyException      in case of internal error
      */
     public PBMAC1Protection(final SharedSecretCredentialContext config)
-            throws InvalidKeySpecException, InvalidKeyException,
-            NoSuchAlgorithmException {
+            throws InvalidKeySpecException, InvalidKeyException, NoSuchAlgorithmException {
         super(config);
         final byte[] salt = config.getSalt();
         final AlgorithmIdentifier prfAlgorithm =
                 AlgorithmHelper.getPrf(config.getPrf()).getAlgorithmID();
         final int keyLength = config.getkeyLength();
         final AlgorithmIdentifier keyDerivationFunc = new AlgorithmIdentifier(
-                PKCSObjectIdentifiers.id_PBKDF2, new PBKDF2Params(salt,
-                        config.getIterationCount(), keyLength, prfAlgorithm));
-        final SecretKeyFactory keyFact = AlgorithmHelper
-                .getSecretKeyFactory(prfAlgorithm.getAlgorithm().getId());
+                PKCSObjectIdentifiers.id_PBKDF2,
+                new PBKDF2Params(salt, config.getIterationCount(), keyLength, prfAlgorithm));
+        final SecretKeyFactory keyFact =
+                AlgorithmHelper.getSecretKeyFactory(prfAlgorithm.getAlgorithm().getId());
         final SecretKey key = keyFact.generateSecret(new PBEKeySpec(
-                AlgorithmHelper.convertSharedSecretToPassword(
-                        config.getSharedSecret()),
-                salt, config.getIterationCount(), keyLength));
-        final AlgorithmIdentifier messageAuthScheme = new AlgorithmIdentifier(
-                AlgorithmHelper.getOidForMac(config.getMacAlgorithm()));
-        final AlgorithmIdentifier protectionAlg =
-                new AlgorithmIdentifier(PKCSObjectIdentifiers.id_PBMAC1,
-                        new PBMAC1Params(keyDerivationFunc, messageAuthScheme));
-        final WrappedMac wrappedMac = WrappedMacFactory
-                .createWrappedMac(messageAuthScheme, key.getEncoded());
+                AlgorithmHelper.convertSharedSecretToPassword(config.getSharedSecret()),
+                salt,
+                config.getIterationCount(),
+                keyLength));
+        final AlgorithmIdentifier messageAuthScheme =
+                new AlgorithmIdentifier(AlgorithmHelper.getOidForMac(config.getMacAlgorithm()));
+        final AlgorithmIdentifier protectionAlg = new AlgorithmIdentifier(
+                PKCSObjectIdentifiers.id_PBMAC1, new PBMAC1Params(keyDerivationFunc, messageAuthScheme));
+        final WrappedMac wrappedMac = WrappedMacFactory.createWrappedMac(messageAuthScheme, key.getEncoded());
         init(protectionAlg, wrappedMac);
     }
 }

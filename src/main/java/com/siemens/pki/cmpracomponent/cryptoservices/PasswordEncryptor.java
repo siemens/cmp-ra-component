@@ -17,63 +17,46 @@
  */
 package com.siemens.pki.cmpracomponent.cryptoservices;
 
-import java.security.NoSuchAlgorithmException;
-
-import org.bouncycastle.asn1.cmp.PKIFailureInfo;
-import org.bouncycastle.cms.PasswordRecipient;
-import org.bouncycastle.cms.jcajce.JcePasswordRecipientInfoGenerator;
-
 import com.siemens.pki.cmpracomponent.configuration.CkgContext;
 import com.siemens.pki.cmpracomponent.configuration.CkgPasswordContext;
 import com.siemens.pki.cmpracomponent.configuration.SharedSecretCredentialContext;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpEnrollmentException;
+import java.security.NoSuchAlgorithmException;
+import org.bouncycastle.asn1.cmp.PKIFailureInfo;
+import org.bouncycastle.cms.PasswordRecipient;
+import org.bouncycastle.cms.jcajce.JcePasswordRecipientInfoGenerator;
 
 /**
  * encryptor which uses the the MAC protected key management technique for
  * encryption
- *
  */
 public class PasswordEncryptor extends CmsEncryptorBase {
 
     /**
-     *
-     * @param config
-     *            specific configuration
-     * @param interfaceName
-     *            CMP interface name for logging
-     * @param initialRequestType
-     *            type of initial request (cr, ir, kur)
-     * @throws NoSuchAlgorithmException
-     *             if KEK in config is unknown
-     * @throws CmpEnrollmentException
-     *             if configuration is missing
+     * @param config             specific configuration
+     * @param interfaceName      CMP interface name for logging
+     * @param initialRequestType type of initial request (cr, ir, kur)
+     * @throws NoSuchAlgorithmException if KEK in config is unknown
+     * @throws CmpEnrollmentException   if configuration is missing
      */
-    public PasswordEncryptor(final CkgContext config,
-            final int initialRequestType, final String interfaceName)
+    public PasswordEncryptor(final CkgContext config, final int initialRequestType, final String interfaceName)
             throws NoSuchAlgorithmException, CmpEnrollmentException {
         super(config);
         final CkgPasswordContext passwordContext = config.getPasswordContext();
         if (passwordContext == null) {
-            throw new CmpEnrollmentException(initialRequestType, interfaceName,
+            throw new CmpEnrollmentException(
+                    initialRequestType,
+                    interfaceName,
                     PKIFailureInfo.notAuthorized,
                     "support for key management technique Password-Based is not configured for central key generation");
         }
-        final SharedSecretCredentialContext encryptionCredentials =
-                passwordContext.getEncryptionCredentials();
+        final SharedSecretCredentialContext encryptionCredentials = passwordContext.getEncryptionCredentials();
         addRecipientInfoGenerator(new JcePasswordRecipientInfoGenerator(
-                AlgorithmHelper
-                        .getKeyEncryptionOID(passwordContext.getKekAlg()),
-                AlgorithmHelper.convertSharedSecretToPassword(
-                        encryptionCredentials.getSharedSecret()))
-                                .setProvider(
-                                        CertUtility.getBouncyCastleProvider())
-                                .setPasswordConversionScheme(
-                                        PasswordRecipient.PKCS5_SCHEME2_UTF8)
-                                .setPRF(AlgorithmHelper
-                                        .getPrf(encryptionCredentials.getPrf()))
-                                .setSaltAndIterationCount(
-                                        encryptionCredentials.getSalt(),
-                                        encryptionCredentials
-                                                .getIterationCount()));
+                        AlgorithmHelper.getKeyEncryptionOID(passwordContext.getKekAlg()),
+                        AlgorithmHelper.convertSharedSecretToPassword(encryptionCredentials.getSharedSecret()))
+                .setProvider(CertUtility.getBouncyCastleProvider())
+                .setPasswordConversionScheme(PasswordRecipient.PKCS5_SCHEME2_UTF8)
+                .setPRF(AlgorithmHelper.getPrf(encryptionCredentials.getPrf()))
+                .setSaltAndIterationCount(encryptionCredentials.getSalt(), encryptionCredentials.getIterationCount()));
     }
 }

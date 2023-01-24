@@ -23,50 +23,43 @@ import java.security.cert.X509Certificate;
  * support message handler supporting Get root CA certificate update genm
  * requests
  */
-public interface GetRootCaCertificateUpdateHandler
-        extends SupportMessageHandlerInterface {
-
-    public interface RootCaCertificateUpdateResponse {
-        /**
-         * return the new root CA certificate
-         *
-         * @return the new root CA certificate or <code>null</code> if the
-         *         infoValue should be absent
-         */
-        X509Certificate getNewWithNew();
-
-        /**
-         * return a certificate containing the new public
-         * root CA key signed with the old private root CA key
-         *
-         * @return a certificate containing the new public
-         *         root CA key signed with the old private root CA key or
-         *         <code>null</code> if absent
-         */
-        X509Certificate getNewWithOld();
-
-        /**
-         * return a certificate containing the old public
-         * root CA key signed with the new private root CA key
-         *
-         * @return a certificate containing the old public
-         *         root CA key signed with the new private root CA key or
-         *         <code>null</code> if absent
-         */
-        X509Certificate getOldWithNew();
-    }
+public interface GetRootCaCertificateUpdateHandler extends SupportMessageHandlerInterface {
 
     /**
      * handle an Get root CA certificate update GENM and return certificates to
      * build the related GENP response
      *
-     * @param oldRootCaCertificate
-     *            the old root CA certificate
-     *
+     * @param oldRootCaCertificate the old root CA certificate
      * @return certificates to be returned or <code>null</code> if the returned
      *         infoValue should be absent
      */
-    RootCaCertificateUpdateResponse getRootCaCertificateUpdate(
-            X509Certificate oldRootCaCertificate);
+    RootCaCertificateUpdateResponse getRootCaCertificateUpdate(X509Certificate oldRootCaCertificate);
 
+    interface RootCaCertificateUpdateResponse {
+        /**
+         * return the new root CA certificate
+         *
+         * @return the new root CA certificate or <code>null</code> if the infoValue
+         *         should be absent
+         */
+        X509Certificate getNewWithNew();
+
+        /**
+         * return a certificate containing the new public root CA key signed with the
+         * old private root CA key
+         *
+         * @return a certificate containing the new public root CA key signed with the
+         *         old private root CA key or <code>null</code> if absent
+         */
+        X509Certificate getNewWithOld();
+
+        /**
+         * return a certificate containing the old public root CA key signed with the
+         * new private root CA key
+         *
+         * @return a certificate containing the old public root CA key signed with the
+         *         new private root CA key or <code>null</code> if absent
+         */
+        X509Certificate getOldWithNew();
+    }
 }

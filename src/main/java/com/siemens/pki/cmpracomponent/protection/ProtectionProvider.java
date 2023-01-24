@@ -18,7 +18,6 @@
 package com.siemens.pki.cmpracomponent.protection;
 
 import java.util.List;
-
 import org.bouncycastle.asn1.DERBitString;
 import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.cmp.CMPCertificate;
@@ -29,7 +28,6 @@ import org.bouncycastle.asn1.x509.GeneralName;
 
 /**
  * Implementations can control protection of a new generated CMP message
- *
  */
 public interface ProtectionProvider {
 
@@ -37,8 +35,7 @@ public interface ProtectionProvider {
 
     /**
      * @return extra certs used for protection
-     * @throws Exception
-     *             in case of error
+     * @throws Exception in case of error
      */
     List<CMPCertificate> getProtectingExtraCerts() throws Exception;
 
@@ -50,11 +47,9 @@ public interface ProtectionProvider {
     /**
      * build {@link PKIMessage} protection string
      *
-     * @param protectedPart
-     *            message part covered by protection
+     * @param protectedPart message part covered by protection
      * @return the protection string
-     * @throws Exception
-     *             in case of error
+     * @throws Exception in case of error
      */
     DERBitString getProtectionFor(ProtectedPart protectedPart) throws Exception;
 
@@ -67,5 +62,4 @@ public interface ProtectionProvider {
      * @return sender KID to use for protected message
      */
     DEROctetString getSenderKID();
-
 }

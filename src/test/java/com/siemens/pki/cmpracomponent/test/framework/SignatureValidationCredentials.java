@@ -17,26 +17,22 @@
  */
 package com.siemens.pki.cmpracomponent.test.framework;
 
+import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
-
 public class SignatureValidationCredentials implements VerificationContext {
 
     private final Set<X509Certificate> trust = new HashSet<>();
-    private final Set<X509Certificate> intermeditateCertificates =
-            new HashSet<>();
+    private final Set<X509Certificate> intermeditateCertificates = new HashSet<>();
 
-    public SignatureValidationCredentials(final String keyStoreFileName,
-            final char[] password) {
+    public SignatureValidationCredentials(final String keyStoreFileName, final char[] password) {
         Set<X509Certificate> trustedCertificates;
         try {
             trustedCertificates = TestCertUtility.loadCertificatesFromKeystore(
-                    TestCertUtility.loadTruststoreFromFile(keyStoreFileName,
-                            password));
+                    TestCertUtility.loadTruststoreFromFile(keyStoreFileName, password));
             for (final X509Certificate aktCert : trustedCertificates) {
                 if (TestCertUtility.isSelfSigned(aktCert)) {
                     trust.add(aktCert);
@@ -58,5 +54,4 @@ public class SignatureValidationCredentials implements VerificationContext {
     public Collection<X509Certificate> getTrustedCertificates() {
         return trust;
     }
-
 }

@@ -22,41 +22,35 @@ import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.ECGenParameterSpec;
-
 import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.crypto.ec.CustomNamedCurves;
 import org.bouncycastle.jce.spec.ECParameterSpec;
 
 /**
  * helper class for generation of {@link KeyPairGenerator}s
- *
  */
 public class KeyPairGeneratorFactory {
     private static final SecureRandom RANDOM = new SecureRandom();
 
+    private KeyPairGeneratorFactory() {}
+
     /**
      * Generate ECDSA key pair generator for the requested curve.
      *
-     * @param curve
-     *            the name of the EC curve requested
-     *
+     * @param curve the name of the EC curve requested
      * @return the generated key pair generator
-     *
-     * @throws GeneralSecurityException
-     *             if key pair generator generation failed
+     * @throws GeneralSecurityException if key pair generator generation failed
      */
-    public static KeyPairGenerator getEcKeyPairGenerator(final String curve)
-            throws GeneralSecurityException {
-        final KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC",
-                CertUtility.getBouncyCastleProvider());
+    public static KeyPairGenerator getEcKeyPairGenerator(final String curve) throws GeneralSecurityException {
+        final KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC", CertUtility.getBouncyCastleProvider());
         try {
             final ECGenParameterSpec ecSpec = new ECGenParameterSpec(curve);
             keyGen.initialize(ecSpec, RANDOM);
         } catch (final IllegalArgumentException exception) {
             // we try to get the EC parameters by name
             final X9ECParameters ecP = CustomNamedCurves.getByName(curve);
-            final ECParameterSpec ecSpec = new ECParameterSpec(ecP.getCurve(),
-                    ecP.getG(), ecP.getN(), ecP.getH(), ecP.getSeed());
+            final ECParameterSpec ecSpec =
+                    new ECParameterSpec(ecP.getCurve(), ecP.getG(), ecP.getN(), ecP.getH(), ecP.getSeed());
             keyGen.initialize(ecSpec, RANDOM);
         }
         return keyGen;
@@ -65,38 +59,24 @@ public class KeyPairGeneratorFactory {
     /**
      * Generate EdDSA key pair generator for the requested curve.
      *
-     * @param keyType
-     *            type of EdDSA key, "Ed25519" or "Ed448"
-     *
+     * @param keyType type of EdDSA key, "Ed25519" or "Ed448"
      * @return the generated key pair generator
-     *
-     * @throws GeneralSecurityException
-     *             if key pair generator generation failed
+     * @throws GeneralSecurityException if key pair generator generation failed
      */
-    public static KeyPairGenerator getEdDsaKeyPairGenerator(
-            final String keyType) throws GeneralSecurityException {
-        return KeyPairGenerator.getInstance(keyType,
-                CertUtility.getBouncyCastleProvider());
+    public static KeyPairGenerator getEdDsaKeyPairGenerator(final String keyType) throws GeneralSecurityException {
+        return KeyPairGenerator.getInstance(keyType, CertUtility.getBouncyCastleProvider());
     }
 
     /**
      * generate RSA key pair generator
      *
-     * @param keyLength
-     *            length of generated keys
+     * @param keyLength length of generated keys
      * @return generated KeyPairGenerator
-     * @throws NoSuchAlgorithmException
-     *             if RSA is not supported
+     * @throws NoSuchAlgorithmException if RSA is not supported
      */
-    public static KeyPairGenerator getRsaKeyPairGenerator(final int keyLength)
-            throws NoSuchAlgorithmException {
+    public static KeyPairGenerator getRsaKeyPairGenerator(final int keyLength) throws NoSuchAlgorithmException {
         final KeyPairGenerator keygen = KeyPairGenerator.getInstance("RSA");
         keygen.initialize(keyLength);
         return keygen;
     }
-
-    private KeyPairGeneratorFactory() {
-
-    }
-
 }

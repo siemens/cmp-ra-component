@@ -24,29 +24,13 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-
-import org.bouncycastle.asn1.ASN1Enumerated;
-import org.bouncycastle.asn1.ASN1GeneralizedTime;
-import org.bouncycastle.asn1.ASN1Object;
-import org.bouncycastle.asn1.ASN1ObjectIdentifier;
-import org.bouncycastle.asn1.ASN1Primitive;
+import org.bouncycastle.asn1.*;
 import org.bouncycastle.asn1.anssi.ANSSIObjectIdentifiers;
 import org.bouncycastle.asn1.bc.BCObjectIdentifiers;
 import org.bouncycastle.asn1.bsi.BSIObjectIdentifiers;
-import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
-import org.bouncycastle.asn1.cmp.PKIBody;
-import org.bouncycastle.asn1.cmp.PKIFreeText;
-import org.bouncycastle.asn1.cmp.PKIMessage;
-import org.bouncycastle.asn1.cmp.PKIStatus;
-import org.bouncycastle.asn1.cmp.PKIStatusInfo;
-import org.bouncycastle.asn1.cmp.PollRepContent;
+import org.bouncycastle.asn1.cmp.*;
 import org.bouncycastle.asn1.cms.CMSObjectIdentifiers;
 import org.bouncycastle.asn1.crmf.CRMFObjectIdentifiers;
 import org.bouncycastle.asn1.cryptopro.CryptoProObjectIdentifiers;
@@ -89,78 +73,9 @@ import org.slf4j.LoggerFactory;
  */
 public class MessageDumper {
 
-    /**
-     * OID Descriptor class
-     */
-    public static class OidDescription {
-        private final String id;
-        private final String declaringPackage;
-        private final ASN1ObjectIdentifier oid;
-        private final Class<?> declaringClass;
-
-        /**
-         * Constructor for OID Descriptor class
-         *
-         * @param declaringClass
-         *            declaring class of the OID
-         * @param id
-         *            ID
-         * @param oid
-         *            ASN.1 representation of the OID
-         */
-        public OidDescription(final Class<?> declaringClass, final String id,
-                final ASN1ObjectIdentifier oid) {
-            this.declaringPackage = ifNotNull(declaringClass,
-                    x -> x.getSimpleName().replace("ObjectIdentifiers", ""));
-            this.declaringClass = declaringClass;
-            this.id = id;
-            this.oid = oid;
-        }
-
-        public String getBcDeclaration() {
-            return ifNotNull(declaringClass, Class::getCanonicalName) + "."
-                    + id;
-        }
-
-        /**
-         * Get declaring package of the OID
-         *
-         * @return declaring package of the OID
-         */
-        public String getDeclaringPackage() {
-            return declaringPackage;
-        }
-
-        /**
-         * Get ID
-         *
-         * @return ID
-         */
-        public String getId() {
-            return id;
-        }
-
-        /**
-         * Get ASN.1 representation of the OID
-         *
-         * @return ASN.1 representation of the OID
-         */
-        public ASN1ObjectIdentifier getOid() {
-            return oid;
-        }
-
-        @Override
-        public String toString() {
-            return declaringPackage + "." + id + " (" + oid + ")";
-        }
-
-    }
-
-    private static final Logger LOGGER =
-            LoggerFactory.getLogger(MessageDumper.class);
-
-    private static final Map<Integer, String> TYPE_MAP =
-            new ConcurrentHashMap<>();
+    private static final Logger LOGGER = LoggerFactory.getLogger(MessageDumper.class);
+    private static final Map<Integer, String> TYPE_MAP = new ConcurrentHashMap<>();
+    private static Map<ASN1ObjectIdentifier, OidDescription> oidToKeyMap;
 
     static {
         // load symbolic names defined in PKIBody
@@ -169,8 +84,7 @@ public class MessageDumper {
                     && (aktField.getModifiers() & Modifier.STATIC) != 0
                     && aktField.getName().startsWith("TYPE_")) {
                 try {
-                    TYPE_MAP.put(aktField.getInt(null),
-                            aktField.getName().substring(5));
+                    TYPE_MAP.put(aktField.getInt(null), aktField.getName().substring(5));
                 } catch (IllegalArgumentException | IllegalAccessException e) {
                     LOGGER.error("error filling typemap", e);
                 }
@@ -178,16 +92,11 @@ public class MessageDumper {
         }
     }
 
-    private static Map<ASN1ObjectIdentifier, OidDescription> oidToKeyMap;
-
     /**
      * Dump an ASN1Object as string
      *
-     * @param object
-     *            the object to be dumped
-     *
+     * @param object the object to be dumped
      * @return string representation of the object
-     *
      */
     public static String dumpAsn1Object(final ASN1Object object) {
         if (object == null) {
@@ -205,17 +114,7 @@ public class MessageDumper {
     /**
      * Dump PKI message to a string.
      *
-     * @param msg
-     *            PKI message to be dumped
-     *
-     * @return string representation of the PKI message
-     */
-    /**
-     * Dump PKI message to a string.
-     *
-     * @param msg
-     *            PKI message to be dumped
-     *
+     * @param msg PKI message to be dumped
      * @return string representation of the PKI message
      */
     public static final String dumpPkiMessage(final PKIMessage msg) {
@@ -239,15 +138,19 @@ public class MessageDumper {
     }
 
     /**
-     * Extract Relative Distinguished Names (RDNs) of a given type from a X500
-     * Name
+     * Dump PKI message to a string.
+     *
+     * @param msg PKI message to be dumped
+     *
+     * @return string representation of the PKI message
+     */
+
+    /**
+     * Extract Relative Distinguished Names (RDNs) of a given type from a X500 Name
      * e.g. certificate subject.
      *
-     * @param x500Name
-     *            X.500 Name e.g. certificate subject.
-     * @param rdnType
-     *            RDN Type to be extracted e.g. CN
-     *
+     * @param x500Name X.500 Name e.g. certificate subject.
+     * @param rdnType  RDN Type to be extracted e.g. CN
      * @return RDNs of the requested type found in the X.500 name
      */
     public static final List<String> extractRdnAsStringArray(
@@ -257,8 +160,7 @@ public class MessageDumper {
         }
         final List<String> ret = new ArrayList<>(1);
         for (final RDN aktRdn : x500Name.getRDNs(rdnType)) {
-            for (final AttributeTypeAndValue aktTv : aktRdn
-                    .getTypesAndValues()) {
+            for (final AttributeTypeAndValue aktTv : aktRdn.getTypesAndValues()) {
                 ret.add(String.valueOf(aktTv.getValue()));
             }
         }
@@ -268,13 +170,10 @@ public class MessageDumper {
     /**
      * Get OID Description for a given OID (ASN.1 representation)
      *
-     * @param oid
-     *            OID (ASN.1 representation)
-     *
+     * @param oid OID (ASN.1 representation)
      * @return OID Description for a given OID (ASN.1 representation)
      */
-    public static OidDescription getOidDescriptionForOid(
-            final ASN1ObjectIdentifier oid) {
+    public static OidDescription getOidDescriptionForOid(final ASN1ObjectIdentifier oid) {
         initNameOidMaps();
         final OidDescription ret = oidToKeyMap.get(oid);
         if (ret == null) {
@@ -286,26 +185,21 @@ public class MessageDumper {
     /**
      * Dumping PKI message to a string in a short form.
      *
-     * @param msg
-     *            PKI message to be dumped
-     *
+     * @param msg PKI message to be dumped
      * @return string short representation of the PKI message
      */
     public static String msgAsShortString(final PKIMessage msg) {
         if (msg == null) {
             return "<null>";
         }
-        return msgTypeAsString(msg.getBody()) + " ["
-                + msg.getHeader().getSender() + " => "
+        return msgTypeAsString(msg.getBody()) + " [" + msg.getHeader().getSender() + " => "
                 + msg.getHeader().getRecipient() + "]";
     }
 
     /**
      * Get message type from a PKI message body as string
      *
-     * @param msgType
-     *            PKI message type
-     *
+     * @param msgType PKI message type
      * @return message type as string
      */
     public static String msgTypeAsString(final int msgType) {
@@ -315,9 +209,7 @@ public class MessageDumper {
     /**
      * Get message type from a PKI message body as string
      *
-     * @param body
-     *            PKI message body
-     *
+     * @param body PKI message body
      * @return message type as string
      */
     public static String msgTypeAsString(final PKIBody body) {
@@ -327,9 +219,7 @@ public class MessageDumper {
     /**
      * Get message type from a PKI message as string
      *
-     * @param msg
-     *            PKI message
-     *
+     * @param msg PKI message
      * @return message type as string
      */
     public static String msgTypeAsString(final PKIMessage msg) {
@@ -357,44 +247,39 @@ public class MessageDumper {
             }
         }
         switch (status.getStatus().intValue()) {
-        case PKIStatus.GRANTED:
-            return "GRANTED" + statStringBuf;
-        case PKIStatus.GRANTED_WITH_MODS:
-            return "GRANTED_WITH_MODS" + statStringBuf;
-        case PKIStatus.REJECTION:
-            return "REJECTION" + statStringBuf;
-        case PKIStatus.WAITING:
-            return "WAITING" + statStringBuf;
-        case PKIStatus.REVOCATION_WARNING:
-            return "REVOCATION_WARNING" + statStringBuf;
-        case PKIStatus.REVOCATION_NOTIFICATION:
-            return "REVOCATION_NOTIFICATION" + statStringBuf;
-        case PKIStatus.KEY_UPDATE_WARNING:
-            return "KEY_UPDATE_WARNING" + statStringBuf;
-        default:
-            return "<INVALID>" + statStringBuf;
-
+            case PKIStatus.GRANTED:
+                return "GRANTED" + statStringBuf;
+            case PKIStatus.GRANTED_WITH_MODS:
+                return "GRANTED_WITH_MODS" + statStringBuf;
+            case PKIStatus.REJECTION:
+                return "REJECTION" + statStringBuf;
+            case PKIStatus.WAITING:
+                return "WAITING" + statStringBuf;
+            case PKIStatus.REVOCATION_WARNING:
+                return "REVOCATION_WARNING" + statStringBuf;
+            case PKIStatus.REVOCATION_NOTIFICATION:
+                return "REVOCATION_NOTIFICATION" + statStringBuf;
+            case PKIStatus.KEY_UPDATE_WARNING:
+                return "KEY_UPDATE_WARNING" + statStringBuf;
+            default:
+                return "<INVALID>" + statStringBuf;
         }
     }
 
-    private static void dump(final String indent, final ASN1Object object,
-            final StringBuilder ret) {
+    private static void dump(final String indent, final ASN1Object object, final StringBuilder ret) {
         final List<String> nullMemberList = new ArrayList<>();
         for (final Method method : object.getClass().getMethods()) {
-            if ((method.getModifiers() & Modifier.STATIC) != 0
-                    || method.getParameterCount() != 0) {
+            if ((method.getModifiers() & Modifier.STATIC) != 0 || method.getParameterCount() != 0) {
                 continue;
             }
             final Class<?> declaringClass = method.getDeclaringClass();
-            if (declaringClass.equals(Object.class)
-                    || declaringClass.equals(ASN1Object.class)) {
+            if (declaringClass.equals(Object.class) || declaringClass.equals(ASN1Object.class)) {
                 continue;
             }
             final String methodName = method.getName();
             try {
                 final boolean isGetter = methodName.startsWith("get");
-                final boolean isArray = methodName.startsWith("to")
-                        && methodName.endsWith("Array");
+                final boolean isArray = methodName.startsWith("to") && methodName.endsWith("Array");
                 if (!isGetter && !isArray) {
                     continue;
                 }
@@ -411,12 +296,11 @@ public class MessageDumper {
                 }
                 dumpSingleValue(indent + memberName, callRet, ret);
             } catch (final InvocationTargetException ex) {
-                ret.append(indent + methodName + ": "
-                        + ex.getTargetException().getMessage()
+                ret.append(indent + methodName + ": " + ex.getTargetException().getMessage()
                         + ": <could not parse, skipped> ==============\n");
             } catch (final Exception ex) {
-                ret.append(indent + methodName + ":" + ex.getMessage()
-                        + ": <could not parse, skipped> ==============\n");
+                ret.append(
+                        indent + methodName + ":" + ex.getMessage() + ": <could not parse, skipped> ==============\n");
             }
         }
         if (!nullMemberList.isEmpty()) {
@@ -431,8 +315,7 @@ public class MessageDumper {
         }
     }
 
-    private static void dumpSingleValue(final String indent,
-            final Object callRet, final StringBuilder ret)
+    private static void dumpSingleValue(final String indent, final Object callRet, final StringBuilder ret)
             throws ParseException {
         if (callRet == null) {
             ret.append(indent);
@@ -468,14 +351,11 @@ public class MessageDumper {
             return;
         }
         if (callRet instanceof ASN1GeneralizedTime) {
-            ret.append(indent + ": " + ((ASN1GeneralizedTime) callRet).getDate()
-                    + "\n");
+            ret.append(indent + ": " + ((ASN1GeneralizedTime) callRet).getDate() + "\n");
             return;
         }
         if (callRet instanceof ASN1ObjectIdentifier) {
-            ret.append(indent + ": "
-                    + getOidDescriptionForOid((ASN1ObjectIdentifier) callRet)
-                    + "\n");
+            ret.append(indent + ": " + getOidDescriptionForOid((ASN1ObjectIdentifier) callRet) + "\n");
             return;
         }
         if (callRet instanceof PKIFreeText) {
@@ -487,8 +367,7 @@ public class MessageDumper {
                 return;
             }
             for (int i = 0; i < size; i++) {
-                ret.append(indent + "[" + i + "] : " + val.getStringAtUTF8(i)
-                        + "\n");
+                ret.append(indent + "[" + i + "] : " + val.getStringAtUTF8(i) + "\n");
             }
             return;
         }
@@ -501,12 +380,9 @@ public class MessageDumper {
                 return;
             }
             for (int i = 0; i < size; i++) {
-                dumpSingleValue(indent + "[" + i + "]/CertReqId: ",
-                        val.getCertReqId(i), ret);
-                dumpSingleValue(indent + "[" + i + "]/Reason: ",
-                        val.getReason(i), ret);
-                dumpSingleValue(indent + "[" + i + "]/CheckAfter: ",
-                        val.getCheckAfter(i), ret);
+                dumpSingleValue(indent + "[" + i + "]/CertReqId: ", val.getCertReqId(i), ret);
+                dumpSingleValue(indent + "[" + i + "]/Reason: ", val.getReason(i), ret);
+                dumpSingleValue(indent + "[" + i + "]/CheckAfter: ", val.getCheckAfter(i), ret);
             }
             return;
         }
@@ -522,23 +398,21 @@ public class MessageDumper {
             for (int i = 0; i < size; i++) {
                 final Extension ext = val.getExtension(extensionOIDs[i]);
                 dumpSingleValue(
-                        indent + "[" + i + "]/Id"
-                                + (ext.isCritical() ? "(critical)" : ""),
-                        ext.getExtnId(), ret);
-                dumpSingleValue(indent + "[" + i + "]/Value",
-                        ext.getParsedValue(), ret);
+                        indent + "[" + i + "]/Id" + (ext.isCritical() ? "(critical)" : ""), ext.getExtnId(), ret);
+                dumpSingleValue(indent + "[" + i + "]/Value", ext.getParsedValue(), ret);
             }
             return;
-
         }
         if (callRet instanceof ASN1Enumerated) {
-            ret.append(indent + ": " + ((ASN1Enumerated) callRet).getValue()
-                    + "\n");
+            ret.append(indent + ": " + ((ASN1Enumerated) callRet).getValue() + "\n");
             return;
         }
-        if (callRet instanceof ASN1Primitive || callRet instanceof GeneralName
-                || callRet instanceof Number || callRet instanceof CharSequence
-                || callRet instanceof X500Name || callRet instanceof Date) {
+        if (callRet instanceof ASN1Primitive
+                || callRet instanceof GeneralName
+                || callRet instanceof Number
+                || callRet instanceof CharSequence
+                || callRet instanceof X500Name
+                || callRet instanceof Date) {
             ret.append(indent + ": " + callRet + "\n");
             return;
         }
@@ -553,51 +427,122 @@ public class MessageDumper {
     /**
      * // load ObjectIdentifiers defined somewhere in BouncyCastle
      */
-    private synchronized static void initNameOidMaps() {
+    private static synchronized void initNameOidMaps() {
         if (oidToKeyMap != null) {
             // already initialized
             return;
         }
         oidToKeyMap = new HashMap<>();
-        for (final Class<?> aktClass : Arrays.asList(CMPObjectIdentifiers.class,
-                PKCSObjectIdentifiers.class, X509ObjectIdentifiers.class,
-                OIWObjectIdentifiers.class, CRMFObjectIdentifiers.class,
-                CryptoProObjectIdentifiers.class, EACObjectIdentifiers.class,
-                NISTObjectIdentifiers.class, ICAOObjectIdentifiers.class,
-                ISISMTTObjectIdentifiers.class, SECObjectIdentifiers.class,
-                ANSSIObjectIdentifiers.class, BCObjectIdentifiers.class,
-                BSIObjectIdentifiers.class, CMSObjectIdentifiers.class,
-                DVCSObjectIdentifiers.class, GNUObjectIdentifiers.class,
-                IANAObjectIdentifiers.class, ISISMTTObjectIdentifiers.class,
-                ISOIECObjectIdentifiers.class, KISAObjectIdentifiers.class,
-                MicrosoftObjectIdentifiers.class, MiscObjectIdentifiers.class,
-                NTTObjectIdentifiers.class, OCSPObjectIdentifiers.class,
-                TeleTrusTObjectIdentifiers.class, UAObjectIdentifiers.class,
-                ETSIQCObjectIdentifiers.class, RFC3739QCObjectIdentifiers.class,
-                SigIObjectIdentifiers.class, X9ObjectIdentifiers.class,
+        for (final Class<?> aktClass : Arrays.asList(
+                CMPObjectIdentifiers.class,
+                PKCSObjectIdentifiers.class,
+                X509ObjectIdentifiers.class,
+                OIWObjectIdentifiers.class,
+                CRMFObjectIdentifiers.class,
+                CryptoProObjectIdentifiers.class,
+                EACObjectIdentifiers.class,
+                NISTObjectIdentifiers.class,
+                ICAOObjectIdentifiers.class,
+                ISISMTTObjectIdentifiers.class,
+                SECObjectIdentifiers.class,
+                ANSSIObjectIdentifiers.class,
+                BCObjectIdentifiers.class,
+                BSIObjectIdentifiers.class,
+                CMSObjectIdentifiers.class,
+                DVCSObjectIdentifiers.class,
+                GNUObjectIdentifiers.class,
+                IANAObjectIdentifiers.class,
+                ISISMTTObjectIdentifiers.class,
+                ISOIECObjectIdentifiers.class,
+                KISAObjectIdentifiers.class,
+                MicrosoftObjectIdentifiers.class,
+                MiscObjectIdentifiers.class,
+                NTTObjectIdentifiers.class,
+                OCSPObjectIdentifiers.class,
+                TeleTrusTObjectIdentifiers.class,
+                UAObjectIdentifiers.class,
+                ETSIQCObjectIdentifiers.class,
+                RFC3739QCObjectIdentifiers.class,
+                SigIObjectIdentifiers.class,
+                X9ObjectIdentifiers.class,
                 PQCObjectIdentifiers.class,
                 org.bouncycastle.asn1.x509.Extension.class,
-                EdECObjectIdentifiers.class, CMPObjectIdentifiers.class)) {
+                EdECObjectIdentifiers.class,
+                CMPObjectIdentifiers.class)) {
             for (final Field aktField : aktClass.getFields()) {
                 if (aktField.getType().equals(ASN1ObjectIdentifier.class)
                         && (aktField.getModifiers() & Modifier.STATIC) != 0) {
                     try {
-                        final ASN1ObjectIdentifier oid =
-                                (ASN1ObjectIdentifier) aktField.get(null);
+                        final ASN1ObjectIdentifier oid = (ASN1ObjectIdentifier) aktField.get(null);
                         final String name = aktField.getName();
-                        final OidDescription oidDescription =
-                                new OidDescription(aktClass, name, oid);
+                        final OidDescription oidDescription = new OidDescription(aktClass, name, oid);
                         oidToKeyMap.put(oid, oidDescription);
-                    } catch (IllegalArgumentException
-                            | IllegalAccessException e) {
-                        LOGGER.error(
-                                "error loading ObjectIdentifier Names from BC",
-                                e);
+                    } catch (IllegalArgumentException | IllegalAccessException e) {
+                        LOGGER.error("error loading ObjectIdentifier Names from BC", e);
                     }
                 }
             }
-
         }
     }
 
+    /**
+     * OID Descriptor class
+     */
+    public static class OidDescription {
+        private final String id;
+        private final String declaringPackage;
+        private final ASN1ObjectIdentifier oid;
+        private final Class<?> declaringClass;
+
+        /**
+         * Constructor for OID Descriptor class
+         *
+         * @param declaringClass declaring class of the OID
+         * @param id             ID
+         * @param oid            ASN.1 representation of the OID
+         */
+        public OidDescription(final Class<?> declaringClass, final String id, final ASN1ObjectIdentifier oid) {
+            this.declaringPackage =
+                    ifNotNull(declaringClass, x -> x.getSimpleName().replace("ObjectIdentifiers", ""));
+            this.declaringClass = declaringClass;
+            this.id = id;
+            this.oid = oid;
+        }
+
+        public String getBcDeclaration() {
+            return ifNotNull(declaringClass, Class::getCanonicalName) + "." + id;
+        }
+
+        /**
+         * Get declaring package of the OID
+         *
+         * @return declaring package of the OID
+         */
+        public String getDeclaringPackage() {
+            return declaringPackage;
+        }
+
+        /**
+         * Get ID
+         *
+         * @return ID
+         */
+        public String getId() {
+            return id;
+        }
+
+        /**
+         * Get ASN.1 representation of the OID
+         *
+         * @return ASN.1 representation of the OID
+         */
+        public ASN1ObjectIdentifier getOid() {
+            return oid;
+        }
+
+        @Override
+        public String toString() {
+            return declaringPackage + "." + id + " (" + oid + ")";
+        }
+    }
 }

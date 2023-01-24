@@ -17,13 +17,12 @@
  */
 package com.siemens.pki.cmpracomponent.configuration;
 
+import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 
-import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
-
 /**
- * an instance implementing {@link SignatureCredentialContext} provides
- * all attributes needed for shared secret based CMP protection
+ * an instance implementing {@link SignatureCredentialContext} provides all
+ * attributes needed for shared secret based CMP protection
  */
 public interface SharedSecretCredentialContext extends CredentialContext {
 
@@ -47,11 +46,10 @@ public interface SharedSecretCredentialContext extends CredentialContext {
 
     /**
      * specifies the MAC algorithm to use and optional parameters to use. This
-     * string may also include parameters not covered by the
-     * other already defined methods of {@link SharedSecretCredentialContext}
+     * string may also include parameters not covered by the other already defined
+     * methods of {@link SharedSecretCredentialContext}
      *
      * @return MAC algorithm name, OID and optional parameters to use
-     *
      */
     default String getMacAlgorithm() {
         return PKCSObjectIdentifiers.id_hmacWithSHA256.getId();
@@ -99,5 +97,4 @@ public interface SharedSecretCredentialContext extends CredentialContext {
      * @return a shared secret
      */
     byte[] getSharedSecret();
-
 }

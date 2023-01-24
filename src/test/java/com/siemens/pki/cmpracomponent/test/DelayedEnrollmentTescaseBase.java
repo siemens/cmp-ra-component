@@ -19,9 +19,15 @@ package com.siemens.pki.cmpracomponent.test;
 
 import static org.junit.Assert.assertEquals;
 
+import com.siemens.pki.cmpracomponent.configuration.Configuration;
+import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
+import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
+import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
+import com.siemens.pki.cmpracomponent.test.framework.EnrollmentResult;
+import com.siemens.pki.cmpracomponent.test.framework.HeaderProviderForTest;
+import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.security.KeyPair;
 import java.util.function.Function;
-
 import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.CertRepMessage;
 import org.bouncycastle.asn1.cmp.PKIBody;
@@ -33,75 +39,66 @@ import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.siemens.pki.cmpracomponent.configuration.Configuration;
-import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
-import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
-import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
-import com.siemens.pki.cmpracomponent.test.framework.EnrollmentResult;
-import com.siemens.pki.cmpracomponent.test.framework.HeaderProviderForTest;
-import com.siemens.pki.cmpracomponent.util.MessageDumper;
-
 public class DelayedEnrollmentTescaseBase extends DelayedDeliveryTestcaseBase {
 
-    private static final Logger LOGGER =
-            LoggerFactory.getLogger(DelayedEnrollmentTescaseBase.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DelayedEnrollmentTescaseBase.class);
 
-    static protected EnrollmentResult executeDelayedCertificateRequest(
+    protected static EnrollmentResult executeDelayedCertificateRequest(
             final int requestMesssageType,
             final int expectedWaitingResponseMessageType,
             final ProtectionProvider protectionProvider,
-            final Function<PKIMessage, PKIMessage> cmpClient) throws Exception {
-        final KeyPair keyPair =
-                ConfigurationFactory.getKeyGenerator().generateKeyPair();
+            final Function<PKIMessage, PKIMessage> cmpClient)
+            throws Exception {
+        final KeyPair keyPair = ConfigurationFactory.getKeyGenerator().generateKeyPair();
         final CertTemplateBuilder ctb = new CertTemplateBuilder()
-                .setPublicKey(SubjectPublicKeyInfo
-                        .getInstance(keyPair.getPublic().getEncoded()))
+                .setPublicKey(
+                        SubjectPublicKeyInfo.getInstance(keyPair.getPublic().getEncoded()))
                 .setSubject(new X500Name("CN=Subject"));
 
-        final PKIBody crBody = PkiMessageGenerator.generateIrCrKurBody(
-                requestMesssageType, ctb.build(), null, keyPair.getPrivate());
+        final PKIBody crBody =
+                PkiMessageGenerator.generateIrCrKurBody(requestMesssageType, ctb.build(), null, keyPair.getPrivate());
 
         final PKIMessage cr = PkiMessageGenerator.generateAndProtectMessage(
-                new HeaderProviderForTest("theCertProfileForDelayedEnrollment"),
-                protectionProvider, crBody);
+                new HeaderProviderForTest("theCertProfileForDelayedEnrollment"), protectionProvider, crBody);
         if (LOGGER.isDebugEnabled()) {
-            // avoid unnecessary call of MessageDumper.dumpPkiMessage, if debug isn't enabled
+            // avoid unnecessary call of MessageDumper.dumpPkiMessage, if debug isn't
+            // enabled
             LOGGER.debug("send:\n" + MessageDumper.dumpPkiMessage(cr));
         }
-        final PKIMessage crResponse = DelayedDeliveryTestcaseBase
-                .executeRequestWithPolling(expectedWaitingResponseMessageType,
-                        protectionProvider, cmpClient, cr);
-        final CMPCertificate enrolledCertificate =
-                ((CertRepMessage) crResponse.getBody().getContent())
-                        .getResponse()[0].getCertifiedKeyPair()
-                                .getCertOrEncCert().getCertificate();
+        final PKIMessage crResponse = DelayedDeliveryTestcaseBase.executeRequestWithPolling(
+                expectedWaitingResponseMessageType, protectionProvider, cmpClient, cr);
+        final CMPCertificate enrolledCertificate = ((CertRepMessage)
+                        crResponse.getBody().getContent())
+                .getResponse()[0]
+                .getCertifiedKeyPair()
+                .getCertOrEncCert()
+                .getCertificate();
 
-        final PKIMessage certConf =
-                PkiMessageGenerator.generateAndProtectMessage(
-                        new HeaderProviderForTest(crResponse.getHeader()),
-                        protectionProvider, PkiMessageGenerator
-                                .generateCertConfBody(enrolledCertificate));
+        final PKIMessage certConf = PkiMessageGenerator.generateAndProtectMessage(
+                new HeaderProviderForTest(crResponse.getHeader()),
+                protectionProvider,
+                PkiMessageGenerator.generateCertConfBody(enrolledCertificate));
 
         if (LOGGER.isDebugEnabled()) {
-            // avoid unnecessary call of MessageDumper.dumpPkiMessage, if debug isn't enabled
+            // avoid unnecessary call of MessageDumper.dumpPkiMessage, if debug isn't
+            // enabled
             LOGGER.debug("send:\n" + MessageDumper.dumpPkiMessage(certConf));
         }
         final PKIMessage pkiConf = cmpClient.apply(certConf);
 
         if (LOGGER.isDebugEnabled()) {
-            // avoid unnecessary call of MessageDumper.dumpPkiMessage, if debug isn't enabled
+            // avoid unnecessary call of MessageDumper.dumpPkiMessage, if debug isn't
+            // enabled
             LOGGER.debug("got:\n" + MessageDumper.dumpPkiMessage(pkiConf));
         }
-        assertEquals("message type", PKIBody.TYPE_CONFIRM,
-                pkiConf.getBody().getType());
+        assertEquals("message type", PKIBody.TYPE_CONFIRM, pkiConf.getBody().getType());
 
         return new EnrollmentResult(enrolledCertificate, keyPair.getPrivate());
     }
 
     @Before
     public void setUp() throws Exception {
-        final Configuration config = ConfigurationFactory
-                .buildSignatureBasedDownstreamConfiguration();
+        final Configuration config = ConfigurationFactory.buildSignatureBasedDownstreamConfiguration();
         launchDelayedCaAndRa(config);
     }
 }

@@ -19,7 +19,6 @@ package com.siemens.pki.cmpracomponent.configuration;
 
 /**
  * the {@link Configuration} specifies the behavior of the generic RA component.
- *
  */
 public interface Configuration {
     // Please link to this file from doc/API/design.md
@@ -27,45 +26,34 @@ public interface Configuration {
     /**
      * specify configuration needed to support central key generation
      *
-     * @param certProfile
-     *            certificate profile extracted from the CMP request header
-     *            generalInfo field or <code>null</code> if no certificate
-     *            profile was specified
-     * @param bodyType
-     *            response PKI Message Body type
-     *
+     * @param certProfile certificate profile extracted from the CMP request header
+     *                    generalInfo field or <code>null</code> if no certificate
+     *                    profile was specified
+     * @param bodyType    response PKI Message Body type
      * @return configuration for central key generation
      */
     CkgContext getCkgConfiguration(String certProfile, int bodyType);
 
     /**
-     * specify configuration for the downstream CMP interface towards the end
-     * entity
+     * specify configuration for the downstream CMP interface towards the end entity
      *
-     * @param certProfile
-     *            certificate profile extracted from the CMP request header
-     *            generalInfo field or <code>null</code> if no certificate
-     *            profile was specified
-     * @param bodyType
-     *            request/response PKI Message Body type
-     *
+     * @param certProfile certificate profile extracted from the CMP request header
+     *                    generalInfo field or <code>null</code> if no certificate
+     *                    profile was specified
+     * @param bodyType    request/response PKI Message Body type
      * @return the downstream interface configuration
      */
-    CmpMessageInterface getDownstreamConfiguration(String certProfile,
-            int bodyType);
+    CmpMessageInterface getDownstreamConfiguration(String certProfile, int bodyType);
 
     /**
-     * provide VerificationContext used to validate
-     * an enrolled certificate and to calculate the additional certificates
-     * in the extraCerts field of IP, CP and KUP.
+     * provide VerificationContext used to validate an enrolled certificate and to
+     * calculate the additional certificates in the extraCerts field of IP, CP and
+     * KUP.
      *
-     * @param certProfile
-     *            certificate profile extracted from the CMP request header
-     *            generalInfo field or <code>null</code> if no certificate
-     *            profile was specified
-     * @param bodyType
-     *            response PKI Message Body type
-     *
+     * @param certProfile certificate profile extracted from the CMP request header
+     *                    generalInfo field or <code>null</code> if no certificate
+     *                    profile was specified
+     * @param bodyType    response PKI Message Body type
      * @return an VerificationContext related to the enrolled certificate
      */
     VerificationContext getEnrollmentTrust(String certProfile, int bodyType);
@@ -73,13 +61,10 @@ public interface Configuration {
     /**
      * allow to set POPO to RaVerified for outgoing upstream IR, CR, KUR
      *
-     * @param certProfile
-     *            certificate profile extracted from the CMP request header
-     *            generalInfo field or <code>null</code> if no certificate
-     *            profile was specified
-     * @param bodyType
-     *            request PKI Message Body type
-     *
+     * @param certProfile certificate profile extracted from the CMP request header
+     *                    generalInfo field or <code>null</code> if no certificate
+     *                    profile was specified
+     * @param bodyType    request PKI Message Body type
      * @return <code>true</code> if RaVerified should be set
      */
     boolean getForceRaVerifyOnUpstream(String certProfile, int bodyType);
@@ -87,13 +72,10 @@ public interface Configuration {
     /**
      * optionally access function to external InventoryFunction
      *
-     * @param certProfile
-     *            certificate profile extracted from the CMP request header
-     *            generalInfo field or <code>null</code> if no certificate
-     *            profile was specified
-     * @param bodyType
-     *            request/response PKI Message Body type
-     *
+     * @param certProfile certificate profile extracted from the CMP request header
+     *                    generalInfo field or <code>null</code> if no certificate
+     *                    profile was specified
+     * @param bodyType    request/response PKI Message Body type
      * @return external InventoryFunction or <code>null</code>
      */
     InventoryInterface getInventory(String certProfile, int bodyType);
@@ -104,68 +86,52 @@ public interface Configuration {
      * @return persistence implementation
      */
     default PersistencyInterface getPersistency() {
-        return new PersistencyInterface() {
-        };
+        return new PersistencyInterface() {};
     }
 
     /**
-     * specify the retryAfter time in seconds
-     * to return on the downstream interface in case of delayed delivery
+     * specify the retryAfter time in seconds to return on the downstream interface
+     * in case of delayed delivery
      *
-     * @param certProfile
-     *            certificate profile extracted from the CMP request header
-     *            generalInfo field or <code>null</code> if no certificate
-     *            profile was specified
-     * @param bodyType
-     *            request PKI Message Body type
-     *
+     * @param certProfile certificate profile extracted from the CMP request header
+     *                    generalInfo field or <code>null</code> if no certificate
+     *                    profile was specified
+     * @param bodyType    request PKI Message Body type
      * @return retryAfter time in seconds
      */
     int getRetryAfterTimeInSeconds(String certProfile, int bodyType);
 
     /**
-     * return a handler instance able to handle the given infoType extracted
-     * from an GENM PKI message
+     * return a handler instance able to handle the given infoType extracted from an
+     * GENM PKI message
      *
-     * @param certProfile
-     *            certificate profile extracted from the CMP request header
-     *            generalInfo field or <code>null</code> if no certificate
-     *            profile was specified
-     *
-     * @param infoTypeOid
-     *            infoType OID extracted from an GENM PKI message
+     * @param certProfile certificate profile extracted from the CMP request header
+     *                    generalInfo field or <code>null</code> if no certificate
+     *                    profile was specified
+     * @param infoTypeOid infoType OID extracted from an GENM PKI message
      * @return an a handler instance
      */
-    SupportMessageHandlerInterface getSupportMessageHandler(String certProfile,
-            String infoTypeOid);
+    SupportMessageHandlerInterface getSupportMessageHandler(String certProfile, String infoTypeOid);
 
     /**
      * specify configuration for the upstream CMP interface towards the CA
      *
-     * @param certProfile
-     *            certificate profile extracted from the CMP request header
-     *            generalInfo field or <code>null</code> if no certificate
-     *            profile was specified
-     * @param bodyType
-     *            request PKI Message Body type
-     *
+     * @param certProfile certificate profile extracted from the CMP request header
+     *                    generalInfo field or <code>null</code> if no certificate
+     *                    profile was specified
+     * @param bodyType    request PKI Message Body type
      * @return the upstream interface configuration
      */
-    CmpMessageInterface getUpstreamConfiguration(String certProfile,
-            int bodyType);
+    CmpMessageInterface getUpstreamConfiguration(String certProfile, int bodyType);
 
     /**
      * configure if a POPO of RaVerified for incoming IR, CR, KUR is acceptable
      *
-     * @param certProfile
-     *            certificate profile extracted from the CMP request header
-     *            generalInfo field or <code>null</code> if no certificate
-     *            profile was specified
-     * @param bodyType
-     *            request PKI Message Body type
-     *
+     * @param certProfile certificate profile extracted from the CMP request header
+     *                    generalInfo field or <code>null</code> if no certificate
+     *                    profile was specified
+     * @param bodyType    request PKI Message Body type
      * @return <code>false</code> if a signature-based POPO must be provided.
      */
     boolean isRaVerifiedAcceptable(String certProfile, int bodyType);
-
 }

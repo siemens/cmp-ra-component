@@ -17,10 +17,9 @@
  */
 package com.siemens.pki.cmpracomponent.test;
 
+import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
 import org.bouncycastle.asn1.cmp.PKIBody;
 import org.junit.Test;
-
-import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
 
 public class TestCrWithPolling extends DelayedEnrollmentTescaseBase {
 
@@ -31,10 +30,10 @@ public class TestCrWithPolling extends DelayedEnrollmentTescaseBase {
      */
     @Test
     public void testCrWithPolling() throws Exception {
-        executeDelayedCertificateRequest(PKIBody.TYPE_CERT_REQ,
+        executeDelayedCertificateRequest(
+                PKIBody.TYPE_CERT_REQ,
                 PKIBody.TYPE_CERT_REP,
                 ConfigurationFactory.getEeSignaturebasedProtectionProvider(),
                 getEeClient());
     }
-
 }
