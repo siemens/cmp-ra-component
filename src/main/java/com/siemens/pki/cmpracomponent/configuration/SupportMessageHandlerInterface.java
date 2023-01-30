@@ -18,10 +18,7 @@
 package com.siemens.pki.cmpracomponent.configuration;
 
 /**
- * an instance of an interface derived from {@link SupportMessageHandlerInterface}
- * is able to handle a support message
- *
+ * an instance of an interface derived from
+ * {@link SupportMessageHandlerInterface} is able to handle a support message
  */
-public interface SupportMessageHandlerInterface {
-
-}
+public interface SupportMessageHandlerInterface {}

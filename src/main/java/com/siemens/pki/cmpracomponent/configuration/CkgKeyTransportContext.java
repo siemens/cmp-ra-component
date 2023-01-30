@@ -22,20 +22,16 @@ import java.security.cert.X509Certificate;
 /**
  * an instance of this interface provides all attributes required to implement
  * key transport in context of central key generation
- *
  */
 public interface CkgKeyTransportContext {
     /**
-     * specifies the intended recipient by its certificate. The public key
-     * in the certificate is used for encryption.
+     * specifies the intended recipient by its certificate. The public key in the
+     * certificate is used for encryption.
      *
-     * @param protectingCertificate
-     *            protecting certificate of request
+     * @param protectingCertificate protecting certificate of request
      * @return the certificates of the recipient
      */
-    default X509Certificate getRecipient(
-            final X509Certificate protectingCertificate) {
+    default X509Certificate getRecipient(final X509Certificate protectingCertificate) {
         return protectingCertificate;
     }
-
 }

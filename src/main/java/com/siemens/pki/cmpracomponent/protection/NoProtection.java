@@ -18,7 +18,6 @@
 package com.siemens.pki.cmpracomponent.protection;
 
 import java.util.List;
-
 import org.bouncycastle.asn1.DERBitString;
 import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.cmp.CMPCertificate;
@@ -28,7 +27,6 @@ import org.bouncycastle.asn1.x509.GeneralName;
 
 /**
  * a {@link ProtectionProvider} enforcing a CMP message without any protection
- *
  */
 public class NoProtection implements ProtectionProvider {
 
@@ -43,8 +41,7 @@ public class NoProtection implements ProtectionProvider {
     }
 
     @Override
-    public DERBitString getProtectionFor(final ProtectedPart protectedPart)
-            throws Exception {
+    public DERBitString getProtectionFor(final ProtectedPart protectedPart) throws Exception {
         return null;
     }
 
@@ -57,5 +54,4 @@ public class NoProtection implements ProtectionProvider {
     public DEROctetString getSenderKID() {
         return null;
     }
-
 }

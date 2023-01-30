@@ -68,3 +68,7 @@ feat: more sophisticated DPN handling in CrlUpdateRerival
 
 fix: Improve choice of key management technique for CKG, fix NPE
 
+### 2.2.2 (Jan 30 2023)
+
+feat: Enforce automatic formatting of the code via Spotless
+

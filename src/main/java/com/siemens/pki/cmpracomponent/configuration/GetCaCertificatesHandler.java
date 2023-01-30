@@ -26,12 +26,11 @@ import java.util.List;
 public interface GetCaCertificatesHandler extends SupportMessageHandlerInterface {
 
     /**
-     * handle an Get CA certificates GENM request and return certificates to
-     * build the related GENP response
+     * handle an Get CA certificates GENM request and return certificates to build
+     * the related GENP response
      *
      * @return certificates to be returned or <code>null</code> if the returned
      *         infoValue should be absent
      */
     List<X509Certificate> getCaCertificates();
-
 }

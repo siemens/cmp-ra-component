@@ -21,17 +21,15 @@ package com.siemens.pki.cmpracomponent.configuration;
 /**
  * result of a call to
  * {@link InventoryInterface#checkAndModifyCertRequest(byte[], String, byte[], String)}
- *
- *
  */
 public interface CheckAndModifyResult {
 
     /**
      * return <code>null</code> or updated CertTemplate of the request
      *
-     * @return updated CertTemplate of the request or
-     *         <code>null</code> if the called service agrees to the template.
-     *         The CertTemplate must be ASN.1 DER encoded.
+     * @return updated CertTemplate of the request or <code>null</code> if the
+     *         called service agrees to the template. The CertTemplate must be ASN.1
+     *         DER encoded.
      */
     byte[] getUpdatedCertTemplate();
 
@@ -41,5 +39,4 @@ public interface CheckAndModifyResult {
      * @return true if request was granted
      */
     boolean isGranted();
-
 }

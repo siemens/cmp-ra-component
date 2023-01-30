@@ -17,19 +17,15 @@
  */
 package com.siemens.pki.cmpracomponent.test;
 
-import org.junit.Before;
-
 import com.siemens.pki.cmpracomponent.configuration.Configuration;
 import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
+import org.junit.Before;
 
-public class PasswordEnrollmentTestcasebase
-        extends OnlineEnrollmentTestcaseBase {
+public class PasswordEnrollmentTestcasebase extends OnlineEnrollmentTestcaseBase {
 
     @Before
     public void setUp() throws Exception {
-        final Configuration config = ConfigurationFactory
-                .buildPasswordbasedDownstreamConfiguration();
+        final Configuration config = ConfigurationFactory.buildPasswordbasedDownstreamConfiguration();
         launchCmpCaAndRa(config);
     }
-
 }

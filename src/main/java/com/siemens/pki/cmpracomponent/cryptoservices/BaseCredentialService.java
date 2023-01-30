@@ -17,17 +17,14 @@
  */
 package com.siemens.pki.cmpracomponent.cryptoservices;
 
+import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.List;
-
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
-
-import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
 
 /**
  * base class for certificate based signing and encryption services
- *
  */
 public class BaseCredentialService {
 
@@ -50,8 +47,7 @@ public class BaseCredentialService {
     }
 
     protected AlgorithmIdentifier getSignatureAlgorithm() {
-        return AlgorithmHelper
-                .getSigningAlgIdFromName(getSignatureAlgorithmName());
+        return AlgorithmHelper.getSigningAlgIdFromName(getSignatureAlgorithmName());
     }
 
     protected String getSignatureAlgorithmName() {

@@ -20,22 +20,14 @@ package com.siemens.pki.cmpracomponent.msgvalidation;
 import org.bouncycastle.asn1.cmp.PKIMessage;
 
 /**
- *
  * this interface must be implemented by all {@link PKIMessage} validators
- *
  */
 public interface ValidatorIF<ResultType> {
     /**
-     *
-     * @param messageToValidate
-     *            a message given ot the validator
-     * @throws CmpProcessingException
-     *             if the message is invalid
-     * @throws CmpValidationException
-     *             in case of validation error
-     *
+     * @param messageToValidate a message given ot the validator
      * @return additional validation result
+     * @throws CmpProcessingException if the message is invalid
+     * @throws CmpValidationException in case of validation error
      */
     ResultType validate(PKIMessage messageToValidate) throws BaseCmpException;
-
 }

@@ -21,19 +21,13 @@ import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.PublicKey;
-import java.security.SecureRandom;
-import java.security.SignatureException;
+import java.security.*;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.bouncycastle.asn1.ASN1Encoding;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.DEROctetString;
@@ -44,41 +38,34 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
  * A utility class for certificate handling
  */
 public class CertUtility {
+    static final BouncyCastleProvider BOUNCY_CASTLE_PROVIDER = new BouncyCastleProvider();
+    private static final SecureRandom RANDOM = new SecureRandom();
     private static CertificateFactory certificateFactory;
 
-    private static final SecureRandom RANDOM = new SecureRandom();
-    static final BouncyCastleProvider BOUNCY_CASTLE_PROVIDER =
-            new BouncyCastleProvider();
+    // utility class
+    private CertUtility() {}
 
     /**
      * conversion function from X509 certificate to CMPCertificate
      *
-     * @param cert
-     *            certificate to convert
-     *
+     * @param cert certificate to convert
      * @return converted certificate
-     *
-     * @throws CertificateException
-     *             if certificate could not be converted from CMP Certificate
+     * @throws CertificateException if certificate could not be converted from CMP
+     *                              Certificate
      */
-    public static CMPCertificate asCmpCertificate(final Certificate cert)
-            throws CertificateException {
+    public static CMPCertificate asCmpCertificate(final Certificate cert) throws CertificateException {
         return CMPCertificate.getInstance(cert.getEncoded());
     }
 
     /**
      * conversion function from X509 certificates to CMPCertificates
      *
-     * @param certs
-     *            certificates to convert
-     *
+     * @param certs certificates to convert
      * @return converted certificate
-     *
-     * @throws CertificateException
-     *             if certificate could not be converted from CMP Certificate
+     * @throws CertificateException if certificate could not be converted from CMP
+     *                              Certificate
      */
-    public static CMPCertificate[] asCmpCertificates(
-            final List<X509Certificate> certs) throws CertificateException {
+    public static CMPCertificate[] asCmpCertificates(final List<X509Certificate> certs) throws CertificateException {
         final CMPCertificate[] ret = new CMPCertificate[certs.size()];
         int index = 0;
         for (final X509Certificate aktCert : certs) {
@@ -90,33 +77,24 @@ public class CertUtility {
     /**
      * conversion function from byte to X509 certificate
      *
-     * @param encoded
-     *            byte string to encode
-     *
+     * @param encoded byte string to encode
      * @return converted certificate
-     *
-     * @throws CertificateException
-     *             if certificate could not be converted from encoded
+     * @throws CertificateException if certificate could not be converted from
+     *                              encoded
      */
-    public static X509Certificate asX509Certificate(final byte[] encoded)
-            throws CertificateException {
-        return (X509Certificate) getCertificateFactory()
-                .generateCertificate(new ByteArrayInputStream(encoded));
+    public static X509Certificate asX509Certificate(final byte[] encoded) throws CertificateException {
+        return (X509Certificate) getCertificateFactory().generateCertificate(new ByteArrayInputStream(encoded));
     }
 
     /**
      * conversion function from CMPCertificate to X509 certificate
      *
-     * @param cert
-     *            certificate to convert
-     *
+     * @param cert certificate to convert
      * @return converted certificate
-     *
-     * @throws CertificateException
-     *             if certificate could not be converted from CMP Certificate
+     * @throws CertificateException if certificate could not be converted from CMP
+     *                              Certificate
      */
-    public static X509Certificate asX509Certificate(final CMPCertificate cert)
-            throws CertificateException {
+    public static X509Certificate asX509Certificate(final CMPCertificate cert) throws CertificateException {
         try {
             return asX509Certificate(cert.getEncoded(ASN1Encoding.DER));
         } catch (final IOException excpt) {
@@ -127,22 +105,16 @@ public class CertUtility {
     /**
      * conversion function from CMPCertificates to X509 certificates
      *
-     * @param certs
-     *            certificates to convert
-     *
+     * @param certs certificates to convert
      * @return converted certificate
-     *
-     * @throws CertificateException
-     *             if certificate could not be converted from CMP Certificate
+     * @throws CertificateException if certificate could not be converted from CMP
+     *                              Certificate
      */
-    public static List<X509Certificate> asX509Certificates(
-            final CMPCertificate[] certs) throws CertificateException {
+    public static List<X509Certificate> asX509Certificates(final CMPCertificate[] certs) throws CertificateException {
         try {
-            final ArrayList<X509Certificate> ret =
-                    new ArrayList<>(certs.length);
+            final ArrayList<X509Certificate> ret = new ArrayList<>(certs.length);
             for (final CMPCertificate aktCert : certs) {
-                ret.add(asX509Certificate(
-                        aktCert.getEncoded(ASN1Encoding.DER)));
+                ret.add(asX509Certificate(aktCert.getEncoded(ASN1Encoding.DER)));
             }
             return ret;
         } catch (final IOException excpt) {
@@ -153,28 +125,23 @@ public class CertUtility {
     /**
      * fetch the SubjectKeyIdentifier from a cert
      *
-     * @param cert
-     *            cert to fetch the SubjectKeyIdentifier
-     *
+     * @param cert cert to fetch the SubjectKeyIdentifier
      * @return the SubjectKeyIdentifier encoded as DEROctetString
      */
-    public static DEROctetString extractSubjectKeyIdentifierFromCert(
-            final X509Certificate cert) {
+    public static DEROctetString extractSubjectKeyIdentifierFromCert(final X509Certificate cert) {
         final byte[] extensionValueAsDerEncodedOctetString =
-                cert.getExtensionValue(
-                        org.bouncycastle.asn1.x509.Extension.subjectKeyIdentifier
-                                .getId());
-        return ifNotNull(extensionValueAsDerEncodedOctetString,
-                x -> new DEROctetString(ASN1OctetString
-                        .getInstance(ASN1OctetString.getInstance(x).getOctets())
+                cert.getExtensionValue(org.bouncycastle.asn1.x509.Extension.subjectKeyIdentifier.getId());
+        return ifNotNull(
+                extensionValueAsDerEncodedOctetString,
+                x -> new DEROctetString(ASN1OctetString.getInstance(
+                                ASN1OctetString.getInstance(x).getOctets())
                         .getOctets()));
     }
 
     /**
      * generate a new randomly filled byte array
      *
-     * @param length
-     *            size of byte array to return
+     * @param length size of byte array to return
      * @return a new randomly filled byte array
      */
     public static byte[] generateRandomBytes(final int length) {
@@ -188,18 +155,14 @@ public class CertUtility {
     }
 
     /**
-     * Checks whether given X.509 certificate is intermediate certificate and
-     * not self-signed.
+     * Checks whether given X.509 certificate is intermediate certificate and not
+     * self-signed.
      *
-     * @param cert
-     *            certificate to be checked
-     *
+     * @param cert certificate to be checked
      * @return <code>true</code> if the certificate is intermediate and not
      *         self-signed
-     *
      */
-    public static boolean isIntermediateCertificate(
-            final X509Certificate cert) {
+    public static boolean isIntermediateCertificate(final X509Certificate cert) {
         try {
             // Try to verify certificate signature with its own public key
             final PublicKey key = cert.getPublicKey();
@@ -209,8 +172,7 @@ public class CertUtility {
         } catch (final SignatureException | InvalidKeyException keyEx) {
             // Invalid key --> definitely not self-signed
             return true;
-        } catch (CertificateException | NoSuchAlgorithmException
-                | NoSuchProviderException e) {
+        } catch (CertificateException | NoSuchAlgorithmException | NoSuchProviderException e) {
             // processing error, could be self-signed
             return false;
         }
@@ -220,24 +182,14 @@ public class CertUtility {
      * Function to retrieve the static certificate factory object
      *
      * @return static certificate factory object
-     *
-     * @throws CertificateException
-     *             thrown if the certificate factory could not be instantiated
-     * @throws Exception
-     *             in case of an error
+     * @throws CertificateException thrown if the certificate factory could not be
+     *                              instantiated
+     * @throws Exception            in case of an error
      */
-    private static synchronized CertificateFactory getCertificateFactory()
-            throws CertificateException {
+    private static synchronized CertificateFactory getCertificateFactory() throws CertificateException {
         if (certificateFactory == null) {
-            certificateFactory = CertificateFactory.getInstance("X.509",
-                    BOUNCY_CASTLE_PROVIDER);
+            certificateFactory = CertificateFactory.getInstance("X.509", BOUNCY_CASTLE_PROVIDER);
         }
         return certificateFactory;
     }
-
-    // utility class
-    private CertUtility() {
-
-    }
-
 }

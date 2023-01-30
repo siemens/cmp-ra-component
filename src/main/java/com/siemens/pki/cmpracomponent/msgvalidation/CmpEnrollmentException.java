@@ -17,12 +17,10 @@
  */
 package com.siemens.pki.cmpracomponent.msgvalidation;
 
+import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
 import org.bouncycastle.asn1.cmp.PKIBody;
 
-import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
-
 /**
- *
  * This exception is created if a CMP enrollment request message (IR, CR, KUR)
  * validation failed.
  */
@@ -33,27 +31,19 @@ public class CmpEnrollmentException extends CmpValidationException {
     private final int enrollmentType;
 
     /**
-     * @param enrollmentType
-     *            PKI message type of enrollment request
-     *
-     * @param interfaceName
-     *            interface name used as prefix message text
-     * @param failInfo
-     *            CMP failInfo proposed for CMP error message
-     * @param errorDetails
-     *            description of some details related to the error
+     * @param enrollmentType PKI message type of enrollment request
+     * @param interfaceName  interface name used as prefix message text
+     * @param failInfo       CMP failInfo proposed for CMP error message
+     * @param errorDetails   description of some details related to the error
      */
-    public CmpEnrollmentException(final int enrollmentType,
-            final String interfaceName, final int failInfo,
-            final String errorDetails) {
+    public CmpEnrollmentException(
+            final int enrollmentType, final String interfaceName, final int failInfo, final String errorDetails) {
         super(interfaceName, failInfo, errorDetails);
         this.enrollmentType = enrollmentType;
     }
 
     @Override
     public PKIBody asErrorBody() {
-        return PkiMessageGenerator.generateIpCpKupErrorBody(enrollmentType + 1,
-                failInfo, errorDetails);
+        return PkiMessageGenerator.generateIpCpKupErrorBody(enrollmentType + 1, failInfo, errorDetails);
     }
-
 }

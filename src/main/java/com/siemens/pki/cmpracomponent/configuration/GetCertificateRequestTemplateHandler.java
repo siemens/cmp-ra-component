@@ -21,8 +21,7 @@ package com.siemens.pki.cmpracomponent.configuration;
  * support message handler supporting Get certificate request template genm
  * requests
  */
-public interface GetCertificateRequestTemplateHandler
-        extends SupportMessageHandlerInterface {
+public interface GetCertificateRequestTemplateHandler extends SupportMessageHandlerInterface {
 
     /**
      * handle an Get certificate request template GENM and return a ASN.1 DER
@@ -32,5 +31,4 @@ public interface GetCertificateRequestTemplateHandler
      *         infoValue should be absent
      */
     byte[] getCertificateRequestTemplate();
-
 }

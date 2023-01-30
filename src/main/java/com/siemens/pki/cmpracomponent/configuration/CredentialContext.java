@@ -21,8 +21,5 @@ package com.siemens.pki.cmpracomponent.configuration;
  * an instance of an interface derived from {@link CredentialContext} provides
  * all attributes needed for CMP protection, authentication, signing or
  * encryption
- *
  */
-public interface CredentialContext {
-
-}
+public interface CredentialContext {}

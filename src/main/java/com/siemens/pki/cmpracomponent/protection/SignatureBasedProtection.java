@@ -17,13 +17,15 @@
  */
 package com.siemens.pki.cmpracomponent.protection;
 
+import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
+import com.siemens.pki.cmpracomponent.cryptoservices.BaseCredentialService;
+import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import java.security.Signature;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-
 import org.bouncycastle.asn1.ASN1Encoding;
 import org.bouncycastle.asn1.DERBitString;
 import org.bouncycastle.asn1.DEROctetString;
@@ -33,43 +35,37 @@ import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.GeneralName;
 
-import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
-import com.siemens.pki.cmpracomponent.cryptoservices.BaseCredentialService;
-import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
-
 /**
  * a {@link ProtectionProvider} enforcing a CMP message with signature based
  * protection
  */
-public class SignatureBasedProtection extends BaseCredentialService
-        implements ProtectionProvider {
+public class SignatureBasedProtection extends BaseCredentialService implements ProtectionProvider {
 
     /**
-     * @param config
-     *            specific configuration
-     *
+     * @param config specific configuration
      */
     public SignatureBasedProtection(final SignatureCredentialContext config) {
         super(config);
     }
 
     @Override
-    public List<CMPCertificate> getProtectingExtraCerts()
-            throws CertificateException {
+    public List<CMPCertificate> getProtectingExtraCerts() throws CertificateException {
         final List<X509Certificate> certChain = getCertChain();
         if (certChain.size() <= 1) {
             // protecting cert might be selfsigned
             Arrays.asList(CertUtility.asCmpCertificates(certChain));
         }
         // filter out selfsigned certificates
-        return certChain.stream().filter(CertUtility::isIntermediateCertificate)
+        return certChain.stream()
+                .filter(CertUtility::isIntermediateCertificate)
                 .map(t -> {
                     try {
                         return CertUtility.asCmpCertificate(t);
                     } catch (final CertificateException e) {
                         throw new RuntimeException(e);
                     }
-                }).collect(Collectors.toList());
+                })
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -78,10 +74,8 @@ public class SignatureBasedProtection extends BaseCredentialService
     }
 
     @Override
-    public DERBitString getProtectionFor(final ProtectedPart protectedPart)
-            throws Exception {
-        final Signature sig =
-                Signature.getInstance(getSignatureAlgorithmName());
+    public DERBitString getProtectionFor(final ProtectedPart protectedPart) throws Exception {
+        final Signature sig = Signature.getInstance(getSignatureAlgorithmName());
         sig.initSign(getPrivateKey());
         sig.update(protectedPart.getEncoded(ASN1Encoding.DER));
         return new DERBitString(sig.sign());
@@ -95,8 +89,6 @@ public class SignatureBasedProtection extends BaseCredentialService
 
     @Override
     public DEROctetString getSenderKID() {
-        return CertUtility
-                .extractSubjectKeyIdentifierFromCert(getEndCertificate());
+        return CertUtility.extractSubjectKeyIdentifierFromCert(getEndCertificate());
     }
-
 }

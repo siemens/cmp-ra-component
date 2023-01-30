@@ -20,18 +20,13 @@ package com.siemens.pki.cmpracomponent.util;
 import java.util.function.Supplier;
 
 /**
- *
  * utility functions to handle <code>null</code> values
- *
  */
 public class NullUtil {
 
-    public interface ExFunction<T, R, E extends Exception> {
-        R apply(T arg) throws E;
-    }
+    private NullUtil() {}
 
-    public static <T> T computeDefaultIfNull(final T value,
-            final Supplier<T> defaultSupplier) {
+    public static <T> T computeDefaultIfNull(final T value, final Supplier<T> defaultSupplier) {
         return value != null ? value : defaultSupplier.get();
     }
 
@@ -39,8 +34,7 @@ public class NullUtil {
         return value != null ? value : defaultValue;
     }
 
-    public static <T, R, E extends Exception> T ifNotNull(final R value,
-            final ExFunction<R, T, E> function) throws E {
+    public static <T, R, E extends Exception> T ifNotNull(final R value, final ExFunction<R, T, E> function) throws E {
         try {
             return value == null ? null : function.apply(value);
         } catch (final NullPointerException npe) {
@@ -48,8 +42,7 @@ public class NullUtil {
         }
     }
 
-    private NullUtil() {
-
+    public interface ExFunction<T, R, E extends Exception> {
+        R apply(T arg) throws E;
     }
-
 }

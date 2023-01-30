@@ -6,7 +6,7 @@ The generic CMP RA component supports the implementation of
 applications that provides CMP Registration Authority (RA) functions.
 
 
-## Basic feature​s for use in PoCs, reference implementations, and in production
+## Basic features for use in PoCs, reference implementations, and in production
 
 * The generic RA component implements the following CMP functions and features:
     * Build, parse, and process CMP messages and validate their contents.

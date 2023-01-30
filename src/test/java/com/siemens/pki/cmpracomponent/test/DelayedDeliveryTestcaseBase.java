@@ -20,25 +20,6 @@ package com.siemens.pki.cmpracomponent.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import java.io.File;
-import java.security.GeneralSecurityException;
-import java.security.Security;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.function.Function;
-
-import org.bouncycastle.asn1.ASN1Integer;
-import org.bouncycastle.asn1.cmp.CertRepMessage;
-import org.bouncycastle.asn1.cmp.CertResponse;
-import org.bouncycastle.asn1.cmp.ErrorMsgContent;
-import org.bouncycastle.asn1.cmp.PKIBody;
-import org.bouncycastle.asn1.cmp.PKIMessage;
-import org.bouncycastle.asn1.cmp.PKIStatus;
-import org.bouncycastle.asn1.cmp.PollRepContent;
-import org.junit.BeforeClass;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.siemens.pki.cmpracomponent.configuration.Configuration;
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.main.CmpRaComponent;
@@ -50,14 +31,24 @@ import com.siemens.pki.cmpracomponent.test.framework.CmpCaMock;
 import com.siemens.pki.cmpracomponent.test.framework.ConfigFileLoader;
 import com.siemens.pki.cmpracomponent.test.framework.HeaderProviderForTest;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
+import java.io.File;
+import java.security.Security;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.function.Function;
+import org.bouncycastle.asn1.ASN1Integer;
+import org.bouncycastle.asn1.cmp.*;
+import org.junit.BeforeClass;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DelayedDeliveryTestcaseBase {
 
-    static public final File CONFIG_DIRECTORY = new File(
-            "./src/test/java/com/siemens/pki/cmpracomponent/test/config");
+    public static final File CONFIG_DIRECTORY = new File("./src/test/java/com/siemens/pki/cmpracomponent/test/config");
 
-    private static final Logger LOGGER =
-            LoggerFactory.getLogger(DelayedDeliveryTestcaseBase.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DelayedDeliveryTestcaseBase.class);
+    private Function<PKIMessage, PKIMessage> eeClient;
+    private CmpRaInterface raComponent;
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
@@ -69,113 +60,96 @@ public class DelayedDeliveryTestcaseBase {
             final int expectedWaitingResponseMessageType,
             final ProtectionProvider protectionProvider,
             final Function<PKIMessage, PKIMessage> cmpClient,
-            final PKIMessage request) throws Exception, InterruptedException {
+            final PKIMessage request)
+            throws Exception {
         PKIMessage response = cmpClient.apply(request);
 
         if (LOGGER.isDebugEnabled()) {
-            // avoid unnecessary call of MessageDumper.dumpPkiMessage, if debug isn't enabled
-            LOGGER.debug("test client got:\n"
-                    + MessageDumper.dumpPkiMessage(response));
+            // avoid unnecessary call of MessageDumper.dumpPkiMessage, if debug isn't
+            // enabled
+            LOGGER.debug("test client got:\n" + MessageDumper.dumpPkiMessage(response));
         }
         final int responseType = response.getBody().getType();
-        assertEquals("message type", expectedWaitingResponseMessageType,
-                responseType);
+        assertEquals("message type", expectedWaitingResponseMessageType, responseType);
 
         boolean pollingTriggered = false;
         switch (responseType) {
-        case PKIBody.TYPE_INIT_REP:
-        case PKIBody.TYPE_CERT_REP:
-        case PKIBody.TYPE_KEY_UPDATE_REP: {
-            final CertResponse certResponseInBody =
-                    ((CertRepMessage) response.getBody().getContent())
-                            .getResponse()[0];
-            if (certResponseInBody.getStatus() != null && certResponseInBody
-                    .getStatus().getStatus().intValue() == PKIStatus.WAITING) {
-                pollingTriggered = true;
+            case PKIBody.TYPE_INIT_REP:
+            case PKIBody.TYPE_CERT_REP:
+            case PKIBody.TYPE_KEY_UPDATE_REP: {
+                final CertResponse certResponseInBody =
+                        ((CertRepMessage) response.getBody().getContent()).getResponse()[0];
+                if (certResponseInBody.getStatus() != null
+                        && certResponseInBody.getStatus().getStatus().intValue() == PKIStatus.WAITING) {
+                    pollingTriggered = true;
+                }
+                break;
             }
-            break;
-        }
-        case PKIBody.TYPE_ERROR: {
-            final ErrorMsgContent errorContent =
-                    (ErrorMsgContent) response.getBody().getContent();
-            if (errorContent.getPKIStatusInfo().getStatus()
-                    .intValue() == PKIStatus.WAITING) {
-                pollingTriggered = true;
+            case PKIBody.TYPE_ERROR: {
+                final ErrorMsgContent errorContent =
+                        (ErrorMsgContent) response.getBody().getContent();
+                if (errorContent.getPKIStatusInfo().getStatus().intValue() == PKIStatus.WAITING) {
+                    pollingTriggered = true;
+                }
+                break;
             }
-            break;
-        }
-        default:
-            ;
+            default:
         }
         if (pollingTriggered) {
             // delayed delivery triggered, start polling
-            for (;;) {
-                final PKIMessage pollReq =
-                        PkiMessageGenerator.generateAndProtectMessage(
-                                new HeaderProviderForTest(response.getHeader()),
-                                protectionProvider,
-                                PkiMessageGenerator.generatePollReq());
+            for (; ; ) {
+                final PKIMessage pollReq = PkiMessageGenerator.generateAndProtectMessage(
+                        new HeaderProviderForTest(response.getHeader()),
+                        protectionProvider,
+                        PkiMessageGenerator.generatePollReq());
                 response = cmpClient.apply(pollReq);
                 if (response.getBody().getType() != PKIBody.TYPE_POLL_REP) {
                     break;
                 }
                 final ASN1Integer checkAfter =
-                        ((PollRepContent) response.getBody().getContent())
-                                .getCheckAfter(0);
+                        ((PollRepContent) response.getBody().getContent()).getCheckAfter(0);
                 Thread.sleep(1000L * checkAfter.getValue().longValue());
             }
         }
         return response;
     }
 
-    private Function<PKIMessage, PKIMessage> eeClient;
-
-    private CmpRaInterface raComponent;
-
     protected Function<PKIMessage, PKIMessage> getEeClient() {
         return eeClient;
     }
 
-    protected Function<PKIMessage, PKIMessage> launchDelayedCaAndRa(
-            final Configuration config)
-            throws Exception, GeneralSecurityException, InterruptedException {
+    protected Function<PKIMessage, PKIMessage> launchDelayedCaAndRa(final Configuration config) throws Exception {
 
-        final CmpCaMock caMock =
-                new CmpCaMock("credentials/ENROLL_Keystore.p12",
-                        "credentials/CMP_CA_Keystore.p12");
+        final CmpCaMock caMock = new CmpCaMock("credentials/ENROLL_Keystore.p12", "credentials/CMP_CA_Keystore.p12");
         // delay request for 10 seconds before delivery to the CA
-        final UpstreamExchange delayedTransport =
-                (request, certProfile, bodyTypeOfFirstRequest) -> {
-                    new Timer().schedule(new TimerTask() {
+        final UpstreamExchange delayedTransport = (request, certProfile, bodyTypeOfFirstRequest) -> {
+            new Timer()
+                    .schedule(
+                            new TimerTask() {
 
-                        @Override
-                        public void run() {
-                            try {
-                                raComponent.gotResponseAtUpstream(
-                                        caMock.sendReceiveMessage(request,
-                                                certProfile,
-                                                bodyTypeOfFirstRequest));
-                            } catch (final Exception e) {
-                                fail(e.getMessage());
-                            }
-                        }
-                    }, 10_000L);
-                    // trigger delayed delivery stuff in RA
-                    return null;
-                };
+                                @Override
+                                public void run() {
+                                    try {
+                                        raComponent.gotResponseAtUpstream(caMock.sendReceiveMessage(
+                                                request, certProfile, bodyTypeOfFirstRequest));
+                                    } catch (final Exception e) {
+                                        fail(e.getMessage());
+                                    }
+                                }
+                            },
+                            10_000L);
+            // trigger delayed delivery stuff in RA
+            return null;
+        };
 
-        raComponent = CmpRaComponent.instantiateCmpRaComponent(config,
-                delayedTransport);
+        raComponent = CmpRaComponent.instantiateCmpRaComponent(config, delayedTransport);
         eeClient = req -> {
             try {
-                return PKIMessage.getInstance(
-                        raComponent.processRequest(req.getEncoded()));
+                return PKIMessage.getInstance(raComponent.processRequest(req.getEncoded()));
             } catch (final Exception e) {
                 throw new RuntimeException(e);
             }
         };
         return eeClient;
-
     }
-
 }

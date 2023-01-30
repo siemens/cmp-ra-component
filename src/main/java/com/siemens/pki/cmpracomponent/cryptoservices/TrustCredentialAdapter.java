@@ -17,38 +17,21 @@
  */
 package com.siemens.pki.cmpracomponent.cryptoservices;
 
+import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import java.net.URI;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertPathBuilder;
-import java.security.cert.CertPathBuilderException;
-import java.security.cert.CertStore;
-import java.security.cert.CollectionCertStoreParameters;
-import java.security.cert.PKIXBuilderParameters;
-import java.security.cert.PKIXCertPathBuilderResult;
-import java.security.cert.PKIXRevocationChecker;
+import java.security.cert.*;
 import java.security.cert.PKIXRevocationChecker.Option;
-import java.security.cert.TrustAnchor;
-import java.security.cert.X509CRL;
-import java.security.cert.X509CertSelector;
-import java.security.cert.X509Certificate;
-import java.util.Collection;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 
 /**
  * Class for building a certification chain for given certificate and verifying
  * it. Relies on a set of root CA certificates and intermediate certificates
  * that will be used for building the certification chain.
- *
  */
 public class TrustCredentialAdapter {
 
@@ -56,58 +39,47 @@ public class TrustCredentialAdapter {
 
     private static final String OCSP_ENABLE_PROP = "ocsp.enable";
 
-    private static final Logger LOGGER =
-            LoggerFactory.getLogger(TrustCredentialAdapter.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(TrustCredentialAdapter.class);
 
     private final VerificationContext config;
 
     /**
-     *
-     * @param config
-     *            specific configuration
+     * @param config specific configuration
      */
     public TrustCredentialAdapter(final VerificationContext config) {
         this.config = config;
     }
 
     /**
-     * Attempts to build a certification chain for given certificate and to
-     * verify it. Relies on a set of root CA
-     * certificates (trust anchors) and a set of intermediate certificates (to
-     * be used as part of the chain).
+     * Attempts to build a certification chain for given certificate and to verify
+     * it. Relies on a set of root CA certificates (trust anchors) and a set of
+     * intermediate certificates (to be used as part of the chain).
      *
-     * @param cert
-     *            certificate for validation
-     *
-     * @param additionalIntermediateCerts
-     *            set of intermediate certificates, must also include the
-     *            certificate for validation
-     *
+     * @param cert                        certificate for validation
+     * @param additionalIntermediateCerts set of intermediate certificates, must
+     *                                    also include the certificate for
+     *                                    validation
      * @return the validated chain without trust anchor but with cert or
      *         <code>null</code> if the validation failed
-     *
      */
     @SuppressWarnings("unchecked")
     public synchronized List<? extends X509Certificate> validateCertAgainstTrust(
-            final X509Certificate cert,
-            final List<X509Certificate> additionalIntermediateCerts) {
-        final Collection<X509Certificate> trustedCertificates =
-                config.getTrustedCertificates();
+            final X509Certificate cert, final List<X509Certificate> additionalIntermediateCerts) {
+        final Collection<X509Certificate> trustedCertificates = config.getTrustedCertificates();
         if (trustedCertificates == null) {
             return null;
         }
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("cert: " + cert.getSubjectX500Principal() + ", I: "
-                    + cert.getIssuerX500Principal());
+            LOGGER.debug("cert: " + cert.getSubjectX500Principal() + ", I: " + cert.getIssuerX500Principal());
             if (additionalIntermediateCerts != null) {
                 for (final X509Certificate aktCert : additionalIntermediateCerts) {
-                    LOGGER.debug("inter: " + aktCert.getSubjectX500Principal()
-                            + ", I: " + aktCert.getIssuerX500Principal());
+                    LOGGER.debug(
+                            "inter: " + aktCert.getSubjectX500Principal() + ", I: " + aktCert.getIssuerX500Principal());
                 }
             }
             for (final X509Certificate aktCert : trustedCertificates) {
-                LOGGER.debug("trust: " + aktCert.getSubjectX500Principal()
-                        + ", I: " + aktCert.getIssuerX500Principal());
+                LOGGER.debug(
+                        "trust: " + aktCert.getSubjectX500Principal() + ", I: " + aktCert.getIssuerX500Principal());
             }
         }
         try {
@@ -123,19 +95,16 @@ public class TrustCredentialAdapter {
             if (config.isAIAsEnabled()) {
                 revocationEnabled = true;
                 java.security.Security.setProperty(OCSP_ENABLE_PROP, "true");
-                System.setProperty("com.sun.security.enableAIAcaIssuers",
-                        "true");
+                System.setProperty("com.sun.security.enableAIAcaIssuers", "true");
             } else {
-                System.setProperty("com.sun.security.enableAIAcaIssuers",
-                        FALSE_STRING);
+                System.setProperty("com.sun.security.enableAIAcaIssuers", FALSE_STRING);
             }
 
             if (config.isCDPsEnabled()) {
                 revocationEnabled = true;
                 System.setProperty("com.sun.security.enableCRLDP", "true");
             } else {
-                System.setProperty("com.sun.security.enableCRLDP",
-                        FALSE_STRING);
+                System.setProperty("com.sun.security.enableCRLDP", FALSE_STRING);
             }
 
             final Set<Object> lstCertCrlStores = new HashSet<>();
@@ -157,11 +126,9 @@ public class TrustCredentialAdapter {
                 lstCertCrlStores.add(crls);
             }
 
-            final CollectionCertStoreParameters ccsp =
-                    new CollectionCertStoreParameters(lstCertCrlStores);
+            final CollectionCertStoreParameters ccsp = new CollectionCertStoreParameters(lstCertCrlStores);
 
-            final CertStore store = CertStore.getInstance("Collection", ccsp,
-                    CertUtility.getBouncyCastleProvider());
+            final CertStore store = CertStore.getInstance("Collection", ccsp, CertUtility.getBouncyCastleProvider());
 
             final X509CertSelector targetConstraints = new X509CertSelector();
             targetConstraints.setCertificate(cert);
@@ -170,19 +137,15 @@ public class TrustCredentialAdapter {
                     .map(trustedCert -> new TrustAnchor(trustedCert, null))
                     .collect(Collectors.toSet());
 
-            final PKIXBuilderParameters params =
-                    new PKIXBuilderParameters(trust, targetConstraints);
+            final PKIXBuilderParameters params = new PKIXBuilderParameters(trust, targetConstraints);
 
             params.addCertStore(store);
 
-            final CertPathBuilder cpb = CertPathBuilder.getInstance("PKIX",
-                    CertUtility.getBouncyCastleProvider());
+            final CertPathBuilder cpb = CertPathBuilder.getInstance("PKIX", CertUtility.getBouncyCastleProvider());
 
-            final PKIXRevocationChecker revChecker =
-                    (PKIXRevocationChecker) cpb.getRevocationChecker();
+            final PKIXRevocationChecker revChecker = (PKIXRevocationChecker) cpb.getRevocationChecker();
 
-            final EnumSet<Option> pkixRevocationCheckerOptions =
-                    config.getPKIXRevocationCheckerOptions();
+            final EnumSet<Option> pkixRevocationCheckerOptions = config.getPKIXRevocationCheckerOptions();
             if (pkixRevocationCheckerOptions != null) {
                 revChecker.setOptions(pkixRevocationCheckerOptions);
             }
@@ -199,12 +162,10 @@ public class TrustCredentialAdapter {
             }
             params.setRevocationEnabled(revocationEnabled);
 
-            final PKIXCertPathBuilderResult result =
-                    (PKIXCertPathBuilderResult) cpb.build(params);
+            final PKIXCertPathBuilderResult result = (PKIXCertPathBuilderResult) cpb.build(params);
 
             final List<? extends X509Certificate> resultChain =
-                    (List<? extends X509Certificate>) result.getCertPath()
-                            .getCertificates();
+                    (List<? extends X509Certificate>) result.getCertPath().getCertificates();
             if (resultChain == null) {
                 return null;
             }
@@ -226,12 +187,9 @@ public class TrustCredentialAdapter {
             // to get more help, use "-Djava.security.debug=help" (really)
             //
             return null;
-        } catch (final InvalidAlgorithmParameterException
-                | NoSuchAlgorithmException ex) {
-            LOGGER.error("Exception while building certificate path:"
-                    + ex.getMessage());
+        } catch (final InvalidAlgorithmParameterException | NoSuchAlgorithmException ex) {
+            LOGGER.error("Exception while building certificate path:" + ex.getMessage());
             return null;
         }
     }
-
 }

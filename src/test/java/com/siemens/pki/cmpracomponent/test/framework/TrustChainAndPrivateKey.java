@@ -17,9 +17,11 @@
  */
 package com.siemens.pki.cmpracomponent.test.framework;
 
+import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
+import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
+import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
 import java.security.Key;
 import java.security.KeyStore;
-import java.security.KeyStoreException;
 import java.security.PrivateKey;
 import java.security.Signature;
 import java.security.cert.Certificate;
@@ -27,7 +29,6 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 import org.bouncycastle.asn1.ASN1Encoding;
 import org.bouncycastle.asn1.DERBitString;
 import org.bouncycastle.asn1.DEROctetString;
@@ -37,10 +38,6 @@ import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.GeneralName;
 
-import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
-import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
-import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
-
 public class TrustChainAndPrivateKey implements SignatureCredentialContext {
 
     // chain starting with end certificate ending with root certificate
@@ -48,16 +45,12 @@ public class TrustChainAndPrivateKey implements SignatureCredentialContext {
 
     private PrivateKey privateKeyOfEndCertififcate = null;
 
-    public TrustChainAndPrivateKey(final String keyStoreFileName,
-            final char[] password) throws KeyStoreException, Exception {
+    public TrustChainAndPrivateKey(final String keyStoreFileName, final char[] password) throws Exception {
 
-        this(TestCertUtility.loadKeystoreFromFile(keyStoreFileName, password),
-                password);
-
+        this(TestCertUtility.loadKeystoreFromFile(keyStoreFileName, password), password);
     }
 
-    TrustChainAndPrivateKey(final KeyStore keyStore, final char[] password)
-            throws Exception {
+    TrustChainAndPrivateKey(final KeyStore keyStore, final char[] password) throws Exception {
         for (final String aktAlias : Collections.list(keyStore.aliases())) {
             final Key privKey = keyStore.getKey(aktAlias, password);
             if (!(privKey instanceof PrivateKey)) {
@@ -67,8 +60,7 @@ public class TrustChainAndPrivateKey implements SignatureCredentialContext {
             if (!(certificate instanceof X509Certificate)) {
                 continue;
             }
-            final Certificate[] foundChain =
-                    keyStore.getCertificateChain(aktAlias);
+            final Certificate[] foundChain = keyStore.getCertificateChain(aktAlias);
             for (final Certificate aktCert : foundChain) {
                 trustChain.add((X509Certificate) aktCert);
             }
@@ -88,33 +80,26 @@ public class TrustChainAndPrivateKey implements SignatureCredentialContext {
         return privateKeyOfEndCertififcate;
     }
 
-    public ProtectionProvider setEndEntityToProtect(
-            final CMPCertificate certificate, final PrivateKey privateKey)
+    public ProtectionProvider setEndEntityToProtect(final CMPCertificate certificate, final PrivateKey privateKey)
             throws Exception {
-        final AlgorithmIdentifier protectionAlg =
-                AlgorithmHelper.getSigningAlgIdFromKey(privateKey);
+        final AlgorithmIdentifier protectionAlg = AlgorithmHelper.getSigningAlgIdFromKey(privateKey);
 
         final GeneralName senderName = new GeneralName(
-                X500Name.getInstance(certificate.getX509v3PKCert().getSubject()
-                        .getEncoded(ASN1Encoding.DER)));
-        final DEROctetString senderKid = TestCertUtility
-                .extractSubjectKeyIdentifierFromCert(TestCertUtility
-                        .certificateFromCmpCertificate(certificate));
+                X500Name.getInstance(certificate.getX509v3PKCert().getSubject().getEncoded(ASN1Encoding.DER)));
+        final DEROctetString senderKid = TestCertUtility.extractSubjectKeyIdentifierFromCert(
+                TestCertUtility.certificateFromCmpCertificate(certificate));
         return new ProtectionProvider() {
 
             @Override
-            public List<CMPCertificate> getProtectingExtraCerts()
-                    throws Exception {
-                final List<CMPCertificate> ret =
-                        new ArrayList<>(trustChain.size());
+            public List<CMPCertificate> getProtectingExtraCerts() throws Exception {
+                final List<CMPCertificate> ret = new ArrayList<>(trustChain.size());
                 ret.add(certificate);
                 for (final X509Certificate aktCert : trustChain) {
                     if (TestCertUtility.isSelfSigned(aktCert)) {
                         // chain root reached
                         break;
                     }
-                    ret.add(TestCertUtility
-                            .cmpCertificateFromCertificate(aktCert));
+                    ret.add(TestCertUtility.cmpCertificateFromCertificate(aktCert));
                 }
                 return ret;
             }
@@ -125,10 +110,8 @@ public class TrustChainAndPrivateKey implements SignatureCredentialContext {
             }
 
             @Override
-            public DERBitString getProtectionFor(
-                    final ProtectedPart protectedPart) throws Exception {
-                final Signature sig = Signature.getInstance(
-                        AlgorithmHelper.getSigningAlgNameFromKey(privateKey));
+            public DERBitString getProtectionFor(final ProtectedPart protectedPart) throws Exception {
+                final Signature sig = Signature.getInstance(AlgorithmHelper.getSigningAlgNameFromKey(privateKey));
                 sig.initSign(privateKey);
                 sig.update(protectedPart.getEncoded(ASN1Encoding.DER));
                 return new DERBitString(sig.sign());
@@ -144,7 +127,5 @@ public class TrustChainAndPrivateKey implements SignatureCredentialContext {
                 return senderKid;
             }
         };
-
     }
-
 }

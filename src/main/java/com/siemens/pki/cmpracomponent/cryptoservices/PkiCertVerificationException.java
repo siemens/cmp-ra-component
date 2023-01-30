@@ -20,8 +20,6 @@ package com.siemens.pki.cmpracomponent.cryptoservices;
 /**
  * This class wraps an exception that could be thrown during the cert validation
  * process.
- *
- *
  */
 public class PkiCertVerificationException extends Exception {
 
@@ -30,8 +28,7 @@ public class PkiCertVerificationException extends Exception {
     /**
      * Constructor for PkiCertVerificationException
      *
-     * @param message
-     *            message with the reason why the verification failed
+     * @param message message with the reason why the verification failed
      */
     public PkiCertVerificationException(final String message) {
         super(message);
@@ -40,13 +37,10 @@ public class PkiCertVerificationException extends Exception {
     /**
      * Constructor for PkiCertVerificationException
      *
-     * @param message
-     *            message with the reason why the verification failed
-     * @param cause
-     *            exception occured during verification process
+     * @param message message with the reason why the verification failed
+     * @param cause   exception occured during verification process
      */
-    public PkiCertVerificationException(final String message,
-            final Throwable cause) {
+    public PkiCertVerificationException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

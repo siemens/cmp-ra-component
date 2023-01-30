@@ -17,6 +17,8 @@
  */
 package com.siemens.pki.cmpracomponent.msgvalidation;
 
+import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
+import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import org.bouncycastle.asn1.ASN1BitString;
 import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
 import org.bouncycastle.asn1.cmp.PKIBody;
@@ -27,32 +29,23 @@ import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
-import com.siemens.pki.cmpracomponent.util.MessageDumper;
-
 /**
- * This class validates the signature or password based
- * protection of all incoming messages and generates proper error responses on
- * failed validation.
+ * This class validates the signature or password based protection of all
+ * incoming messages and generates proper error responses on failed validation.
  */
 public class ProtectionValidator implements ValidatorIF<Void> {
 
-    private static final Logger LOGGER =
-            LoggerFactory.getLogger(ProtectionValidator.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ProtectionValidator.class);
 
     private final String interfaceName;
 
     private final VerificationContext config;
 
     /**
-     *
-     * @param interfaceName
-     *            interface name used in error messages
-     * @param config
-     *            specific configuration
+     * @param interfaceName interface name used in error messages
+     * @param config        specific configuration
      */
-    public ProtectionValidator(final String interfaceName,
-            final VerificationContext config) {
+    public ProtectionValidator(final String interfaceName, final VerificationContext config) {
         this.interfaceName = interfaceName;
         this.config = config;
     }
@@ -60,11 +53,9 @@ public class ProtectionValidator implements ValidatorIF<Void> {
     /**
      * Check a incoming message for correct protection
      *
-     * @param message
-     *            message to check
-     * @throws CmpProcessingException
-     *             in case of error or failed protection validation
-     *
+     * @param message message to check
+     * @throws CmpProcessingException in case of error or failed protection
+     *                                validation
      */
     @Override
     public Void validate(final PKIMessage message) throws BaseCmpException {
@@ -73,36 +64,30 @@ public class ProtectionValidator implements ValidatorIF<Void> {
             return null;
         }
         final ASN1BitString protection = message.getProtection();
-        final AlgorithmIdentifier protectionAlg =
-                message.getHeader().getProtectionAlg();
+        final AlgorithmIdentifier protectionAlg = message.getHeader().getProtectionAlg();
         if (protection == null || protectionAlg == null) {
             switch (message.getBody().getType()) {
-            case PKIBody.TYPE_ERROR:
-            case PKIBody.TYPE_CONFIRM:
-            case PKIBody.TYPE_REVOCATION_REP:
-                // some messages are allowed to be unprotected or protected
-                // in a strange way
-                LOGGER.warn("broken protection ignored for "
-                        + MessageDumper.msgTypeAsString(message.getBody()));
-                return null;
-            default:
-                throw new CmpValidationException(interfaceName,
-                        PKIFailureInfo.notAuthorized,
-                        "message is incomplete protected but protection is required");
+                case PKIBody.TYPE_ERROR:
+                case PKIBody.TYPE_CONFIRM:
+                case PKIBody.TYPE_REVOCATION_REP:
+                    // some messages are allowed to be unprotected or protected
+                    // in a strange way
+                    LOGGER.warn("broken protection ignored for " + MessageDumper.msgTypeAsString(message.getBody()));
+                    return null;
+                default:
+                    throw new CmpValidationException(
+                            interfaceName,
+                            PKIFailureInfo.notAuthorized,
+                            "message is incomplete protected but protection is required");
             }
         }
-        if (CMPObjectIdentifiers.passwordBasedMac
-                .equals(protectionAlg.getAlgorithm())) {
-            new PasswordBasedMacValidator(interfaceName, config)
-                    .validate(message);
+        if (CMPObjectIdentifiers.passwordBasedMac.equals(protectionAlg.getAlgorithm())) {
+            new PasswordBasedMacValidator(interfaceName, config).validate(message);
 
-        } else if (PKCSObjectIdentifiers.id_PBMAC1
-                .equals(protectionAlg.getAlgorithm())) {
-            new PBMAC1ProtectionValidator(interfaceName, config)
-                    .validate(message);
+        } else if (PKCSObjectIdentifiers.id_PBMAC1.equals(protectionAlg.getAlgorithm())) {
+            new PBMAC1ProtectionValidator(interfaceName, config).validate(message);
         } else {
-            new SignatureProtectionValidator(interfaceName, config)
-                    .validate(message);
+            new SignatureProtectionValidator(interfaceName, config).validate(message);
         }
         return null;
     }

@@ -22,7 +22,6 @@ import org.bouncycastle.cms.CMSAlgorithm;
 /**
  * encryptor which uses the password-based key management technique for
  * encryption
- *
  */
 public interface CkgPasswordContext {
 
@@ -41,5 +40,4 @@ public interface CkgPasswordContext {
     default String getKekAlg() {
         return CMSAlgorithm.AES128_CBC.getId();
     }
-
 }

@@ -17,26 +17,25 @@
  */
 package com.siemens.pki.cmpracomponent.persistency;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
+import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import java.io.IOException;
 import java.security.PrivateKey;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.PKIFailureInfo;
 import org.bouncycastle.asn1.cmp.PKIMessage;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
-import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
-
 /**
- *
  * holder for all persistent data
- *
  */
 public class PersistencyContext {
+
+    @JsonIgnore
+    private final TransactionStateTracker transactionStateTracker = new TransactionStateTracker(this);
 
     private byte[] transactionId;
     private String certProfile;
@@ -44,15 +43,10 @@ public class PersistencyContext {
     private Set<CMPCertificate> alreadySentExtraCerts;
     private PKIMessage initialRequest;
     private PKIMessage pendingDelayedResponse;
-
     private LastTransactionState lastTransactionState;
-
     private byte[] lastSenderNonce;
-
     private byte[] digestToConfirm;
-
     private boolean implicitConfirmGranted;
-
     private byte[] requestedPublicKey;
 
     @JsonIgnore
@@ -61,18 +55,12 @@ public class PersistencyContext {
     @JsonIgnore
     private PersistencyContextManager contextManager;
 
-    @JsonIgnore
-    private final TransactionStateTracker transactionStateTracker =
-            new TransactionStateTracker(this);
     private int certificateRequestType;
     private boolean delayedDeliveryInProgress;
 
-    public PersistencyContext() {
+    public PersistencyContext() {}
 
-    }
-
-    PersistencyContext(final PersistencyContextManager contextManager,
-            final byte[] transactionId) {
+    PersistencyContext(final PersistencyContextManager contextManager, final byte[] transactionId) {
         this.transactionId = transactionId;
         this.contextManager = contextManager;
         lastTransactionState = LastTransactionState.INITIAL_STATE;
@@ -94,48 +82,104 @@ public class PersistencyContext {
         return alreadySentExtraCerts;
     }
 
+    public void setAlreadySentExtraCerts(final Set<CMPCertificate> alreadySentExtraCerts) {
+        this.alreadySentExtraCerts = alreadySentExtraCerts;
+    }
+
     public String getCertProfile() {
         return certProfile;
+    }
+
+    public void setCertProfile(final String certProfile) {
+        if (certProfile != null) {
+            this.certProfile = certProfile;
+        }
     }
 
     public boolean getDelayedDeliveryInProgress() {
         return delayedDeliveryInProgress;
     }
 
+    public void setDelayedDeliveryInProgress(final boolean delayedDeliveryInProgress) {
+        this.delayedDeliveryInProgress = delayedDeliveryInProgress;
+    }
+
     public byte[] getDigestToConfirm() {
         return digestToConfirm;
+    }
+
+    public void setDigestToConfirm(final byte[] digestToConfirm) {
+        this.digestToConfirm = digestToConfirm;
     }
 
     public PKIMessage getInitialRequest() {
         return initialRequest;
     }
 
+    public void setInitialRequest(final PKIMessage initialRequest) {
+        this.initialRequest = initialRequest;
+    }
+
     public List<CMPCertificate> getIssuingChain() {
         return issuingChain;
+    }
+
+    public void setIssuingChain(final List<CMPCertificate> issuingChain) {
+        this.issuingChain = issuingChain;
     }
 
     public byte[] getLastSenderNonce() {
         return lastSenderNonce;
     }
 
+    public void setLastSenderNonce(final byte[] lastSenderNonce) {
+        this.lastSenderNonce = lastSenderNonce;
+    }
+
     public LastTransactionState getLastTransactionState() {
         return lastTransactionState;
+    }
+
+    public void setLastTransactionState(final LastTransactionState lastTransactionState) {
+        this.lastTransactionState = lastTransactionState;
     }
 
     public PrivateKey getNewGeneratedPrivateKey() {
         return newGeneratedPrivateKey;
     }
 
+    public void setNewGeneratedPrivateKey(final PrivateKey newGeneratedPrivateKey) {
+        this.newGeneratedPrivateKey = newGeneratedPrivateKey;
+    }
+
     public PKIMessage getPendingDelayedResponse() {
         return pendingDelayedResponse;
+    }
+
+    public void setPendingDelayedResponse(final PKIMessage delayedResponse) throws CmpProcessingException {
+        if (this.pendingDelayedResponse != null) {
+            throw new CmpProcessingException(
+                    "upstream persistency",
+                    PKIFailureInfo.transactionIdInUse,
+                    "duplicate response for same transactionID");
+        }
+        this.pendingDelayedResponse = delayedResponse;
     }
 
     public byte[] getRequestedPublicKey() {
         return requestedPublicKey;
     }
 
+    public void setRequestedPublicKey(final byte[] requestedPublicKey) {
+        this.requestedPublicKey = requestedPublicKey;
+    }
+
     public int getRequestType() {
         return certificateRequestType;
+    }
+
+    public void setRequestType(final int certificateRequestType) {
+        this.certificateRequestType = certificateRequestType;
     }
 
     public byte[] getTransactionId() {
@@ -146,81 +190,15 @@ public class PersistencyContext {
         return implicitConfirmGranted;
     }
 
-    public void setAlreadySentExtraCerts(
-            final Set<CMPCertificate> alreadySentExtraCerts) {
-        this.alreadySentExtraCerts = alreadySentExtraCerts;
-    }
-
-    public void setCertProfile(final String certProfile) {
-        if (certProfile != null) {
-            this.certProfile = certProfile;
-        }
-    }
-
-    public void setContextManager(
-            final PersistencyContextManager contextManager) {
-        this.contextManager = contextManager;
-    }
-
-    public void setDelayedDeliveryInProgress(
-            final boolean delayedDeliveryInProgress) {
-        this.delayedDeliveryInProgress = delayedDeliveryInProgress;
-    }
-
-    public void setDigestToConfirm(final byte[] digestToConfirm) {
-        this.digestToConfirm = digestToConfirm;
-    }
-
-    public void setImplicitConfirmGranted(
-            final boolean implicitConfirmGranted) {
+    public void setImplicitConfirmGranted(final boolean implicitConfirmGranted) {
         this.implicitConfirmGranted = implicitConfirmGranted;
     }
 
-    public void setInitialRequest(final PKIMessage initialRequest) {
-        this.initialRequest = initialRequest;
+    public void setContextManager(final PersistencyContextManager contextManager) {
+        this.contextManager = contextManager;
     }
 
-    public void setIssuingChain(final List<CMPCertificate> issuingChain) {
-        this.issuingChain = issuingChain;
-
-    }
-
-    public void setLastSenderNonce(final byte[] lastSenderNonce) {
-        this.lastSenderNonce = lastSenderNonce;
-    }
-
-    public void setLastTransactionState(
-            final LastTransactionState lastTransactionState) {
-        this.lastTransactionState = lastTransactionState;
-    }
-
-    public void setNewGeneratedPrivateKey(
-            final PrivateKey newGeneratedPrivateKey) {
-        this.newGeneratedPrivateKey = newGeneratedPrivateKey;
-    }
-
-    public void setPendingDelayedResponse(final PKIMessage delayedResponse)
-            throws CmpProcessingException {
-        if (this.pendingDelayedResponse != null) {
-            throw new CmpProcessingException("upstream persistency",
-                    PKIFailureInfo.transactionIdInUse,
-                    "duplicate response for same transactionID");
-        }
-        this.pendingDelayedResponse = delayedResponse;
-    }
-
-    public void setRequestedPublicKey(final byte[] requestedPublicKey) {
-        this.requestedPublicKey = requestedPublicKey;
-    }
-
-    public void setRequestType(final int certificateRequestType) {
-        this.certificateRequestType = certificateRequestType;
-
-    }
-
-    public void trackMessage(final PKIMessage msg)
-            throws BaseCmpException, IOException {
+    public void trackMessage(final PKIMessage msg) throws BaseCmpException, IOException {
         transactionStateTracker.trackMessage(msg);
     }
-
 }

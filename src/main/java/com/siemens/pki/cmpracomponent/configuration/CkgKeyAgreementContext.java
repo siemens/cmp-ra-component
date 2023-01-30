@@ -20,22 +20,19 @@ package com.siemens.pki.cmpracomponent.configuration;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.X509Certificate;
-
 import org.bouncycastle.asn1.sec.SECObjectIdentifiers;
 import org.bouncycastle.cms.CMSAlgorithm;
 
 /**
  * an instance of this interface provides all attributes required to implement
  * key agreement in context of central key generation
- *
  */
 public interface CkgKeyAgreementContext {
     /**
      * specifies the algorithm used for key agreement, see
-     * <a href=
-     * "https://tools.ietf.org/wg/lamps/draft-ietf-lamps-cmp-algorithms">
-     * Certificate Management Protocol (CMP) Algorithms </a>,
-     * section "Key Agreement Algorithms"
+     * <a href= "https://tools.ietf.org/wg/lamps/draft-ietf-lamps-cmp-algorithms">
+     * Certificate Management Protocol (CMP) Algorithms </a>, section "Key Agreement
+     * Algorithms"
      *
      * @return name or OID of an key agreement algorithm
      */
@@ -45,8 +42,7 @@ public interface CkgKeyAgreementContext {
 
     /**
      * specifies the algorithm used for key encryption, see
-     * <a href=
-     * "https://tools.ietf.org/wg/lamps/draft-ietf-lamps-cmp-algorithms">
+     * <a href= "https://tools.ietf.org/wg/lamps/draft-ietf-lamps-cmp-algorithms">
      * Certificate Management Protocol (CMP) Algorithms </a>, section "Key
      * Management Algorithms"
      *
@@ -74,13 +70,10 @@ public interface CkgKeyAgreementContext {
     /**
      * specifies the intended recipient by its certificate
      *
-     * @param protectingCertificate
-     *            protecting certificate of request
-     *
+     * @param protectingCertificate protecting certificate of request
      * @return the certificate of the recipient
      */
-    default X509Certificate getRecipient(
-            final X509Certificate protectingCertificate) {
+    default X509Certificate getRecipient(final X509Certificate protectingCertificate) {
         return protectingCertificate;
     }
 }

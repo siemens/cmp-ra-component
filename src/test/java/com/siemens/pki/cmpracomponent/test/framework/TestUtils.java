@@ -21,19 +21,13 @@ import java.security.SecureRandom;
 
 /**
  *
- *
  */
 public class TestUtils {
 
     public static final String PASSWORD = "Password";
-
+    public static final char[] PASSWORD_AS_CHAR_ARRAY = PASSWORD.toCharArray();
     static final SecureRandom RANDOM = new SecureRandom();
 
-    public static final char[] PASSWORD_AS_CHAR_ARRAY = PASSWORD.toCharArray();
-
     // utility class, never create an instance
-    private TestUtils() {
-
-    }
-
+    private TestUtils() {}
 }
