@@ -17,86 +17,62 @@
  */
 package com.siemens.pki.cmpracomponent.cryptoservices;
 
+import com.siemens.pki.cmpracomponent.configuration.CkgContext;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
-
 import org.bouncycastle.asn1.cms.EnvelopedData;
 import org.bouncycastle.asn1.cms.SignedData;
-import org.bouncycastle.cms.CMSAlgorithm;
-import org.bouncycastle.cms.CMSEnvelopedData;
-import org.bouncycastle.cms.CMSEnvelopedDataGenerator;
-import org.bouncycastle.cms.CMSException;
-import org.bouncycastle.cms.CMSProcessableByteArray;
-import org.bouncycastle.cms.RecipientInfoGenerator;
+import org.bouncycastle.cms.*;
 import org.bouncycastle.cms.jcajce.JceCMSContentEncryptorBuilder;
 
-import com.siemens.pki.cmpracomponent.configuration.CkgContext;
-
 /**
- *
  * base class for CMS data encryption
- *
  */
 public class CmsEncryptorBase {
 
-    private final CMSEnvelopedDataGenerator envGen =
-            new CMSEnvelopedDataGenerator();
+    private final CMSEnvelopedDataGenerator envGen = new CMSEnvelopedDataGenerator();
     private final CkgContext config;
 
     protected CmsEncryptorBase(final CkgContext config) {
         this.config = config;
-
     }
 
     /**
      * encrypt the data
      *
-     * @param msg
-     *            data to encrypt
+     * @param msg data to encrypt
      * @return encrypted data
-     *
-     * @throws CMSException
-     *             in case of an CMS processing error
-     * @throws NoSuchAlgorithmException
-     *             if getContentEncryptionAlg in config is unknown
+     * @throws CMSException             in case of an CMS processing error
+     * @throws NoSuchAlgorithmException if getContentEncryptionAlg in config is
+     *                                  unknown
      */
-    public EnvelopedData encrypt(final byte[] msg)
-            throws CMSException, NoSuchAlgorithmException {
+    public EnvelopedData encrypt(final byte[] msg) throws CMSException, NoSuchAlgorithmException {
         final CMSEnvelopedData cmsEnvData = envGen.generate(
                 new CMSProcessableByteArray(msg),
-                new JceCMSContentEncryptorBuilder(AlgorithmHelper
-                        .getKeyEncryptionOID(config.getContentEncryptionAlg()))
-                                .setProvider(
-                                        CertUtility.getBouncyCastleProvider())
-                                .build());
-        return EnvelopedData
-                .getInstance(cmsEnvData.toASN1Structure().getContent());
+                new JceCMSContentEncryptorBuilder(AlgorithmHelper.getKeyEncryptionOID(config.getContentEncryptionAlg()))
+                        .setProvider(CertUtility.getBouncyCastleProvider())
+                        .build());
+        return EnvelopedData.getInstance(cmsEnvData.toASN1Structure().getContent());
     }
 
     /**
      * encrypt the data
      *
-     * @param data
-     *            signed data to encrypt
+     * @param data signed data to encrypt
      * @return encrypted data
-     * @throws CMSException
-     *             in case of an CMS processing error
-     * @throws IOException
-     *             in case of ASN.1 encoding error
+     * @throws CMSException in case of an CMS processing error
+     * @throws IOException  in case of ASN.1 encoding error
      */
-    public EnvelopedData encrypt(final SignedData data)
-            throws CMSException, IOException {
+    public EnvelopedData encrypt(final SignedData data) throws CMSException, IOException {
         final CMSEnvelopedData cmsEnvData = envGen.generate(
                 new CMSProcessableByteArray(data.getEncoded()),
                 new JceCMSContentEncryptorBuilder(CMSAlgorithm.AES256_CBC)
                         .setProvider(CertUtility.getBouncyCastleProvider())
                         .build());
-        return EnvelopedData
-                .getInstance(cmsEnvData.toASN1Structure().getContent());
+        return EnvelopedData.getInstance(cmsEnvData.toASN1Structure().getContent());
     }
 
-    protected void addRecipientInfoGenerator(
-            final RecipientInfoGenerator recipientGenerator) {
+    protected void addRecipientInfoGenerator(final RecipientInfoGenerator recipientGenerator) {
         envGen.addRecipientInfoGenerator(recipientGenerator);
     }
 }

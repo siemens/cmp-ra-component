@@ -17,23 +17,22 @@
  */
 package com.siemens.pki.cmpracomponent.configuration;
 
+import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.List;
 
-import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
-
 /**
- * an instance implementing {@link SignatureCredentialContext} provides
- * all attributes needed for signature based CMP protection, authentication,
- * signing or encryption
+ * an instance implementing {@link SignatureCredentialContext} provides all
+ * attributes needed for signature based CMP protection, authentication, signing
+ * or encryption
  */
 public interface SignatureCredentialContext extends CredentialContext {
 
     /**
      * provide a certificate chain starting with the end certificate and also
-     * containing all required intermediate certificate usable for CMP
-     * protection, authentication, signing or encryption
+     * containing all required intermediate certificate usable for CMP protection,
+     * authentication, signing or encryption
      *
      * @return a certificate chain starting with the end certificate
      */
@@ -49,14 +48,13 @@ public interface SignatureCredentialContext extends CredentialContext {
     PrivateKey getPrivateKey();
 
     /**
-     * provide name or OID of signature algorithm, see
-     * <a
+     * provide name or OID of signature algorithm, see <a
      * href=https://docs.oracle.com/en/java/javase/11/docs/specs/security/standard-names.html#signature-algorithms>Signature
      * Algorithms</a>
      *
-     * @return name or OID of signature algorithm as string. Name or OID
-     *         specifies an asymmetric signature algorithm in conjunction with
-     *         any needed digest algorithm.
+     * @return name or OID of signature algorithm as string. Name or OID specifies
+     *         an asymmetric signature algorithm in conjunction with any needed
+     *         digest algorithm.
      */
     default String getSignatureAlgorithmName() {
         return AlgorithmHelper.getSigningAlgNameFromKey(getPrivateKey());

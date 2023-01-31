@@ -34,10 +34,10 @@ package com.siemens.pki.cmpracomponent.test;
  *
  *  SPDX-License-Identifier: Apache-2.0
  */
-import org.bouncycastle.asn1.cmp.PKIBody;
-import org.junit.Test;
 
 import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
+import org.bouncycastle.asn1.cmp.PKIBody;
+import org.junit.Test;
 
 public class TestSignatureBasedCr extends SignatureEnrollmentTestcaseBase {
     /**
@@ -47,7 +47,8 @@ public class TestSignatureBasedCr extends SignatureEnrollmentTestcaseBase {
      */
     @Test
     public void testCr() throws Exception {
-        executeCrmfCertificateRequest(PKIBody.TYPE_CERT_REQ,
+        executeCrmfCertificateRequest(
+                PKIBody.TYPE_CERT_REQ,
                 PKIBody.TYPE_CERT_REP,
                 ConfigurationFactory.getEeSignaturebasedProtectionProvider(),
                 getEeClient());

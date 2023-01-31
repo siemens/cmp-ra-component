@@ -19,22 +19,18 @@ package com.siemens.pki.cmpracomponent.test;
 
 import static org.junit.Assert.fail;
 
-import java.io.IOException;
-import java.security.GeneralSecurityException;
-import java.security.KeyStoreException;
-import java.util.function.Function;
-
-import org.bouncycastle.asn1.cmp.PKIBody;
-import org.bouncycastle.asn1.cmp.PKIMessage;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.siemens.pki.cmpracomponent.configuration.Configuration;
 import com.siemens.pki.cmpracomponent.main.CmpRaComponent;
 import com.siemens.pki.cmpracomponent.main.CmpRaComponent.CmpRaInterface;
 import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
 import com.siemens.pki.cmpracomponent.test.framework.SignatureValidationCredentials;
 import com.siemens.pki.cmpracomponent.test.framework.TrustChainAndPrivateKey;
+import java.io.IOException;
+import java.util.function.Function;
+import org.bouncycastle.asn1.cmp.PKIBody;
+import org.bouncycastle.asn1.cmp.PKIMessage;
+import org.junit.Before;
+import org.junit.Test;
 
 public class OnlineRaLraTestcasebase extends OnlineEnrollmentTestcaseBase {
 
@@ -47,8 +43,7 @@ public class OnlineRaLraTestcasebase extends OnlineEnrollmentTestcaseBase {
 
     @Before
     public void setUp() throws Exception {
-        launchCmpCaAndRaAndLra(buildRaConfig(), ConfigurationFactory
-                .buildSignatureBasedDownstreamConfiguration());
+        launchCmpCaAndRaAndLra(buildRaConfig(), ConfigurationFactory.buildSignatureBasedDownstreamConfiguration());
     }
 
     /**
@@ -58,55 +53,45 @@ public class OnlineRaLraTestcasebase extends OnlineEnrollmentTestcaseBase {
      */
     @Test
     public void testCr() throws Exception {
-        executeCrmfCertificateRequest(PKIBody.TYPE_CERT_REQ,
+        executeCrmfCertificateRequest(
+                PKIBody.TYPE_CERT_REQ,
                 PKIBody.TYPE_CERT_REP,
                 ConfigurationFactory.getEeSignaturebasedProtectionProvider(),
                 getEeClient());
     }
 
-    private Configuration buildRaConfig() throws KeyStoreException, Exception {
+    private Configuration buildRaConfig() throws Exception {
 
         final TrustChainAndPrivateKey downStreamCredentials =
-                new TrustChainAndPrivateKey("credentials/CMP_CA_Keystore.p12",
-                        "Password".toCharArray());
-        final SignatureValidationCredentials downstreamTrust =
-                new SignatureValidationCredentials(
-                        "credentials/CMP_LRA_UPSTREAM_Keystore.p12",
-                        "Password".toCharArray());
+                new TrustChainAndPrivateKey("credentials/CMP_CA_Keystore.p12", "Password".toCharArray());
+        final SignatureValidationCredentials downstreamTrust = new SignatureValidationCredentials(
+                "credentials/CMP_LRA_UPSTREAM_Keystore.p12", "Password".toCharArray());
         final TrustChainAndPrivateKey upstreamCredentials =
-                new TrustChainAndPrivateKey(
-                        "credentials/CMP_LRA_UPSTREAM_Keystore.p12",
-                        "Password".toCharArray());
+                new TrustChainAndPrivateKey("credentials/CMP_LRA_UPSTREAM_Keystore.p12", "Password".toCharArray());
         final SignatureValidationCredentials upstreamTrust =
-                new SignatureValidationCredentials(
-                        "credentials/CMP_CA_Root.pem", null);
+                new SignatureValidationCredentials("credentials/CMP_CA_Root.pem", null);
         final SignatureValidationCredentials enrollmentTrust =
-                new SignatureValidationCredentials(
-                        "credentials/ENROLL_Root.pem", null);
+                new SignatureValidationCredentials("credentials/ENROLL_Root.pem", null);
 
         return ConfigurationFactory.buildSimpleRaConfiguration(
-                downStreamCredentials, downstreamTrust, upstreamCredentials,
-                upstreamTrust, enrollmentTrust);
+                downStreamCredentials, downstreamTrust, upstreamCredentials, upstreamTrust, enrollmentTrust);
     }
 
     @Override
     protected Function<PKIMessage, PKIMessage> launchCmpCaAndRaAndLra(
-            final Configuration raConfig, final Configuration lraConfig)
-            throws GeneralSecurityException, InterruptedException, Exception {
+            final Configuration raConfig, final Configuration lraConfig) throws Exception {
         final Function<PKIMessage, PKIMessage> ra = launchCmpCaAndRa(raConfig);
-        final CmpRaInterface lra = CmpRaComponent
-                .instantiateCmpRaComponent(lraConfig, (x, y, z) -> {
-                    try {
-                        return ra.apply(PKIMessage.getInstance(x)).getEncoded();
-                    } catch (final IOException e) {
-                        fail(e.getMessage());
-                        return null;
-                    }
-                });
+        final CmpRaInterface lra = CmpRaComponent.instantiateCmpRaComponent(lraConfig, (x, y, z) -> {
+            try {
+                return ra.apply(PKIMessage.getInstance(x)).getEncoded();
+            } catch (final IOException e) {
+                fail(e.getMessage());
+                return null;
+            }
+        });
         eeClient = req -> {
             try {
-                return PKIMessage
-                        .getInstance(lra.processRequest(req.getEncoded()));
+                return PKIMessage.getInstance(lra.processRequest(req.getEncoded()));
             } catch (final Exception e) {
                 throw new RuntimeException(e);
             }

@@ -19,34 +19,7 @@ package com.siemens.pki.cmpracomponent.test;
 
 import static org.junit.Assert.fail;
 
-import java.math.BigInteger;
-import java.security.GeneralSecurityException;
-import java.security.KeyStoreException;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.bouncycastle.asn1.cmp.PKIBody;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.siemens.pki.cmpracomponent.configuration.CheckAndModifyResult;
-import com.siemens.pki.cmpracomponent.configuration.CkgContext;
-import com.siemens.pki.cmpracomponent.configuration.CkgKeyAgreementContext;
-import com.siemens.pki.cmpracomponent.configuration.CkgKeyTransportContext;
-import com.siemens.pki.cmpracomponent.configuration.CkgPasswordContext;
-import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
-import com.siemens.pki.cmpracomponent.configuration.Configuration;
-import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
-import com.siemens.pki.cmpracomponent.configuration.InventoryInterface;
-import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
-import com.siemens.pki.cmpracomponent.configuration.SharedSecretCredentialContext;
-import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
-import com.siemens.pki.cmpracomponent.configuration.SupportMessageHandlerInterface;
-import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
+import com.siemens.pki.cmpracomponent.configuration.*;
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.cryptoservices.CmsDecryptor;
 import com.siemens.pki.cmpracomponent.protection.PasswordBasedMacProtection;
@@ -55,43 +28,71 @@ import com.siemens.pki.cmpracomponent.test.framework.SharedSecret;
 import com.siemens.pki.cmpracomponent.test.framework.SignatureValidationCredentials;
 import com.siemens.pki.cmpracomponent.test.framework.TrustChainAndPrivateKey;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
+import org.bouncycastle.asn1.cmp.PKIBody;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RunWith(Parameterized.class)
-public class TestCentralKeyGenerationWithPassword
-        extends CkgOnlineEnrollmentTestcaseBase {
+public class TestCentralKeyGenerationWithPassword extends CkgOnlineEnrollmentTestcaseBase {
 
     private static final String DEFAULT_KEK_ALG = "AES256";
     private static final String DEFAULT_PRF = "SHA224";
     private static final int DEFAULT_ITERATIONCOUNT = 10_000;
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(TestCentralKeyGenerationWithPassword.class);
     public static Object[][] inputList = new Object[][] {
-            //
-            {DEFAULT_PRF, DEFAULT_ITERATIONCOUNT, DEFAULT_KEK_ALG},
-            //
-            {"SHA1", DEFAULT_ITERATIONCOUNT, DEFAULT_KEK_ALG},
-            //
-            {"SHA224", DEFAULT_ITERATIONCOUNT, DEFAULT_KEK_ALG},
-            //
-            {"SHA256", DEFAULT_ITERATIONCOUNT, DEFAULT_KEK_ALG},
-            //
-            {"SHA384", DEFAULT_ITERATIONCOUNT, DEFAULT_KEK_ALG},
-            //
-            {"SHA512", DEFAULT_ITERATIONCOUNT, DEFAULT_KEK_ALG},
-            //
-            {DEFAULT_PRF, 1, DEFAULT_KEK_ALG},
-            //
-            {DEFAULT_PRF, 100_000, DEFAULT_KEK_ALG},
-            //
-            {DEFAULT_PRF, DEFAULT_ITERATIONCOUNT, "AES128_CBC"},
-            //
-            {DEFAULT_PRF, DEFAULT_ITERATIONCOUNT, "AES192_CBC"},
-            //
-            {DEFAULT_PRF, DEFAULT_ITERATIONCOUNT, "AES256_CBC"},
-            //
+        //
+        {DEFAULT_PRF, DEFAULT_ITERATIONCOUNT, DEFAULT_KEK_ALG},
+        //
+        {"SHA1", DEFAULT_ITERATIONCOUNT, DEFAULT_KEK_ALG},
+        //
+        {"SHA224", DEFAULT_ITERATIONCOUNT, DEFAULT_KEK_ALG},
+        //
+        {"SHA256", DEFAULT_ITERATIONCOUNT, DEFAULT_KEK_ALG},
+        //
+        {"SHA384", DEFAULT_ITERATIONCOUNT, DEFAULT_KEK_ALG},
+        //
+        {"SHA512", DEFAULT_ITERATIONCOUNT, DEFAULT_KEK_ALG},
+        //
+        {DEFAULT_PRF, 1, DEFAULT_KEK_ALG},
+        //
+        {DEFAULT_PRF, 100_000, DEFAULT_KEK_ALG},
+        //
+        {DEFAULT_PRF, DEFAULT_ITERATIONCOUNT, "AES128_CBC"},
+        //
+        {DEFAULT_PRF, DEFAULT_ITERATIONCOUNT, "AES192_CBC"},
+        //
+        {DEFAULT_PRF, DEFAULT_ITERATIONCOUNT, "AES256_CBC"},
+        //
     };
+    private final String kekAlg;
+    private final SharedSecret sharedSecret;
 
-    private static final Logger LOGGER =
-            LoggerFactory.getLogger(TestCentralKeyGenerationWithPassword.class);
+    public TestCentralKeyGenerationWithPassword(
+            final String prfAsString,
+            final String iterationCountAsString,
+            final String kekAlgorithmOIDAsString,
+            final String prf,
+            final int iterationCount,
+            final String kek)
+            throws Exception {
+        sharedSecret = new SharedSecret(
+                "PBMAC1",
+                "theSecret".getBytes(),
+                "SHA256",
+                "theSenderKid".getBytes(),
+                CertUtility.generateRandomBytes(20),
+                prf,
+                iterationCount);
+        this.kekAlg = kek;
+        launchCmpCaAndRa(buildPasswordbasedDownstreamConfiguration());
+    }
 
     @Parameters(name = "{index}: prf=>{0}, iterationCount=>{1}, kek={2}")
     public static List<Object[]> data() {
@@ -100,29 +101,12 @@ public class TestCentralKeyGenerationWithPassword
             final Object prf = aktInput[0];
             final Object iterationCount = aktInput[1];
             final Object kek = aktInput[2];
-            ret.add(new Object[] {prf, ((Integer) iterationCount).toString(),
-                    kek, prf, iterationCount, kek});
+            ret.add(new Object[] {prf, ((Integer) iterationCount).toString(), kek, prf, iterationCount, kek});
         }
         return ret;
     }
 
-    private final String kekAlg;
-    private final SharedSecret sharedSecret;
-
-    public TestCentralKeyGenerationWithPassword(final String prfAsString,
-            final String iterationCountAsString,
-            final String kekAlgorithmOIDAsString, final String prf,
-            final int iterationCount, final String kek)
-            throws GeneralSecurityException, InterruptedException, Exception {
-        sharedSecret = new SharedSecret("PBMAC1", "theSecret".getBytes(),
-                "SHA256", "theSenderKid".getBytes(),
-                CertUtility.generateRandomBytes(20), prf, iterationCount);
-        this.kekAlg = kek;
-        launchCmpCaAndRa(buildPasswordbasedDownstreamConfiguration());
-    }
-
-    public Configuration buildPasswordbasedDownstreamConfiguration()
-            throws KeyStoreException, Exception {
+    public Configuration buildPasswordbasedDownstreamConfiguration() throws Exception {
         final VerificationContext downstreamTrust = new VerificationContext() {
             @Override
             public byte[] getSharedSecret(final byte[] senderKID) {
@@ -130,19 +114,14 @@ public class TestCentralKeyGenerationWithPassword
             }
         };
         final CredentialContext upstreamCredentials =
-                new TrustChainAndPrivateKey(
-                        "credentials/CMP_LRA_UPSTREAM_Keystore.p12",
-                        "Password".toCharArray());
+                new TrustChainAndPrivateKey("credentials/CMP_LRA_UPSTREAM_Keystore.p12", "Password".toCharArray());
         final VerificationContext upstreamTrust =
-                new SignatureValidationCredentials(
-                        "credentials/CMP_CA_Root.pem", null);
+                new SignatureValidationCredentials("credentials/CMP_CA_Root.pem", null);
         final SignatureValidationCredentials enrollmentTrust =
-                new SignatureValidationCredentials(
-                        "credentials/ENROLL_Root.pem", null);
+                new SignatureValidationCredentials("credentials/ENROLL_Root.pem", null);
 
-        final Configuration config =
-                buildSimpleRaConfiguration(sharedSecret, downstreamTrust,
-                        upstreamCredentials, upstreamTrust, enrollmentTrust);
+        final Configuration config = buildSimpleRaConfiguration(
+                sharedSecret, downstreamTrust, upstreamCredentials, upstreamTrust, enrollmentTrust);
         return config;
     }
 
@@ -153,11 +132,13 @@ public class TestCentralKeyGenerationWithPassword
      */
     @Test
     public void testCrWithPassword() throws Exception {
-        final ProtectionProvider macBasedProvider =
-                new PasswordBasedMacProtection(sharedSecret);
+        final ProtectionProvider macBasedProvider = new PasswordBasedMacProtection(sharedSecret);
 
-        executeCrmfCertificateRequestWithoutKey(PKIBody.TYPE_CERT_REQ,
-                PKIBody.TYPE_CERT_REP, macBasedProvider, getEeClient(),
+        executeCrmfCertificateRequestWithoutKey(
+                PKIBody.TYPE_CERT_REQ,
+                PKIBody.TYPE_CERT_REP,
+                macBasedProvider,
+                getEeClient(),
                 new CmsDecryptor(null, null, "theSecret".toCharArray()));
     }
 
@@ -169,12 +150,12 @@ public class TestCentralKeyGenerationWithPassword
             final SignatureValidationCredentials enrollmentTrust) {
         return new Configuration() {
             @Override
-            public CkgContext getCkgConfiguration(final String certProfile,
-                    final int bodyType) {
+            public CkgContext getCkgConfiguration(final String certProfile, final int bodyType) {
 
                 LOGGER.debug(
                         "getCkgConfiguration called with certprofile: {}, type: {}",
-                        certProfile, MessageDumper.msgTypeAsString(bodyType));
+                        certProfile,
+                        MessageDumper.msgTypeAsString(bodyType));
                 return new CkgContext() {
 
                     @Override
@@ -209,8 +190,7 @@ public class TestCentralKeyGenerationWithPassword
                     public SignatureCredentialContext getSigningCredentials() {
                         try {
                             return new TrustChainAndPrivateKey(
-                                    "credentials/CMP_LRA_DOWNSTREAM_Keystore.p12",
-                                    "Password".toCharArray());
+                                    "credentials/CMP_LRA_DOWNSTREAM_Keystore.p12", "Password".toCharArray());
                         } catch (final Exception e) {
                             fail(e.getMessage());
                             return null;
@@ -220,19 +200,19 @@ public class TestCentralKeyGenerationWithPassword
             }
 
             @Override
-            public CmpMessageInterface getDownstreamConfiguration(
-                    final String certProfile, final int bodyType) {
+            public CmpMessageInterface getDownstreamConfiguration(final String certProfile, final int bodyType) {
                 LOGGER.debug(
                         "getDownstreamConfiguration called with certprofile: {}, type: {}",
-                        certProfile, MessageDumper.msgTypeAsString(bodyType));
+                        certProfile,
+                        MessageDumper.msgTypeAsString(bodyType));
                 return new CmpMessageInterface() {
 
                     @Override
                     public VerificationContext getInputVerification() {
                         switch (certProfile) {
-                        case "certProfileForKur":
-                        case "certProfileForRr":
-                            return enrollmentTrust;
+                            case "certProfileForKur":
+                            case "certProfileForRr":
+                                return enrollmentTrust;
                         }
                         return downstreamTrust;
                     }
@@ -267,47 +247,48 @@ public class TestCentralKeyGenerationWithPassword
                     }
 
                     @Override
-                    public boolean isMessageTimeDeviationAllowed(
-                            final long deviation) {
+                    public boolean isMessageTimeDeviationAllowed(final long deviation) {
                         return true;
                     }
                 };
             }
 
             @Override
-            public VerificationContext getEnrollmentTrust(
-                    final String certProfile, final int bodyType) {
+            public VerificationContext getEnrollmentTrust(final String certProfile, final int bodyType) {
                 LOGGER.debug(
                         "getEnrollmentTrust called with certprofile: {}, type: {}",
-                        certProfile, MessageDumper.msgTypeAsString(bodyType));
+                        certProfile,
+                        MessageDumper.msgTypeAsString(bodyType));
                 return enrollmentTrust;
             }
 
             @Override
-            public boolean getForceRaVerifyOnUpstream(final String certProfile,
-                    final int bodyType) {
+            public boolean getForceRaVerifyOnUpstream(final String certProfile, final int bodyType) {
                 LOGGER.debug(
                         "getForceRaVerifyOnUpstream called with certprofile: {}, type: {}",
-                        certProfile, MessageDumper.msgTypeAsString(bodyType));
+                        certProfile,
+                        MessageDumper.msgTypeAsString(bodyType));
                 return false;
             }
 
             @Override
-            public InventoryInterface getInventory(final String certProfile,
-                    final int bodyType) {
+            public InventoryInterface getInventory(final String certProfile, final int bodyType) {
                 LOGGER.debug(
                         "getInventory called with certprofile: {}, type: {}",
-                        certProfile, MessageDumper.msgTypeAsString(bodyType));
+                        certProfile,
+                        MessageDumper.msgTypeAsString(bodyType));
                 return new InventoryInterface() {
 
                     @Override
                     public CheckAndModifyResult checkAndModifyCertRequest(
                             final byte[] transactionID,
-                            final String requesterDn, final byte[] certTemplate,
+                            final String requesterDn,
+                            final byte[] certTemplate,
                             final String requestedSubjectDn) {
                         LOGGER.debug(
                                 "checkAndModifyCertRequest called with transactionID: {}, requesterDn: {}, requestedSubjectDn: {}",
-                                new BigInteger(transactionID), requesterDn,
+                                new BigInteger(transactionID),
+                                requesterDn,
                                 requestedSubjectDn);
                         return new CheckAndModifyResult() {
 
@@ -331,7 +312,8 @@ public class TestCentralKeyGenerationWithPassword
                             final String requestedSubjectDn) {
                         LOGGER.debug(
                                 "checkP10CertRequest called with transactionID: {}, requesterDn: {}, requestedSubjectDn: {}",
-                                new BigInteger(transactionID), requesterDn,
+                                new BigInteger(transactionID),
+                                requesterDn,
                                 requestedSubjectDn);
                         return false;
                     }
@@ -339,23 +321,27 @@ public class TestCentralKeyGenerationWithPassword
                     @Override
                     public boolean learnEnrollmentResult(
                             final byte[] transactionID,
-                            final byte[] certificate, final String serialNumber,
-                            final String subjectDN, final String issuerDN) {
+                            final byte[] certificate,
+                            final String serialNumber,
+                            final String subjectDN,
+                            final String issuerDN) {
                         LOGGER.debug(
                                 "learnEnrollmentResult called with transactionID: {}, serialNumber: {}, subjectDN: {}, issuerDN: {}",
-                                new BigInteger(transactionID), serialNumber,
-                                subjectDN, issuerDN);
+                                new BigInteger(transactionID),
+                                serialNumber,
+                                subjectDN,
+                                issuerDN);
                         return true;
                     }
                 };
             }
 
             @Override
-            public int getRetryAfterTimeInSeconds(final String certProfile,
-                    final int bodyType) {
+            public int getRetryAfterTimeInSeconds(final String certProfile, final int bodyType) {
                 LOGGER.debug(
                         "getRetryAfterTimeInSeconds called with certprofile: {}, type: {}",
-                        certProfile, MessageDumper.msgTypeAsString(bodyType));
+                        certProfile,
+                        MessageDumper.msgTypeAsString(bodyType));
                 return 1;
             }
 
@@ -364,16 +350,17 @@ public class TestCentralKeyGenerationWithPassword
                     final String certProfile, final String infoTypeOid) {
                 LOGGER.debug(
                         "getSupportMessageHandler called with certprofile: {}, infoTypeOid: {}",
-                        certProfile, infoTypeOid);
+                        certProfile,
+                        infoTypeOid);
                 return null;
             }
 
             @Override
-            public CmpMessageInterface getUpstreamConfiguration(
-                    final String certProfile, final int bodyType) {
+            public CmpMessageInterface getUpstreamConfiguration(final String certProfile, final int bodyType) {
                 LOGGER.debug(
                         "getUpstreamConfiguration called with certprofile: {}, type: {}",
-                        certProfile, MessageDumper.msgTypeAsString(bodyType));
+                        certProfile,
+                        MessageDumper.msgTypeAsString(bodyType));
                 return new CmpMessageInterface() {
 
                     @Override
@@ -412,23 +399,20 @@ public class TestCentralKeyGenerationWithPassword
                     }
 
                     @Override
-                    public boolean isMessageTimeDeviationAllowed(
-                            final long deviation) {
+                    public boolean isMessageTimeDeviationAllowed(final long deviation) {
                         return true;
                     }
                 };
             }
 
             @Override
-            public boolean isRaVerifiedAcceptable(final String certProfile,
-                    final int bodyType) {
+            public boolean isRaVerifiedAcceptable(final String certProfile, final int bodyType) {
                 LOGGER.debug(
                         "isRaVerifiedAcceptable called with certprofile: {}, type: {}",
-                        certProfile, MessageDumper.msgTypeAsString(bodyType));
+                        certProfile,
+                        MessageDumper.msgTypeAsString(bodyType));
                 return true;
             }
-
         };
     }
-
 }

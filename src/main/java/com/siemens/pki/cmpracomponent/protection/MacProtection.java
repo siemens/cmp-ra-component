@@ -20,8 +20,9 @@ package com.siemens.pki.cmpracomponent.protection;
 
 import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
+import com.siemens.pki.cmpracomponent.configuration.SharedSecretCredentialContext;
+import com.siemens.pki.cmpracomponent.cryptoservices.WrappedMac;
 import java.util.List;
-
 import org.bouncycastle.asn1.ASN1Encoding;
 import org.bouncycastle.asn1.DERBitString;
 import org.bouncycastle.asn1.DEROctetString;
@@ -30,21 +31,14 @@ import org.bouncycastle.asn1.cmp.ProtectedPart;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.GeneralName;
 
-import com.siemens.pki.cmpracomponent.configuration.SharedSecretCredentialContext;
-import com.siemens.pki.cmpracomponent.cryptoservices.WrappedMac;
-
 /**
  * base class for MAC protection provider
- *
- *
  */
 public abstract class MacProtection implements ProtectionProvider {
 
-    private AlgorithmIdentifier protectionAlg;
-
-    private WrappedMac protectingMac;
-
     private final SharedSecretCredentialContext config;
+    private AlgorithmIdentifier protectionAlg;
+    private WrappedMac protectingMac;
 
     protected MacProtection(final SharedSecretCredentialContext config) {
         this.config = config;
@@ -61,10 +55,8 @@ public abstract class MacProtection implements ProtectionProvider {
     }
 
     @Override
-    public synchronized DERBitString getProtectionFor(
-            final ProtectedPart protectedPart) throws Exception {
-        return new DERBitString(protectingMac
-                .calculateMac(protectedPart.getEncoded(ASN1Encoding.DER)));
+    public synchronized DERBitString getProtectionFor(final ProtectedPart protectedPart) throws Exception {
+        return new DERBitString(protectingMac.calculateMac(protectedPart.getEncoded(ASN1Encoding.DER)));
     }
 
     @Override
@@ -77,10 +69,8 @@ public abstract class MacProtection implements ProtectionProvider {
         return ifNotNull(config.getSenderKID(), DEROctetString::new);
     }
 
-    protected void init(final AlgorithmIdentifier protectionAlg,
-            final WrappedMac protectingMac) {
+    protected void init(final AlgorithmIdentifier protectionAlg, final WrappedMac protectingMac) {
         this.protectingMac = protectingMac;
         this.protectionAlg = protectionAlg;
     }
-
 }

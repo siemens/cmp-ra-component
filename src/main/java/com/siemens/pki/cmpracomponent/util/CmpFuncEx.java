@@ -21,30 +21,22 @@ import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
 
 /**
  * a CMP related request/response function throwing {@link BaseCmpException}s
- *
  */
 public interface CmpFuncEx<T, R> {
 
     /**
      * Applies this function to the given arguments.
      *
-     * @param t
-     *            the first function argument
-     *
-     * @param certProfile
-     *            certificate profile extracted from
-     *            the CMP request header generalInfo field or
-     *            <code>null</code> if no certificate profile was found in
-     *            the header.
-     *
-     * @param bodyTypeOfFirstRequest
-     *            PKIBody type of the first request in this transaction.
-     *            e.g. 0 for ir, 3 for cr, 7 for kur.
-     *
+     * @param t                      the first function argument
+     * @param certProfile            certificate profile extracted from the CMP
+     *                               request header generalInfo field or
+     *                               <code>null</code> if no certificate profile was
+     *                               found in the header.
+     * @param bodyTypeOfFirstRequest PKIBody type of the first request in this
+     *                               transaction. e.g. 0 for ir, 3 for cr, 7 for
+     *                               kur.
      * @return the function result
-     * @throws BaseCmpException
-     *             in case of error
+     * @throws BaseCmpException in case of error
      */
-    R apply(T t, String certProfile, int bodyTypeOfFirstRequest)
-            throws BaseCmpException;
+    R apply(T t, String certProfile, int bodyTypeOfFirstRequest) throws BaseCmpException;
 }

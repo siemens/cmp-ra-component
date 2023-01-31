@@ -21,7 +21,6 @@ import org.bouncycastle.cms.CMSAlgorithm;
 
 /**
  * base interface on central key generation configuration
- *
  */
 public interface CkgContext {
 
@@ -35,16 +34,14 @@ public interface CkgContext {
     }
 
     /**
-     * get a context to support key agreement in context of central key
-     * generation
+     * get a context to support key agreement in context of central key generation
      *
      * @return a key agreement context
      */
     CkgKeyAgreementContext getKeyAgreementContext();
 
     /**
-     * get a context to support key transport in context of central key
-     * generation
+     * get a context to support key transport in context of central key generation
      *
      * @return a key transport context
      */
@@ -59,11 +56,10 @@ public interface CkgContext {
     CkgPasswordContext getPasswordContext();
 
     /**
-     * Provide credentials to sign the central generated private key.
-     * This shall be done also for the CkgPasswordContext instance.
+     * Provide credentials to sign the central generated private key. This shall be
+     * done also for the CkgPasswordContext instance.
      *
      * @return credentials to sign the central generated private key
      */
     SignatureCredentialContext getSigningCredentials();
-
 }

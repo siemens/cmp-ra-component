@@ -17,14 +17,6 @@
  */
 package com.siemens.pki.cmpracomponent.msgprocessing;
 
-import org.bouncycastle.asn1.cmp.CMPCertificate;
-import org.bouncycastle.asn1.cmp.PKIBody;
-import org.bouncycastle.asn1.cmp.PKIFailureInfo;
-import org.bouncycastle.asn1.cmp.PKIMessage;
-import org.bouncycastle.asn1.pkcs.CertificationRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
 import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
@@ -33,68 +25,67 @@ import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
 import com.siemens.pki.cmpracomponent.util.CmpFuncEx;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
+import org.bouncycastle.asn1.cmp.CMPCertificate;
+import org.bouncycastle.asn1.cmp.PKIBody;
+import org.bouncycastle.asn1.cmp.PKIFailureInfo;
+import org.bouncycastle.asn1.cmp.PKIMessage;
+import org.bouncycastle.asn1.pkcs.CertificationRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class P10X509RaUpstream implements RaUpstream {
 
     private static final String INTERFACE_NAME = "P10X509 upstream";
 
-    private static final Logger LOGGER =
-            LoggerFactory.getLogger(P10X509RaUpstream.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(P10X509RaUpstream.class);
 
     private final CmpFuncEx<CertificationRequest, CMPCertificate> upstreamMsgHandler;
 
-    P10X509RaUpstream(
-            final CmpFuncEx<CertificationRequest, CMPCertificate> upstreamExchange) {
+    P10X509RaUpstream(final CmpFuncEx<CertificationRequest, CMPCertificate> upstreamExchange) {
         this.upstreamMsgHandler = upstreamExchange;
     }
 
     @Override
-    public PKIMessage handleRequest(final PKIMessage in,
-            final PersistencyContext pesistencyContext)
+    public PKIMessage handleRequest(final PKIMessage in, final PersistencyContext pesistencyContext)
             throws BaseCmpException {
         if (upstreamMsgHandler == null) {
-            throw new CmpProcessingException(INTERFACE_NAME,
-                    PKIFailureInfo.systemUnavail,
-                    "no upstream interface available");
+            throw new CmpProcessingException(
+                    INTERFACE_NAME, PKIFailureInfo.systemUnavail, "no upstream interface available");
         }
         try {
             switch (in.getBody().getType()) {
-            case PKIBody.TYPE_CERT_CONFIRM:
-                return PkiMessageGenerator.generateUnprotectMessage(
-                        PkiMessageGenerator.buildRespondingHeaderProvider(in),
-                        PkiMessageGenerator.generatePkiConfirmBody());
+                case PKIBody.TYPE_CERT_CONFIRM:
+                    return PkiMessageGenerator.generateUnprotectMessage(
+                            PkiMessageGenerator.buildRespondingHeaderProvider(in),
+                            PkiMessageGenerator.generatePkiConfirmBody());
 
-            case PKIBody.TYPE_P10_CERT_REQ:
-                pesistencyContext.setInitialRequest(in);
+                case PKIBody.TYPE_P10_CERT_REQ:
+                    pesistencyContext.setInitialRequest(in);
 
-                final CertificationRequest certificationRequest =
-                        (CertificationRequest) in.getBody().getContent();
-                final CMPCertificate responseFromUpstream =
-                        upstreamMsgHandler.apply(certificationRequest,
-                                pesistencyContext.getCertProfile(),
-                                pesistencyContext.getRequestType());
-                if (responseFromUpstream == null) {
-                    throw new CmpProcessingException(INTERFACE_NAME,
-                            PKIFailureInfo.systemUnavail,
-                            "got no response from upstream");
-                }
+                    final CertificationRequest certificationRequest =
+                            (CertificationRequest) in.getBody().getContent();
+                    final CMPCertificate responseFromUpstream = upstreamMsgHandler.apply(
+                            certificationRequest,
+                            pesistencyContext.getCertProfile(),
+                            pesistencyContext.getRequestType());
+                    if (responseFromUpstream == null) {
+                        throw new CmpProcessingException(
+                                INTERFACE_NAME, PKIFailureInfo.systemUnavail, "got no response from upstream");
+                    }
 
-                return PkiMessageGenerator.generateAndProtectMessage(
-                        PkiMessageGenerator.buildRespondingHeaderProvider(in),
-                        ProtectionProvider.NO_PROTECTION,
-                        PkiMessageGenerator.generateIpCpKupBody(
-                                PKIBody.TYPE_CERT_REP, responseFromUpstream));
-            default:
-                throw new CmpValidationException(INTERFACE_NAME,
-                        PKIFailureInfo.badMessageCheck,
-                        "message " + MessageDumper.msgTypeAsString(in)
-                                + " not supported ");
+                    return PkiMessageGenerator.generateAndProtectMessage(
+                            PkiMessageGenerator.buildRespondingHeaderProvider(in),
+                            ProtectionProvider.NO_PROTECTION,
+                            PkiMessageGenerator.generateIpCpKupBody(PKIBody.TYPE_CERT_REP, responseFromUpstream));
+                default:
+                    throw new CmpValidationException(
+                            INTERFACE_NAME,
+                            PKIFailureInfo.badMessageCheck,
+                            "message " + MessageDumper.msgTypeAsString(in) + " not supported ");
             }
         } catch (final Exception e) {
             LOGGER.error("fatal error at" + INTERFACE_NAME);
-            throw new CmpProcessingException("fatal error at" + INTERFACE_NAME,
-                    e);
+            throw new CmpProcessingException("fatal error at" + INTERFACE_NAME, e);
         }
-
     }
 }

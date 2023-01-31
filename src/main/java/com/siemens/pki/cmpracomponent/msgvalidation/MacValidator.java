@@ -19,43 +19,38 @@ package com.siemens.pki.cmpracomponent.msgvalidation;
 
 import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
+import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.cmp.PKIFailureInfo;
 import org.bouncycastle.asn1.cmp.PKIHeader;
 
-import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
-
 /**
  * base class for all MAC based validators
- *
  */
 public abstract class MacValidator implements ValidatorIF<Void> {
 
-    private final String interfaceName;
     protected final VerificationContext config;
+    private final String interfaceName;
 
-    protected MacValidator(final String interfaceName,
-            final VerificationContext config) {
+    protected MacValidator(final String interfaceName, final VerificationContext config) {
         this.interfaceName = interfaceName;
         this.config = config;
-
     }
 
     protected String getInterfaceName() {
         return interfaceName;
     }
 
-    protected byte[] getSharedSecret(final PKIHeader header)
-            throws CmpValidationException {
-        final byte[] passwordAsBytes = config.getSharedSecret(
-                ifNotNull(header.getSenderKID(), ASN1OctetString::getOctets));
+    protected byte[] getSharedSecret(final PKIHeader header) throws CmpValidationException {
+        final byte[] passwordAsBytes =
+                config.getSharedSecret(ifNotNull(header.getSenderKID(), ASN1OctetString::getOctets));
 
         if (passwordAsBytes == null) {
-            throw new CmpValidationException(getInterfaceName(),
+            throw new CmpValidationException(
+                    getInterfaceName(),
                     PKIFailureInfo.notAuthorized,
                     "message is password protected but no shared secret is provided");
         }
         return passwordAsBytes;
     }
-
 }

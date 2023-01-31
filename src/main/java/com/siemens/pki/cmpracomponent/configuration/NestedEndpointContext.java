@@ -18,43 +18,37 @@
 package com.siemens.pki.cmpracomponent.configuration;
 
 /**
- *
- * provides all attributes needed to process
- * incoming and outgoing nested messages
- *
+ * provides all attributes needed to process incoming and outgoing nested
+ * messages
  */
 public interface NestedEndpointContext {
     /**
      * configure trust for protection validation of incoming messages
      *
-     * @return a trust configuration if the protection of incoming nested
-     *         messages should be validated and nesting removed,
-     *         <code>null</code> if all nested messages,
-     *         regardless of their recipient,
-     *         should be forwarded without validation
+     * @return a trust configuration if the protection of incoming nested messages
+     *         should be validated and nesting removed, <code>null</code> if all
+     *         nested messages, regardless of their recipient, should be forwarded
+     *         without validation
      */
     VerificationContext getInputVerification();
 
     /**
      * configure protection for outgoing messages
      *
-     * @return a protection configuration, if outgoing message should be wrapped
-     *         in nested messages or <code>null</code> if outgoing messaged
-     *         shouldn't be wrapped.
+     * @return a protection configuration, if outgoing message should be wrapped in
+     *         nested messages or <code>null</code> if outgoing messaged shouldn't
+     *         be wrapped.
      */
     CredentialContext getOutputCredentials();
 
     /**
      * configure handling of incoming nested messages per recipient.
      *
-     * @param recipient
-     *            the recipient in the PKI message header of the received nested
-     *            message
-     *
+     * @param recipient the recipient in the PKI message header of the received
+     *                  nested message
      * @return <code>true</code> if the RA is supposed to verify and unpack the
      *         nested message with the given recipient. Otherwise the RA will
      *         forward the nested message.
      */
     boolean isIncomingRecipientValid(String recipient);
-
 }

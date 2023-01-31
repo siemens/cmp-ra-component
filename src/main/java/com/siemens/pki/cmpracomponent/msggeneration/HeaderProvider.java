@@ -18,7 +18,6 @@
 package com.siemens.pki.cmpracomponent.msggeneration;
 
 import java.util.Date;
-
 import org.bouncycastle.asn1.ASN1GeneralizedTime;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.DERGeneralizedTime;
@@ -27,12 +26,10 @@ import org.bouncycastle.asn1.x509.GeneralName;
 
 /**
  * data provider for all parameters required to build a CMP header.
- *
  */
 public interface HeaderProvider {
 
     /**
-     *
      * @return GeneralInfo (ImplicitConfirm, ConfirmWaitTime) to be used in CMP
      *         header.
      */
@@ -46,7 +43,6 @@ public interface HeaderProvider {
     }
 
     /**
-     *
      * @return CMP version to be used in CMP header.
      */
     int getPvno();
@@ -75,5 +71,4 @@ public interface HeaderProvider {
      * @return TransactionID to be used in CMP header.
      */
     ASN1OctetString getTransactionID();
-
 }

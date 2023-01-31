@@ -17,8 +17,6 @@
  */
 package com.siemens.pki.cmpracomponent.test;
 
-import java.security.KeyStoreException;
-
 import com.siemens.pki.cmpracomponent.test.framework.TestUtils;
 import com.siemens.pki.cmpracomponent.test.framework.TrustChainAndPrivateKey;
 
@@ -26,14 +24,11 @@ public class EnrollmentTestcaseBase extends CmpTestcaseBase {
 
     private TrustChainAndPrivateKey enrollmentCredentials;
 
-    protected TrustChainAndPrivateKey getEnrollmentCredentials()
-            throws KeyStoreException, Exception {
+    protected TrustChainAndPrivateKey getEnrollmentCredentials() throws Exception {
         if (enrollmentCredentials == null) {
-            enrollmentCredentials = new TrustChainAndPrivateKey(
-                    "credentials/ENROLL_Keystore.p12",
-                    TestUtils.PASSWORD_AS_CHAR_ARRAY);
+            enrollmentCredentials =
+                    new TrustChainAndPrivateKey("credentials/ENROLL_Keystore.p12", TestUtils.PASSWORD_AS_CHAR_ARRAY);
         }
         return enrollmentCredentials;
     }
-
 }

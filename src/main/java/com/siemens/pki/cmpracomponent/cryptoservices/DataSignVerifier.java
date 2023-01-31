@@ -17,6 +17,7 @@
  */
 package com.siemens.pki.cmpracomponent.cryptoservices;
 
+import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.KeyFactory;
@@ -28,50 +29,41 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.BiPredicate;
-
 import org.bouncycastle.asn1.cms.CMSObjectIdentifiers;
 import org.bouncycastle.asn1.cms.ContentInfo;
 import org.bouncycastle.asn1.cms.SignedData;
 import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cms.CMSException;
-import org.bouncycastle.cms.CMSSignedData;
-import org.bouncycastle.cms.CMSTypedData;
-import org.bouncycastle.cms.SignerInformation;
-import org.bouncycastle.cms.SignerInformationStore;
+import org.bouncycastle.cms.*;
 import org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoVerifierBuilder;
 import org.bouncycastle.util.Store;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
-
 /**
  * a verifier for CMS signed data
- *
- *
  */
 public class DataSignVerifier extends TrustCredentialAdapter {
 
-    private static JcaSimpleSignerInfoVerifierBuilder builder =
-            new JcaSimpleSignerInfoVerifierBuilder()
-                    .setProvider(CertUtility.BOUNCY_CASTLE_PROVIDER);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DataSignVerifier.class);
+    private static final JcaSimpleSignerInfoVerifierBuilder builder =
+            new JcaSimpleSignerInfoVerifierBuilder().setProvider(CertUtility.BOUNCY_CASTLE_PROVIDER);
 
-    private static final Logger LOGGER =
-            LoggerFactory.getLogger(DataSignVerifier.class);
+    public DataSignVerifier(final VerificationContext config) {
+        super(config);
+    }
 
     public static byte[] verifySignature(final byte[] encodedSignedData)
             throws CertificateException, CMSException, IOException {
-        return verifySignature(encodedSignedData,
-                (cert, additionalCerts) -> true);
+        return verifySignature(encodedSignedData, (cert, additionalCerts) -> true);
     }
 
-    private static byte[] verifySignature(final byte[] encodedSignedData,
+    private static byte[] verifySignature(
+            final byte[] encodedSignedData,
             final BiPredicate<X509CertificateHolder, List<X509Certificate>> trustValidator)
             throws CMSException, IOException, CertificateException {
 
         final CMSSignedData signedData = new CMSSignedData(
-                new ContentInfo(CMSObjectIdentifiers.signedData,
-                        SignedData.getInstance(encodedSignedData)));
+                new ContentInfo(CMSObjectIdentifiers.signedData, SignedData.getInstance(encodedSignedData)));
         final SignerInformationStore signers = signedData.getSignerInfos();
         final Store<X509CertificateHolder> certs = signedData.getCertificates();
         final List<X509Certificate> allCerts = new ArrayList<>();
@@ -80,15 +72,12 @@ public class DataSignVerifier extends TrustCredentialAdapter {
         }
         for (final SignerInformation signerInfo : signers) {
             @SuppressWarnings("unchecked")
-            final Collection<X509CertificateHolder> certCollection =
-                    certs.getMatches(signerInfo.getSID());
+            final Collection<X509CertificateHolder> certCollection = certs.getMatches(signerInfo.getSID());
             final X509CertificateHolder cert = certCollection.iterator().next();
             try {
-                if (signerInfo.verify(builder.build(cert))
-                        && trustValidator.test(cert, allCerts)) {
+                if (signerInfo.verify(builder.build(cert)) && trustValidator.test(cert, allCerts)) {
                     final CMSTypedData cmsData = signedData.getSignedContent();
-                    final ByteArrayOutputStream bOut =
-                            new ByteArrayOutputStream();
+                    final ByteArrayOutputStream bOut = new ByteArrayOutputStream();
                     cmsData.write(bOut);
                     return bOut.toByteArray();
                 }
@@ -99,50 +88,36 @@ public class DataSignVerifier extends TrustCredentialAdapter {
         return null;
     }
 
-    public DataSignVerifier(final VerificationContext config) {
-        super(config);
-    }
-
     /**
-     * Verify the passed in encoding of a CMS SignedData, assumes encapsulated
-     * data.
+     * Verify the passed in encoding of a CMS SignedData, assumes encapsulated data.
      *
-     * @param encodedSignedData
-     *            the BER encoding of the SignedData
+     * @param encodedSignedData the BER encoding of the SignedData
      * @return signed content or null if not trusted
-     * @throws IOException
-     *             in case of ASN.1 encoding error
-     * @throws CMSException
-     *             in case of error in CMS processing
-     * @throws CertificateException
-     *             in case of error in certificate processing
+     * @throws IOException          in case of ASN.1 encoding error
+     * @throws CMSException         in case of error in CMS processing
+     * @throws CertificateException in case of error in certificate processing
      */
     public byte[] verifySignatureAndTrust(final byte[] encodedSignedData)
             throws IOException, CertificateException, CMSException {
-        return verifySignature(encodedSignedData,
-                (cert, additionalIntermediateCerts) -> {
-                    try {
-                        return validate(cert, additionalIntermediateCerts);
-                    } catch (final Exception e) {
-                        return false;
-                    }
-                });
+        return verifySignature(encodedSignedData, (cert, additionalIntermediateCerts) -> {
+            try {
+                return validate(cert, additionalIntermediateCerts);
+            } catch (final Exception e) {
+                return false;
+            }
+        });
     }
 
     public PrivateKey verifySignedKey(final byte[] encodedSignedData)
             throws CertificateException, IOException, CMSException {
-        final byte[] verifiedContent =
-                verifySignatureAndTrust(encodedSignedData);
+        final byte[] verifiedContent = verifySignatureAndTrust(encodedSignedData);
         if (verifiedContent == null) {
             return null;
         }
-        final PKCS8EncodedKeySpec pkcs8EncKeySpec =
-                new PKCS8EncodedKeySpec(verifiedContent);
-        for (final String keyType : new String[] {"RSA", "EC", "Ed448",
-                "Ed25519"}) {
+        final PKCS8EncodedKeySpec pkcs8EncKeySpec = new PKCS8EncodedKeySpec(verifiedContent);
+        for (final String keyType : new String[] {"RSA", "EC", "Ed448", "Ed25519"}) {
             try {
-                final KeyFactory factory = KeyFactory.getInstance(keyType,
-                        CertUtility.BOUNCY_CASTLE_PROVIDER);
+                final KeyFactory factory = KeyFactory.getInstance(keyType, CertUtility.BOUNCY_CASTLE_PROVIDER);
                 return factory.generatePrivate(pkcs8EncKeySpec);
             } catch (final Exception e) {
                 // try next key type
@@ -152,12 +127,8 @@ public class DataSignVerifier extends TrustCredentialAdapter {
         return null;
     }
 
-    private boolean validate(final X509CertificateHolder cert,
-            final List<X509Certificate> allCerts)
+    private boolean validate(final X509CertificateHolder cert, final List<X509Certificate> allCerts)
             throws CertificateException, IOException {
-        return validateCertAgainstTrust(
-                CertUtility.asX509Certificate(cert.getEncoded()),
-                allCerts) != null;
+        return validateCertAgainstTrust(CertUtility.asX509Certificate(cert.getEncoded()), allCerts) != null;
     }
-
 }

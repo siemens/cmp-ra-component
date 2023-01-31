@@ -19,16 +19,6 @@ package com.siemens.pki.cmpracomponent.test;
 
 import static org.junit.Assert.fail;
 
-import java.io.File;
-import java.io.IOException;
-import java.security.GeneralSecurityException;
-import java.security.Security;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-
-import org.bouncycastle.asn1.cmp.PKIMessage;
-import org.junit.BeforeClass;
-
 import com.siemens.pki.cmpracomponent.configuration.Configuration;
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.main.CmpRaComponent;
@@ -36,11 +26,18 @@ import com.siemens.pki.cmpracomponent.main.CmpRaComponent.CmpRaInterface;
 import com.siemens.pki.cmpracomponent.main.CmpRaComponent.UpstreamExchange;
 import com.siemens.pki.cmpracomponent.test.framework.CmpCaMock;
 import com.siemens.pki.cmpracomponent.test.framework.ConfigFileLoader;
+import java.io.File;
+import java.io.IOException;
+import java.security.Security;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import org.bouncycastle.asn1.cmp.PKIMessage;
+import org.junit.BeforeClass;
 
 public class CmpTestcaseBase {
 
-    static public final File CONFIG_DIRECTORY = new File(
-            "./src/test/java/com/siemens/pki/cmpracomponent/test/config");
+    public static final File CONFIG_DIRECTORY = new File("./src/test/java/com/siemens/pki/cmpracomponent/test/config");
+    private Function<PKIMessage, PKIMessage> eeClient;
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
@@ -48,37 +45,31 @@ public class CmpTestcaseBase {
         ConfigFileLoader.setConfigFileBase(CONFIG_DIRECTORY);
     }
 
-    private Function<PKIMessage, PKIMessage> eeClient;
-
     protected Function<PKIMessage, PKIMessage> getEeClient() {
         return eeClient;
     }
 
-    protected Function<PKIMessage, PKIMessage> launchCmpCaAndRa(
-            final Configuration config)
-            throws Exception, GeneralSecurityException, InterruptedException {
-        return launchCmpRa(config,
-                new CmpCaMock("credentials/ENROLL_Keystore.p12",
-                        "credentials/CMP_CA_Keystore.p12")::sendReceiveMessage);
+    protected Function<PKIMessage, PKIMessage> launchCmpCaAndRa(final Configuration config) throws Exception {
+        return launchCmpRa(
+                config,
+                new CmpCaMock("credentials/ENROLL_Keystore.p12", "credentials/CMP_CA_Keystore.p12")
+                        ::sendReceiveMessage);
     }
 
     protected Function<PKIMessage, PKIMessage> launchCmpCaAndRaAndLra(
-            final Configuration raConfig, final Configuration lraConfig)
-            throws GeneralSecurityException, InterruptedException, Exception {
+            final Configuration raConfig, final Configuration lraConfig) throws Exception {
         final Function<PKIMessage, PKIMessage> ra = launchCmpCaAndRa(raConfig);
-        final CmpRaInterface lra = CmpRaComponent
-                .instantiateCmpRaComponent(lraConfig, (x, y, z) -> {
-                    try {
-                        return ra.apply(PKIMessage.getInstance(x)).getEncoded();
-                    } catch (final IOException e) {
-                        fail(e.getMessage());
-                        return null;
-                    }
-                });
+        final CmpRaInterface lra = CmpRaComponent.instantiateCmpRaComponent(lraConfig, (x, y, z) -> {
+            try {
+                return ra.apply(PKIMessage.getInstance(x)).getEncoded();
+            } catch (final IOException e) {
+                fail(e.getMessage());
+                return null;
+            }
+        });
         eeClient = req -> {
             try {
-                return PKIMessage
-                        .getInstance(lra.processRequest(req.getEncoded()));
+                return PKIMessage.getInstance(lra.processRequest(req.getEncoded()));
             } catch (final Exception e) {
                 throw new RuntimeException(e);
             }
@@ -86,46 +77,36 @@ public class CmpTestcaseBase {
         return eeClient;
     }
 
-    protected Function<PKIMessage, PKIMessage> launchCmpRa(
-            final Configuration config, final UpstreamExchange caMock)
-            throws Exception, GeneralSecurityException, InterruptedException {
-        final CmpRaInterface raComponent =
-                CmpRaComponent.instantiateCmpRaComponent(config, caMock);
+    protected Function<PKIMessage, PKIMessage> launchCmpRa(final Configuration config, final UpstreamExchange caMock)
+            throws Exception {
+        final CmpRaInterface raComponent = CmpRaComponent.instantiateCmpRaComponent(config, caMock);
         eeClient = req -> {
             try {
-                return PKIMessage.getInstance(
-                        raComponent.processRequest(req.getEncoded()));
+                return PKIMessage.getInstance(raComponent.processRequest(req.getEncoded()));
             } catch (final Exception e) {
                 throw new RuntimeException(e);
             }
         };
         return eeClient;
-
     }
 
-    protected Function<PKIMessage, PKIMessage> launchP10X509CaAndRa(
-            final Configuration config)
-            throws Exception, GeneralSecurityException, InterruptedException {
-        return launchP10X509Ra(config, new CmpCaMock(
-                "credentials/ENROLL_Keystore.p12",
-                "credentials/CMP_CA_Keystore.p12")::processP10CerticateRequest);
+    protected Function<PKIMessage, PKIMessage> launchP10X509CaAndRa(final Configuration config) throws Exception {
+        return launchP10X509Ra(
+                config,
+                new CmpCaMock("credentials/ENROLL_Keystore.p12", "credentials/CMP_CA_Keystore.p12")
+                        ::processP10CerticateRequest);
     }
 
     protected Function<PKIMessage, PKIMessage> launchP10X509Ra(
-            final Configuration config,
-            final BiFunction<byte[], String, byte[]> caMock)
-            throws Exception, GeneralSecurityException, InterruptedException {
-        final Function<byte[], byte[]> raComponent =
-                CmpRaComponent.instantiateP10X509CmpRaComponent(config, caMock);
+            final Configuration config, final BiFunction<byte[], String, byte[]> caMock) throws Exception {
+        final Function<byte[], byte[]> raComponent = CmpRaComponent.instantiateP10X509CmpRaComponent(config, caMock);
         eeClient = req -> {
             try {
-                return PKIMessage
-                        .getInstance(raComponent.apply(req.getEncoded()));
+                return PKIMessage.getInstance(raComponent.apply(req.getEncoded()));
             } catch (final Exception e) {
                 throw new RuntimeException(e);
             }
         };
         return eeClient;
     }
-
 }

@@ -30,9 +30,14 @@ public class SharedSecret implements SharedSecretCredentialContext {
     private final int iterationCount;
     private final String style;
 
-    public SharedSecret(final String style, final byte[] sharedSecret,
-            final String macAlgorithm, final byte[] senderKid,
-            final byte[] salt, final String prf, final int iterationCount) {
+    public SharedSecret(
+            final String style,
+            final byte[] sharedSecret,
+            final String macAlgorithm,
+            final byte[] senderKid,
+            final byte[] salt,
+            final String prf,
+            final int iterationCount) {
         this.style = style;
         this.sharedSecret = sharedSecret;
         this.macAlgorithm = macAlgorithm;
@@ -43,8 +48,14 @@ public class SharedSecret implements SharedSecretCredentialContext {
     }
 
     public SharedSecret(final String style, final String sharedSecret) {
-        this(style, sharedSecret.getBytes(), "SHA256", "senderKid".getBytes(),
-                CertUtility.generateRandomBytes(20), "SHA256", 10_000);
+        this(
+                style,
+                sharedSecret.getBytes(),
+                "SHA256",
+                "senderKid".getBytes(),
+                CertUtility.generateRandomBytes(20),
+                "SHA256",
+                10_000);
     }
 
     @Override

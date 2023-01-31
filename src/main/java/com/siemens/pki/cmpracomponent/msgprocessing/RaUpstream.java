@@ -17,16 +17,13 @@
  */
 package com.siemens.pki.cmpracomponent.msgprocessing;
 
-import org.bouncycastle.asn1.cmp.PKIMessage;
-
 import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
+import org.bouncycastle.asn1.cmp.PKIMessage;
 
 /**
  * representation of an CMP upstream interface of a RA
- *
  */
 interface RaUpstream {
-    PKIMessage handleRequest(final PKIMessage in,
-            final PersistencyContext pesistencyContext) throws BaseCmpException;
+    PKIMessage handleRequest(final PKIMessage in, final PersistencyContext pesistencyContext) throws BaseCmpException;
 }

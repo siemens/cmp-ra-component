@@ -18,7 +18,6 @@
 package com.siemens.pki.cmpracomponent.msgvalidation;
 
 /**
- *
  * This exception is created if a CMP message processing failed.
  */
 public class CmpProcessingException extends BaseCmpException {
@@ -26,59 +25,39 @@ public class CmpProcessingException extends BaseCmpException {
     private static final long serialVersionUID = 1L;
 
     /**
-     *
-     * @param interfaceName
-     *            interface name used as prefix message text
-     * @param ex
-     *            exception to be wrapped
+     * @param interfaceName interface name used as prefix message text
+     * @param ex            exception to be wrapped
      */
-    public CmpProcessingException(final String interfaceName,
-            final Exception ex) {
+    public CmpProcessingException(final String interfaceName, final Exception ex) {
         super(interfaceName, ex);
     }
 
     /**
-     *
-     * @param interfaceName
-     *            interface name used as prefix message text
-     * @param failInfo
-     *            CMP failInfo proposed for CMP error message
-     * @param errorDetails
-     *            description of some details related to the error
+     * @param interfaceName interface name used as prefix message text
+     * @param failInfo      CMP failInfo proposed for CMP error message
+     * @param errorDetails  description of some details related to the error
      */
-    public CmpProcessingException(final String interfaceName,
-            final int failInfo, final String errorDetails) {
+    public CmpProcessingException(final String interfaceName, final int failInfo, final String errorDetails) {
         super(interfaceName, failInfo, errorDetails, null);
     }
 
     /**
-     *
-     * @param interfaceName
-     *            interface name used as prefix message text
-     * @param failInfo
-     *            CMP failInfo proposed for CMP error message
-     * @param errorDetails
-     *            description of some details related to the error
-     * @param th
-     *            the underlying exception
+     * @param interfaceName interface name used as prefix message text
+     * @param failInfo      CMP failInfo proposed for CMP error message
+     * @param errorDetails  description of some details related to the error
+     * @param th            the underlying exception
      */
-    public CmpProcessingException(final String interfaceName,
-            final int failInfo, final String errorDetails, final Throwable th) {
+    public CmpProcessingException(
+            final String interfaceName, final int failInfo, final String errorDetails, final Throwable th) {
         super(interfaceName, failInfo, errorDetails, th);
     }
 
     /**
-     *
-     * @param interfaceName
-     *            interface name used as prefix message text
-     * @param failInfo
-     *            CMP failInfo proposed for CMP error message
-     * @param ex
-     *            the underlying exception
+     * @param interfaceName interface name used as prefix message text
+     * @param failInfo      CMP failInfo proposed for CMP error message
+     * @param ex            the underlying exception
      */
-    public CmpProcessingException(final String interfaceName,
-            final int failInfo, final Throwable ex) {
+    public CmpProcessingException(final String interfaceName, final int failInfo, final Throwable ex) {
         super(interfaceName, failInfo, ex.getLocalizedMessage(), ex);
     }
-
 }

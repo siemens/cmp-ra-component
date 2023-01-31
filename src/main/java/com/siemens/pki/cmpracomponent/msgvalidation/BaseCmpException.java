@@ -17,21 +17,18 @@
  */
 package com.siemens.pki.cmpracomponent.msgvalidation;
 
+import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
 import org.bouncycastle.asn1.cmp.PKIBody;
 import org.bouncycastle.asn1.cmp.PKIFailureInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
-
 /**
  * base of all CMP exceptions
- *
  */
 public class BaseCmpException extends Exception {
 
-    private static final Logger LOGGER =
-            LoggerFactory.getLogger(BaseCmpException.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(BaseCmpException.class);
 
     private static final long serialVersionUID = 1;
     protected final int failInfo;
@@ -43,8 +40,7 @@ public class BaseCmpException extends Exception {
         if (ex instanceof BaseCmpException) {
             this.failInfo = ((BaseCmpException) ex).failInfo;
             this.errorDetails = ((BaseCmpException) ex).errorDetails;
-            LOGGER.warn("exception at " + interfaceName + ": " + errorDetails,
-                    ex);
+            LOGGER.warn("exception at " + interfaceName + ": " + errorDetails, ex);
         } else {
             this.failInfo = PKIFailureInfo.systemFailure;
             this.errorDetails = interfaceName + ": " + ex.getLocalizedMessage();
@@ -53,26 +49,20 @@ public class BaseCmpException extends Exception {
     }
 
     /**
-     *
-     * @param interfaceName
-     *            interface name used as prefix message text
-     * @param failInfo
-     *            CMP failInfo proposed for CMP error message
-     * @param errorDetails
-     *            description of some details related to the error
-     * @param ex
-     *            the underlying exception
+     * @param interfaceName interface name used as prefix message text
+     * @param failInfo      CMP failInfo proposed for CMP error message
+     * @param errorDetails  description of some details related to the error
+     * @param ex            the underlying exception
      */
-    protected BaseCmpException(final String interfaceName, final int failInfo,
-            final String errorDetails, final Throwable ex) {
-        super(ex == null || ex.getMessage() == null ? errorDetails
-                : ex.getMessage(),
+    protected BaseCmpException(
+            final String interfaceName, final int failInfo, final String errorDetails, final Throwable ex) {
+        super(
+                ex == null || ex.getMessage() == null ? errorDetails : ex.getMessage(),
                 ex == null || ex.getCause() == null ? ex : ex.getCause());
         if (ex instanceof BaseCmpException) {
             this.failInfo = ((BaseCmpException) ex).failInfo;
             this.errorDetails = ((BaseCmpException) ex).errorDetails;
-            LOGGER.warn("exception at " + interfaceName + ": " + errorDetails,
-                    ex);
+            LOGGER.warn("exception at " + interfaceName + ": " + errorDetails, ex);
         } else {
             this.failInfo = failInfo;
             this.errorDetails = interfaceName + ": " + errorDetails;
@@ -90,8 +80,6 @@ public class BaseCmpException extends Exception {
 
     @Override
     public String toString() {
-        return "CmpException [failInfo=" + failInfo + ", errorDetails="
-                + errorDetails + "]";
+        return "CmpException [failInfo=" + failInfo + ", errorDetails=" + errorDetails + "]";
     }
-
 }
