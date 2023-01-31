@@ -66,8 +66,8 @@ public class CmpRaComponent {
      *                                argument is the certificate profile extracted
      *                                from the CMP request header generalInfo field
      *                                or <code>null</code> if no certificate profile
-     *                                was specified. Asynchronous transfer is not
-     *                                supported here. Must return <code>null</code>
+     *                                was specified. Asynchronous transfer and therefore delayed delivery (polling) according to the CMP profile  is not
+     * supported here. Must return <code>null</code>
      *                                if did not receive a response after relatively
      *                                short timeout. Must throw an exception with a
      *                                suitable message text in case the upstream
@@ -93,7 +93,7 @@ public class CmpRaComponent {
     public interface CmpRaInterface {
         /**
          * application provides response received asynchronously from upstream. Must be
-         * called after returning null via upstreamExchange() when later receiving a
+         * called after returning null via {@link UpstreamExchange#sendReceiveMessage(byte[], String, int)} when later receiving a
          * delayed response from upstream.
          *
          * @param response ASN.1 DER-encoded response received from upstream
@@ -125,14 +125,14 @@ public class CmpRaComponent {
          * @param request                the ASN.1 DER-encoded CMP request to send
          * @param certProfile            certificate profile extracted from the CMP
          *                               request header generalInfo field or
-         *                               <code>null</code> if no certificate profile was
+         *                               <code></code> if no certificate profile was
          *                               found in the header.
          * @param bodyTypeOfFirstRequest PKIBody type of the first request in this
          *                               transaction. e.g. 0 for ir, 2 for cr, 7 for
          *                               kur, 11 for rr, 21 for genm.
          * @return the ASN.1 DER-encoded CMP response or <code>null</code> if
          *         synchronous transfer is not supported or did not receive a response
-         *         after relatively short timeout.
+         *         after relatively short timeout. If <code>null</code> was returned delayed delivery (polling) according to the CMP profile will be utilized.
          * @throws Exception in case of (non-recoverable) error.
          */
         byte[] sendReceiveMessage(byte[] request, String certProfile, int bodyTypeOfFirstRequest) throws Exception;
