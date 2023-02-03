@@ -3,13 +3,23 @@ param (
     [Parameter(Mandatory = $true)][string]$SettingsFile
 )
 
+
+# We expect a settings file, like the JSON below. If the file is not given, the script fails
+#{
+#    "trustStorePath": "/etc/truststore-playground.jks",
+#    "signServerUrl": "signservice.com:443",
+#    "signServerWorker": "OpenPGPSignerMaven",
+#    "signServerKeyId": "1bcde241252",
+#    "signClientPath": "C:\\programs\\signserver\\bin"
+#}
+
+
+
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
 
 $CONFIG = Get-Content -Raw -Path $SettingsFile | ConvertFrom-Json
-Write-Output $CONFIG.trustStorePath
-Write-Debug $CONFIG
 
 $LASTWIDGETROW = 70
 $WIDGETSPACE = 20
@@ -215,10 +225,8 @@ $SignForm.Controls.AddRange(@(
     $ServerLabel, $ServerValue,
     $WorkerLabel, $WorkerValue,
     $KeyIdLabel, $KeyIdValue
-    #$Separator,
     $TrustStoreLabel, $TrustStoreValue,
     $PasswordLabel, $PasswordValue,
-    #$ConfirmationLabel, $ConfirmationLabelEx
     $ConfirmationLabel, $ConfirmationValue
 ))
 
@@ -252,7 +260,7 @@ This is a highly-sensitive operation, ensure you know what you are doing!
     # analysis (will be useful if there are errors)
     $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm"
     $tempFile = "$env:TEMP\signgui_$timestamp.log"
-#    +[System.IO.Path]::GetRandomFileName()
+    # +[System.IO.Path]::GetRandomFileName()
 
     # Here we form the command line that will be invoked, it might look like this:
     # /usr/bin/signclient signdocument -workername OpenPGPSignerMaven -infile CmpRaComponent-2.1.5.jar -outfile signature.asc -host signservice-playground.ct.siemens.com -port 443 -truststore truststore-playground.jks -truststorepwd "123456" -clientside -digestalgorithm SHA256 -filetype PGP -extraoption DETACHED_SIGNATURE=TRUE -extraoption KEY_ALGORITHM=RSA -extraoption KEY_ID=E9498CD6F99ED951

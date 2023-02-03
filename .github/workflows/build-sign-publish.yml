@@ -1,0 +1,21 @@
+# Build and digitally sign the JAR file, then upload it to Maven
+name: Build and digitally sign the JAR
+
+
+on:
+  push: # TODO when we're in production, this should be `release` only, and only on the main branch
+
+# disabled this for testing purposes, will experiment on another branch to see if the GUI is really invoked
+#    branches:
+#      - main
+
+jobs:
+  build:
+
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v3
+        run: |
+          scripts/sign-gui.ps1
+          echo "Upload to maven"
