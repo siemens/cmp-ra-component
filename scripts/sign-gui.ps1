@@ -1,10 +1,6 @@
 param (
     [Parameter(Mandatory = $true)][string]$fileToSign,
     [Parameter(Mandatory = $true)][string]$SettingsFile
-#    [string]$ComputerName = $env:computername,
-#    [string]$username = $(throw "-username is required."),
-#    [string]$password = $( Read-Host -asSecureString "Input password" ),
-#    [switch]$SaveData = $false
 )
 
 Add-Type -AssemblyName System.Windows.Forms
@@ -18,7 +14,6 @@ Write-Debug $CONFIG
 $LASTWIDGETROW = 70
 $WIDGETSPACE = 20
 $WIDGETSPACEEXTENDED = 70
-#$WIDGETSPACETINY = 20
 
 
 $Title = 'Digitally sign binary'
@@ -27,7 +22,7 @@ $Subtitle = 'You are about to leave an auditable trace by signing this file:'
 # Imaginary vertical line that divides widgets with values we're dealing with
 $ValueOffset = 150
 
-
+# these will be used as an additional attention-check.
 $ConfirmationWords = @("Responsible", "Consequence", "Implications", "Double-check",
                        "Understand", "Competence", "Attention", "Careful")
 
@@ -56,18 +51,8 @@ $Prologue.height = 20
 $Prologue.location = New-Object System.Drawing.Point(20, 50)
 $Prologue.Font = 'Microsoft Sans Serif,10'
 
-#$FilePathLabel = New-Object system.Windows.Forms.Label
-#$FilePathLabel.text = "Path:"
-#$FilePathLabel.AutoSize = $true
-#$FilePathLabel.width = 25
-#$FilePathLabel.height = 10
-#$FilePathLabel.location = New-Object System.Drawing.Point(20, $LASTWIDGETROW)
-#$FilePathLabel.Font = 'Microsoft Sans Serif,14,style=Bold'
-
-#$FilePath = New-Object system.Windows.Forms.Label
 $FilePath = New-Object system.Windows.Forms.TextBox
 $FilePath.text = $fileToSign
-#$FilePath.BorderStyle = [System.Windows.Forms.FormBorderStyle]::None
 $FilePath.Width = 390
 $FilePath.location = New-Object System.Drawing.Point(20, $LASTWIDGETROW)
 $FilePath.Font = 'Microsoft Sans Serif,20'
@@ -124,19 +109,7 @@ $KeyIdValue.AutoSize = $true
 $KeyIdValue.location = New-Object System.Drawing.Point($ValueOffset, $LASTWIDGETROW)
 $KeyIdValue.Font = 'Microsoft Sans Serif,10'
 
-$LASTWIDGETROW += $WIDGETSPACE
-#--------------------------------------------------
-
-$Separator = New-Object system.Windows.Forms.Label
-$Separator.BorderStyle = [System.Windows.Forms.FormBorderStyle]::Fixed3D
-$Separator.AutoSize = $false
-$Separator.Anchor = 'Right'
-#$Separator.Anchor = 'Left,Top,Right'
-$Separator.Height = 2
-#$Separator.Width = 100
-$Separator.location = New-Object System.Drawing.Point(0, $LASTWIDGETROW)
-
-$LASTWIDGETROW += $WIDGETSPACE
+$LASTWIDGETROW += $WIDGETSPACEEXTENDED
 #--------------------------------------------------
 
 $TrustStoreLabel = New-Object system.Windows.Forms.Label
@@ -237,22 +210,110 @@ $SignForm.Controls.Add($signBtn)
 
 
 $SignForm.Controls.AddRange(@(
-$MainTitle, $Prologue,
-$FilePathLabel, $FilePath,
-$ServerLabel, $ServerValue,
-$WorkerLabel, $WorkerValue,
-$KeyIdLabel, $KeyIdValue
-#$Separator,
-$TrustStoreLabel, $TrustStoreValue,
-$PasswordLabel, $PasswordValue,
-#$ConfirmationLabel, $ConfirmationLabelEx
-$ConfirmationLabel, $ConfirmationValue
+    $MainTitle, $Prologue,
+    $FilePathLabel, $FilePath,
+    $ServerLabel, $ServerValue,
+    $WorkerLabel, $WorkerValue,
+    $KeyIdLabel, $KeyIdValue
+    #$Separator,
+    $TrustStoreLabel, $TrustStoreValue,
+    $PasswordLabel, $PasswordValue,
+    #$ConfirmationLabel, $ConfirmationLabelEx
+    $ConfirmationLabel, $ConfirmationValue
 ))
 
+function SignFile($srcPath, $dstPath, $timeout) {
+
+    if([string]::IsNullOrEmpty($PasswordValue.Text)) {
+        [System.Windows.Forms.MessageBox]::Show("Please provide the trust store password", "More input required", 0, 'Exclamation')
+        return
+    }
+
+    if($ConfirmationValue.Text -ne $ConfirmationWord) {
+        $Message = @"
+Please type $ConfirmationWord in the confirmation field.
+
+This is a highly-sensitive operation, ensure you know what you are doing!
+"@
+        [System.Windows.Forms.MessageBox]::Show($Message, "Double-check your input", 0, 'Information')
+        return
+    }
+
+    # provide some feedback in the UI, change the button label and color
+    $signBtn.BackColor = "gray"
+    $signBtn.text = "Signing ..."
+
+
+    $urlParts = $($CONFIG.signServerUrl).split(':')
+    $hostName = $urlParts[0]
+    $port = $urlParts[1]
+
+    # generate a name for a unique temporary file, where the output of the signclient will be stored for subsequent
+    # analysis (will be useful if there are errors)
+    $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm"
+    $tempFile = "$env:TEMP\signgui_$timestamp.log"
+#    +[System.IO.Path]::GetRandomFileName()
+
+    # Here we form the command line that will be invoked, it might look like this:
+    # /usr/bin/signclient signdocument -workername OpenPGPSignerMaven -infile CmpRaComponent-2.1.5.jar -outfile signature.asc -host signservice-playground.ct.siemens.com -port 443 -truststore truststore-playground.jks -truststorepwd "123456" -clientside -digestalgorithm SHA256 -filetype PGP -extraoption DETACHED_SIGNATURE=TRUE -extraoption KEY_ALGORITHM=RSA -extraoption KEY_ID=E9498CD6F99ED951
+    $command = 'signclient.cmd'
+    $arguments = "signdocument -workername $($CONFIG.signServerWorker) -infile $srcPath -outfile $dstPath -host $hostName -port $port -truststore $($CONFIG.trustStorePath) -truststorepwd $($PasswordValue.Text) -clientside -digestalgorithm SHA256 -filetype PGP -extraoption DETACHED_SIGNATURE=TRUE -extraoption KEY_ALGORITHM=RSA -extraoption KEY_ID=$($CONFIG.signServerKeyId)"
+
+    # uncomment the two lines below to simulate a successful
+    #    $command = 'ping'
+    #    $arguments = '8.8.8.8'
+    $process = Start-Process $command -ArgumentList $arguments -NoNewWindow -Wait -PassThru -RedirectStandardOutput $tempFile -WorkingDirectory $CONFIG.signClientPath
+
+    # load the contents of the file here, so we can put it in the messagebox later
+    $output = Get-Content $tempFile
+
+
+    if ($process.ExitCode -eq 0) {
+        # everything is fine, make it green and keep going
+        $signBtn.BackColor = "#82e09b"
+        $signBtn.ForeColor = "#000"
+        $signBtn.text = "Done"
+        $operationStatus = "Signed successfully!"
+
+        $message = @"
+Digital signature saved to $dstPath.
+
+The window will close and the pipeline will continue.
+"@
+        [System.Windows.Forms.MessageBox]::Show($message, $operationStatus, 0, 'Information')
+
+        # nicely close the window after the messagebox is closed, and let the higher level logic take over
+        $SignForm.Close()
+    }
+    else {
+        # there was an error, make it red
+        $signBtn.BackColor = "red"
+        $signBtn.ForeColor = "white"
+        $signBtn.text = "Error $($process.ExitCode)"
+        $operationStatus = "Operation error"
+
+        $message = @"
+Diagnostic details in signclient's log:
+$tempFile
+
+
+
+$output
+"@
+        [System.Windows.Forms.MessageBox]::Show($message, $operationStatus, 0, 'Error')
+
+        # After the messagebox is closed, we restore the button's properties, so the user can see that they
+        # can try to sign again
+        $signBtn.BackColor = "#ff7b00"
+        $signBtn.text = "Sign"
+    }
+
+
+}
+
+
+
+$signBtn.Add_Click({SignFile "c:/source.jar" "/tmp/data.sig" 45})
+
+
 [void]$SignForm.ShowDialog()
-
-
-# Start-Process <path to exe> -NoNewWindow -Wait
-
-
-#$output = ping.exe example.com | Out-String
