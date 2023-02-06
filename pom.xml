@@ -111,6 +111,9 @@
 						</goals>
 					</execution>
 				</executions>
+				<configuration>
+					<failBuildOnCVSS>0</failBuildOnCVSS>
+				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.jacoco</groupId>
