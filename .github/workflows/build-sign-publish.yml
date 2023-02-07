@@ -2,8 +2,7 @@
 name: Build and digitally sign the JAR
 
 
-on:
-  push: # TODO when we're in production, this should be `release` only, and only on the main branch
+on: push # TODO when we're in production, this should be `release` only, and only on the main branch
 
 # disabled this for testing purposes, will experiment on another branch to see if the GUI is really invoked
 #    branches:
@@ -11,11 +10,43 @@ on:
 
 jobs:
   build:
-
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build the jar
+        run: mvn package -DskipTests
+
+      - name: Upload jar for subsequent reuse by signer
+        uses: actions/upload-artifact@v3
+        with:
+          name: compiled-jar
+          path: target/CmpRaComponent*.jar
+
+  sign:
+    needs: build
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+        with:
+          name: compiled-jar
+          path: target
+
+      - name: Process retrieved files
         run: |
-          scripts/sign-gui.ps1
-          echo "Upload to maven"
+          $version = Select-Xml -LiteralPath pom.xml -XPath "/project/version" -Namespace @{xlmns="http://maven.apache.org/POM/4.0.0"} |Select -Expand Node
+          $fileToSign = "build-$($version.'#text').jar"
+          if (-not [Environment]::GetEnvironmentVariable('SignSettingsPath')) {throw "You must set the SignSettingsPath environment variable first"}
+          Write-Output "Signing $fileToSign with settings from $env:SignSettingsPath"
+          scripts/sign-gui.ps1 $fileToSign -settingsFile $env:SignSettingsPath
+          #          sign-gui.ps1 -fileToSign c:\test.hz -settingsFile settings.json
+          #          TODO: prepare settings file and make sure it is available in the designated directory on the runner
+        # todo upload to maven
