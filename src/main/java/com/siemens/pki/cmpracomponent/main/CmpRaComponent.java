@@ -58,21 +58,22 @@ public class CmpRaComponent {
      *                                and
      *                                {@link Configuration#getRetryAfterTimeInSeconds(String, int)}
      *                                because central key generation, upstream CMP
-     *                                messages, and delayed delivery are not
-     *                                supported here.
+     *                                messages, and delayed delivery are not supported here.
      * @param upstreamP10X509Exchange function to send ASN.1 DER-encoded PKCS#10 CSR
      *                                upstream and return the resulting ASN.1
-     *                                DER-encoded X509 certificate. The second
+     *                                DER-encoded X.509 certificate. The second
      *                                argument is the certificate profile extracted
      *                                from the CMP request header generalInfo field
      *                                or <code>null</code> if no certificate profile
-     *                                was specified. Asynchronous transfer and therefore delayed delivery (polling) according to the CMP profile  is not
-     * supported here. Must return <code>null</code>
+     *                                was specified. Asynchronous transfer and
+     *                                therefore delayed delivery (polling) according
+     *                                to the CMP profile is not supported here.
+     *                                Must return <code>null</code>
      *                                if did not receive a response after relatively
      *                                short timeout. Must throw an exception with a
      *                                suitable message text in case the upstream
-     *                                server responded with an application-level
-     *                                error. May throw an exception on any other
+     *                                server responded with an application-level error. <!-- TODO how can the upstream server respond with an error on this interface? -->    
+     *                                May throw an exception on any other
      *                                (non-recoverable) error.
      * @return function to use by the embedding application to deliver an ASN.1
      *         DER-encoded CMP request from the downstream interface to the RA
@@ -88,7 +89,7 @@ public class CmpRaComponent {
 
     /**
      * interface to access the RA instance with synchronous and/or asynchronous
-     * upstream transfer providing support for delayed delivery of responses
+     * upstream transfer providing support for delayed delivery of responses (with polling)
      */
     public interface CmpRaInterface {
         /**
@@ -125,15 +126,20 @@ public class CmpRaComponent {
          * @param request                the ASN.1 DER-encoded CMP request to send
          * @param certProfile            certificate profile extracted from the CMP
          *                               request header generalInfo field or
-         *                               <code></code> if no certificate profile was
+         *                               <code>null</code> if no certificate profile was
          *                               found in the header.
          * @param bodyTypeOfFirstRequest PKIBody type of the first request in this
          *                               transaction. e.g. 0 for ir, 2 for cr, 7 for
          *                               kur, 11 for rr, 21 for genm.
          * @return the ASN.1 DER-encoded CMP response or <code>null</code> if
          *         synchronous transfer is not supported or did not receive a response
-         *         after relatively short timeout. If <code>null</code> was returned delayed delivery (polling) according to the CMP profile will be utilized.
+         *         after relatively short timeout. If <code>null</code> was returned,
+         *         delayed delivery (polling) according to the CMP profile is initiated.
+         *         Poll responses will include the retryAfter value provided by
+         *         {@link Configuration#getRetryAfterTimeInSeconds(String, int)}.
          * @throws Exception in case of (non-recoverable) error.
+         *         Must throw an exception with a suitable message text in case
+         *         the upstream server responded with an application-level error.
          */
         byte[] sendReceiveMessage(byte[] request, String certProfile, int bodyTypeOfFirstRequest) throws Exception;
     }

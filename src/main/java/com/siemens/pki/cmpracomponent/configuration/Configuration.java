@@ -91,7 +91,7 @@ public interface Configuration {
 
     /**
      * specify the retryAfter time in seconds to return on the downstream interface
-     * in case of delayed delivery
+     * in case of delayed delivery (polling)
      *
      * @param certProfile certificate profile extracted from the CMP request header
      *                    generalInfo field or <code>null</code> if no certificate
