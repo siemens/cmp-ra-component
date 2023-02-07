@@ -71,8 +71,9 @@ public class CmpRaComponent {
      *                                Must return <code>null</code>
      *                                if did not receive a response after relatively
      *                                short timeout. Must throw an exception with a
-     *                                suitable message text in case the upstream
-     *                                server responded with an application-level error. <!-- TODO how can the upstream server respond with an error on this interface? -->    
+     *                                suitable message text in case the application-level
+     *                                request processing results in an error or
+     *                                the upstream server responded with an error.
      *                                May throw an exception on any other
      *                                (non-recoverable) error.
      * @return function to use by the embedding application to deliver an ASN.1
@@ -139,7 +140,8 @@ public class CmpRaComponent {
          *         {@link Configuration#getRetryAfterTimeInSeconds(String, int)}.
          * @throws Exception in case of (non-recoverable) error.
          *         Must throw an exception with a suitable message text in case
-         *         the upstream server responded with an application-level error.
+         *         the application-level request processing results in an error
+         *         or the upstream server responded with an error.
          */
         byte[] sendReceiveMessage(byte[] request, String certProfile, int bodyTypeOfFirstRequest) throws Exception;
     }
