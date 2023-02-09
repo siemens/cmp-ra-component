@@ -321,7 +321,7 @@ $output
 
 
 
-$signBtn.Add_Click({SignFile "c:/source.jar" "/tmp/data.sig" 45})
+$signBtn.Add_Click({SignFile $fileToSign "signature.asc" 45})
 
 
 [void]$SignForm.ShowDialog()

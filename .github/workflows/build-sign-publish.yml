@@ -42,11 +42,9 @@ jobs:
 
       - name: Process retrieved files
         run: |
-          $version = Select-Xml -LiteralPath pom.xml -XPath "/project/version" -Namespace @{xlmns="http://maven.apache.org/POM/4.0.0"} |Select -Expand Node
-          $fileToSign = "build-$($version.'#text').jar"
+          $versionNode = Select-Xml -Path pom.xml -XPath "x:project" -Namespace @{"x"="http://maven.apache.org/POM/4.0.0"} |Select -Expand Node
+          $version = $versionNode.version
+          $fileToSign = "build-$version.jar"
           if (-not [Environment]::GetEnvironmentVariable('SignSettingsPath')) {throw "You must set the SignSettingsPath environment variable first"}
           Write-Output "Signing $fileToSign with settings from $env:SignSettingsPath"
-          scripts/sign-gui.ps1 $fileToSign -settingsFile $env:SignSettingsPath
-          #          sign-gui.ps1 -fileToSign c:\test.hz -settingsFile settings.json
-          #          TODO: prepare settings file and make sure it is available in the designated directory on the runner
-        # todo upload to maven
+          scripts/sign-gui.ps1 target/$fileToSign -settingsFile $env:SignSettingsPath
