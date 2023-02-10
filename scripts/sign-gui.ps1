@@ -1,6 +1,7 @@
 param (
-    [Parameter(Mandatory = $true)][string]$fileToSign,
-    [Parameter(Mandatory = $true)][string]$SettingsFile
+    [Parameter(Mandatory = $true, HelpMessage='Path to file that needs to be signed')][string]$fileToSign,
+    [Parameter(Mandatory = $true, HelpMessage='Path to file where settings are stored')][string]$SettingsFile,
+    [Parameter(HelpMessage='File to which the signature will be written')][string]$SignaturePath='signature.asc'
 )
 
 
@@ -321,7 +322,7 @@ $output
 
 
 
-$signBtn.Add_Click({SignFile $fileToSign "signature.asc" 45})
+$signBtn.Add_Click({SignFile $fileToSign $SignaturePath 45})  # timeout is unused for now
 
 
 [void]$SignForm.ShowDialog()
