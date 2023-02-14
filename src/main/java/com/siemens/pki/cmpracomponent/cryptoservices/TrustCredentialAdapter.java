@@ -119,11 +119,13 @@ public class TrustCredentialAdapter {
             lstCertCrlStores.addAll(config.getAdditionalCerts());
 
             lstCertCrlStores.add(cert);
+            
+            CertStoreParameters csp = new CollectionCertStoreParameters(config.getCRLs());
+            CertStore crlStore = CertStore.getInstance("Collection", csp);
 
             final Collection<X509CRL> crls = config.getCRLs();
             if (crls != null && !crls.isEmpty()) {
                 revocationEnabled = true;
-                lstCertCrlStores.add(crls);
             }
 
             final CollectionCertStoreParameters ccsp = new CollectionCertStoreParameters(lstCertCrlStores);
@@ -140,6 +142,7 @@ public class TrustCredentialAdapter {
             final PKIXBuilderParameters params = new PKIXBuilderParameters(trust, targetConstraints);
 
             params.addCertStore(store);
+            params.addCertStore(crlStore);
 
             final CertPathBuilder cpb = CertPathBuilder.getInstance("PKIX", CertUtility.getBouncyCastleProvider());
 
