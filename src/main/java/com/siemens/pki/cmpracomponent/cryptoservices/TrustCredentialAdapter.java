@@ -119,7 +119,7 @@ public class TrustCredentialAdapter {
             lstCertCrlStores.addAll(config.getAdditionalCerts());
 
             lstCertCrlStores.add(cert);
-            
+
             CertStoreParameters csp = new CollectionCertStoreParameters(config.getCRLs());
             CertStore crlStore = CertStore.getInstance("Collection", csp);
 
