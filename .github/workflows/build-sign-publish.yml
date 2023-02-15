@@ -21,13 +21,16 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Build the jar
-        run: mvn package -DskipTests
+      - name: Build the jars
+        run: |
+          mvn package -DskipTests
+          mvn source:jar
 
-      - name: Upload jar for subsequent reuse by signer
+      - name: Upload files for subsequent reuse by signer
         uses: actions/upload-artifact@v3
         with:
           name: compiled-jar
+          # We care about 2 files here, e.g. CmpRaComponent-2.2.2.jar and CmpRaComponent-2.2.2-sources.jar
           path: target/CmpRaComponent*.jar
 
   sign:
