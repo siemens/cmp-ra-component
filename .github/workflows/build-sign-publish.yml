@@ -25,12 +25,14 @@ jobs:
         run: |
           mvn package -DskipTests
           mvn source:jar
+          mvn javadoc:jar
 
       - name: Upload files for subsequent reuse by signer
         uses: actions/upload-artifact@v3
         with:
           name: compiled-jar
-          # We care about 2 files here, e.g. CmpRaComponent-2.2.2.jar and CmpRaComponent-2.2.2-sources.jar
+          # We care about 3 files, e.g. CmpRaComponent-2.2.2.jar, CmpRaComponent-2.2.2-sources.jar and
+          # CmpRaComponent-2.2.2-javadoc.jar
           path: target/CmpRaComponent*.jar
 
   sign:
@@ -52,4 +54,6 @@ jobs:
           Write-Output "Signing $fileToSign with settings from $env:SignSettingsPath"
           scripts/sign-gui.ps1 target/$fileToSign -settingsFile $env:SignSettingsPath -SignaturePath $fileToSign.asc
           $fileToSign = "build-$version-sources.jar"
+          scripts/sign-gui.ps1 target/$fileToSign -settingsFile $env:SignSettingsPath -SignaturePath $fileToSign.asc
+          $fileToSign = "build-$version-javadoc.jar"
           scripts/sign-gui.ps1 target/$fileToSign -settingsFile $env:SignSettingsPath -SignaturePath $fileToSign.asc
