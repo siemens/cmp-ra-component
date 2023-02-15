@@ -50,4 +50,6 @@ jobs:
           $fileToSign = "build-$version.jar"
           if (-not [Environment]::GetEnvironmentVariable('SignSettingsPath')) {throw "You must set the SignSettingsPath environment variable first"}
           Write-Output "Signing $fileToSign with settings from $env:SignSettingsPath"
-          scripts/sign-gui.ps1 target/$fileToSign -settingsFile $env:SignSettingsPath
+          scripts/sign-gui.ps1 target/$fileToSign -settingsFile $env:SignSettingsPath -SignaturePath $fileToSign.asc
+          $fileToSign = "build-$version-sources.jar"
+          scripts/sign-gui.ps1 target/$fileToSign -settingsFile $env:SignSettingsPath -SignaturePath $fileToSign.asc
