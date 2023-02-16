@@ -24,7 +24,17 @@ import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.io.IOException;
 import java.util.Arrays;
 import org.bouncycastle.asn1.ASN1Encoding;
-import org.bouncycastle.asn1.cmp.*;
+import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
+import org.bouncycastle.asn1.cmp.CertConfirmContent;
+import org.bouncycastle.asn1.cmp.CertRepMessage;
+import org.bouncycastle.asn1.cmp.CertResponse;
+import org.bouncycastle.asn1.cmp.CertStatus;
+import org.bouncycastle.asn1.cmp.ErrorMsgContent;
+import org.bouncycastle.asn1.cmp.InfoTypeAndValue;
+import org.bouncycastle.asn1.cmp.PKIBody;
+import org.bouncycastle.asn1.cmp.PKIFailureInfo;
+import org.bouncycastle.asn1.cmp.PKIMessage;
+import org.bouncycastle.asn1.cmp.PKIStatus;
 import org.bouncycastle.asn1.crmf.CertReqMessages;
 import org.bouncycastle.asn1.pkcs.CertificationRequest;
 import org.bouncycastle.asn1.x509.Certificate;
@@ -82,6 +92,12 @@ class TransactionStateTracker {
             return;
         }
         if (isSecondRequest(message)) {
+            if (persistencyContext.getLastTransactionState() == LastTransactionState.INITIAL_STATE) {
+                throw new CmpValidationException(
+                        INTERFACE_NAME,
+                        PKIFailureInfo.transactionIdInUse,
+                        "unexpected transcation ID for " + MessageDumper.msgAsShortString(message));
+            }
             if (!Arrays.equals(
                     persistencyContext.getLastSenderNonce(),
                     message.getHeader().getRecipNonce().getOctets())) {

@@ -19,7 +19,19 @@ package com.siemens.pki.cmpracomponent.test;
 
 import static org.junit.Assert.fail;
 
-import com.siemens.pki.cmpracomponent.configuration.*;
+import com.siemens.pki.cmpracomponent.configuration.CheckAndModifyResult;
+import com.siemens.pki.cmpracomponent.configuration.CkgContext;
+import com.siemens.pki.cmpracomponent.configuration.CkgKeyAgreementContext;
+import com.siemens.pki.cmpracomponent.configuration.CkgKeyTransportContext;
+import com.siemens.pki.cmpracomponent.configuration.CkgPasswordContext;
+import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
+import com.siemens.pki.cmpracomponent.configuration.Configuration;
+import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
+import com.siemens.pki.cmpracomponent.configuration.InventoryInterface;
+import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
+import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
+import com.siemens.pki.cmpracomponent.configuration.SupportMessageHandlerInterface;
+import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import com.siemens.pki.cmpracomponent.cryptoservices.CmsDecryptor;
 import com.siemens.pki.cmpracomponent.protection.SignatureBasedProtection;
 import com.siemens.pki.cmpracomponent.test.framework.SignatureValidationCredentials;
@@ -203,6 +215,11 @@ public class TestCentralKeyGenerationWithKeyTransport extends CkgOnlineEnrollmen
                         return true;
                     }
                 };
+            }
+
+            @Override
+            public int getDownstreamExpirationTime(final String certProfile, final int bodyType) {
+                return 10;
             }
 
             @Override

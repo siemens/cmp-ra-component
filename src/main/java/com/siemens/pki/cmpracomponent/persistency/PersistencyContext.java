@@ -22,6 +22,7 @@ import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import java.io.IOException;
 import java.security.PrivateKey;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -37,6 +38,7 @@ public class PersistencyContext {
     @JsonIgnore
     private final TransactionStateTracker transactionStateTracker = new TransactionStateTracker(this);
 
+    private Date expirationTime;
     private byte[] transactionId;
     private String certProfile;
     private PrivateKey newGeneratedPrivateKey;
@@ -82,12 +84,64 @@ public class PersistencyContext {
         return alreadySentExtraCerts;
     }
 
-    public void setAlreadySentExtraCerts(final Set<CMPCertificate> alreadySentExtraCerts) {
-        this.alreadySentExtraCerts = alreadySentExtraCerts;
-    }
-
     public String getCertProfile() {
         return certProfile;
+    }
+
+    public boolean getDelayedDeliveryInProgress() {
+        return delayedDeliveryInProgress;
+    }
+
+    public byte[] getDigestToConfirm() {
+        return digestToConfirm;
+    }
+
+    public Date getExpirationTime() {
+        return expirationTime;
+    }
+
+    public PKIMessage getInitialRequest() {
+        return initialRequest;
+    }
+
+    public List<CMPCertificate> getIssuingChain() {
+        return issuingChain;
+    }
+
+    public byte[] getLastSenderNonce() {
+        return lastSenderNonce;
+    }
+
+    public LastTransactionState getLastTransactionState() {
+        return lastTransactionState;
+    }
+
+    public PrivateKey getNewGeneratedPrivateKey() {
+        return newGeneratedPrivateKey;
+    }
+
+    public PKIMessage getPendingDelayedResponse() {
+        return pendingDelayedResponse;
+    }
+
+    public byte[] getRequestedPublicKey() {
+        return requestedPublicKey;
+    }
+
+    public int getRequestType() {
+        return certificateRequestType;
+    }
+
+    public byte[] getTransactionId() {
+        return transactionId;
+    }
+
+    public boolean isImplicitConfirmGranted() {
+        return implicitConfirmGranted;
+    }
+
+    public void setAlreadySentExtraCerts(final Set<CMPCertificate> alreadySentExtraCerts) {
+        this.alreadySentExtraCerts = alreadySentExtraCerts;
     }
 
     public void setCertProfile(final String certProfile) {
@@ -96,64 +150,44 @@ public class PersistencyContext {
         }
     }
 
-    public boolean getDelayedDeliveryInProgress() {
-        return delayedDeliveryInProgress;
+    public void setContextManager(final PersistencyContextManager contextManager) {
+        this.contextManager = contextManager;
     }
 
     public void setDelayedDeliveryInProgress(final boolean delayedDeliveryInProgress) {
         this.delayedDeliveryInProgress = delayedDeliveryInProgress;
     }
 
-    public byte[] getDigestToConfirm() {
-        return digestToConfirm;
-    }
-
     public void setDigestToConfirm(final byte[] digestToConfirm) {
         this.digestToConfirm = digestToConfirm;
     }
 
-    public PKIMessage getInitialRequest() {
-        return initialRequest;
+    public void setExpirationTime(final Date expirationTime) {
+        this.expirationTime = expirationTime;
+    }
+
+    public void setImplicitConfirmGranted(final boolean implicitConfirmGranted) {
+        this.implicitConfirmGranted = implicitConfirmGranted;
     }
 
     public void setInitialRequest(final PKIMessage initialRequest) {
         this.initialRequest = initialRequest;
     }
 
-    public List<CMPCertificate> getIssuingChain() {
-        return issuingChain;
-    }
-
     public void setIssuingChain(final List<CMPCertificate> issuingChain) {
         this.issuingChain = issuingChain;
-    }
-
-    public byte[] getLastSenderNonce() {
-        return lastSenderNonce;
     }
 
     public void setLastSenderNonce(final byte[] lastSenderNonce) {
         this.lastSenderNonce = lastSenderNonce;
     }
 
-    public LastTransactionState getLastTransactionState() {
-        return lastTransactionState;
-    }
-
     public void setLastTransactionState(final LastTransactionState lastTransactionState) {
         this.lastTransactionState = lastTransactionState;
     }
 
-    public PrivateKey getNewGeneratedPrivateKey() {
-        return newGeneratedPrivateKey;
-    }
-
     public void setNewGeneratedPrivateKey(final PrivateKey newGeneratedPrivateKey) {
         this.newGeneratedPrivateKey = newGeneratedPrivateKey;
-    }
-
-    public PKIMessage getPendingDelayedResponse() {
-        return pendingDelayedResponse;
     }
 
     public void setPendingDelayedResponse(final PKIMessage delayedResponse) throws CmpProcessingException {
@@ -166,39 +200,20 @@ public class PersistencyContext {
         this.pendingDelayedResponse = delayedResponse;
     }
 
-    public byte[] getRequestedPublicKey() {
-        return requestedPublicKey;
-    }
-
     public void setRequestedPublicKey(final byte[] requestedPublicKey) {
         this.requestedPublicKey = requestedPublicKey;
-    }
-
-    public int getRequestType() {
-        return certificateRequestType;
     }
 
     public void setRequestType(final int certificateRequestType) {
         this.certificateRequestType = certificateRequestType;
     }
 
-    public byte[] getTransactionId() {
-        return transactionId;
-    }
-
-    public boolean isImplicitConfirmGranted() {
-        return implicitConfirmGranted;
-    }
-
-    public void setImplicitConfirmGranted(final boolean implicitConfirmGranted) {
-        this.implicitConfirmGranted = implicitConfirmGranted;
-    }
-
-    public void setContextManager(final PersistencyContextManager contextManager) {
-        this.contextManager = contextManager;
-    }
-
     public void trackMessage(final PKIMessage msg) throws BaseCmpException, IOException {
         transactionStateTracker.trackMessage(msg);
+    }
+
+    public void updateDownstreamExpirationTime(final Date downstreamExpirationTime) {
+        // only downstream can expire
+        this.expirationTime = downstreamExpirationTime;
     }
 }

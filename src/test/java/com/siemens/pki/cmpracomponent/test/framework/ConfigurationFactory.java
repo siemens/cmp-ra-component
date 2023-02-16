@@ -20,9 +20,23 @@ package com.siemens.pki.cmpracomponent.test.framework;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
-import com.siemens.pki.cmpracomponent.configuration.*;
+import com.siemens.pki.cmpracomponent.configuration.CheckAndModifyResult;
+import com.siemens.pki.cmpracomponent.configuration.CkgContext;
+import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
+import com.siemens.pki.cmpracomponent.configuration.Configuration;
+import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
+import com.siemens.pki.cmpracomponent.configuration.CrlUpdateRetrievalHandler;
+import com.siemens.pki.cmpracomponent.configuration.GetCaCertificatesHandler;
+import com.siemens.pki.cmpracomponent.configuration.GetCertificateRequestTemplateHandler;
+import com.siemens.pki.cmpracomponent.configuration.GetRootCaCertificateUpdateHandler;
 import com.siemens.pki.cmpracomponent.configuration.GetRootCaCertificateUpdateHandler.RootCaCertificateUpdateResponse;
+import com.siemens.pki.cmpracomponent.configuration.InventoryInterface;
+import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
+import com.siemens.pki.cmpracomponent.configuration.PersistencyInterface;
+import com.siemens.pki.cmpracomponent.configuration.SupportMessageHandlerInterface;
+import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import com.siemens.pki.cmpracomponent.cryptoservices.KeyPairGeneratorFactory;
+import com.siemens.pki.cmpracomponent.persistency.DefaultPersistencyImplementation;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProviderFactory;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
@@ -32,7 +46,11 @@ import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
-import java.security.cert.*;
+import java.security.cert.CRLException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509CRL;
+import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Collections;
 import org.bouncycastle.asn1.ASN1Integer;
@@ -56,8 +74,6 @@ public class ConfigurationFactory {
     public static ProtectionProvider eePbmac1ProtectionProvider;
     private static KeyPairGenerator keyGenerator;
     private static ProtectionProvider eePasswordbasedProtectionProvider;
-
-    private ConfigurationFactory() {}
 
     public static Configuration buildPasswordbasedDownstreamConfiguration() throws Exception {
         final CredentialContext downstreamCredentials = new SharedSecret("PBMAC1", TestUtils.PASSWORD);
@@ -154,6 +170,11 @@ public class ConfigurationFactory {
                         return true;
                     }
                 };
+            }
+
+            @Override
+            public int getDownstreamExpirationTime(final String certProfile, final int bodyType) {
+                return 10;
             }
 
             @Override
@@ -371,6 +392,8 @@ public class ConfigurationFactory {
             final VerificationContext upstreamTrust,
             final SignatureValidationCredentials enrollmentTrust) {
         return new Configuration() {
+            PersistencyInterface persistency = new DefaultPersistencyImplementation(5000);
+
             @Override
             public CkgContext getCkgConfiguration(final String certProfile, final int bodyType) {
                 fail(String.format(
@@ -390,10 +413,12 @@ public class ConfigurationFactory {
 
                     @Override
                     public VerificationContext getInputVerification() {
-                        switch (certProfile) {
-                            case "certProfileForKur":
-                            case "certProfileForRr":
-                                return enrollmentTrust;
+                        if (certProfile != null) {
+                            switch (certProfile) {
+                                case "certProfileForKur":
+                                case "certProfileForRr":
+                                    return enrollmentTrust;
+                            }
                         }
                         return downstreamTrust;
                     }
@@ -432,6 +457,11 @@ public class ConfigurationFactory {
                         return true;
                     }
                 };
+            }
+
+            @Override
+            public int getDownstreamExpirationTime(final String certProfile, final int bodyType) {
+                return 10;
             }
 
             @Override
@@ -515,6 +545,11 @@ public class ConfigurationFactory {
                         return true;
                     }
                 };
+            }
+
+            @Override
+            public PersistencyInterface getPersistency() {
+                return persistency;
             }
 
             @Override
@@ -649,4 +684,6 @@ public class ConfigurationFactory {
         }
         return keyGenerator;
     }
+
+    private ConfigurationFactory() {}
 }

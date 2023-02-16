@@ -19,28 +19,71 @@ package com.siemens.pki.cmpracomponent.msgprocessing;
 
 import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
-import com.siemens.pki.cmpracomponent.configuration.*;
-import com.siemens.pki.cmpracomponent.cryptoservices.*;
+import com.siemens.pki.cmpracomponent.configuration.CheckAndModifyResult;
+import com.siemens.pki.cmpracomponent.configuration.CkgContext;
+import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
+import com.siemens.pki.cmpracomponent.configuration.Configuration;
+import com.siemens.pki.cmpracomponent.configuration.InventoryInterface;
+import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
+import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
+import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
+import com.siemens.pki.cmpracomponent.cryptoservices.CmsEncryptorBase;
+import com.siemens.pki.cmpracomponent.cryptoservices.DataSigner;
+import com.siemens.pki.cmpracomponent.cryptoservices.KeyAgreementEncryptor;
+import com.siemens.pki.cmpracomponent.cryptoservices.KeyPairGeneratorFactory;
+import com.siemens.pki.cmpracomponent.cryptoservices.KeyTransportEncryptor;
+import com.siemens.pki.cmpracomponent.cryptoservices.PasswordEncryptor;
+import com.siemens.pki.cmpracomponent.cryptoservices.TrustCredentialAdapter;
 import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
-import com.siemens.pki.cmpracomponent.msgvalidation.*;
+import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
+import com.siemens.pki.cmpracomponent.msgvalidation.CmpEnrollmentException;
+import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
+import com.siemens.pki.cmpracomponent.msgvalidation.CmpValidationException;
+import com.siemens.pki.cmpracomponent.msgvalidation.InputValidator;
+import com.siemens.pki.cmpracomponent.msgvalidation.MessageHeaderValidator;
+import com.siemens.pki.cmpracomponent.msgvalidation.ProtectionValidator;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContextManager;
 import com.siemens.pki.cmpracomponent.protection.SignatureBasedProtection;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.io.IOException;
-import java.security.*;
+import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.Signature;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.bouncycastle.asn1.ASN1Encoding;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
-import org.bouncycastle.asn1.cmp.*;
-import org.bouncycastle.asn1.crmf.*;
+import org.bouncycastle.asn1.cmp.CMPCertificate;
+import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
+import org.bouncycastle.asn1.cmp.CertRepMessage;
+import org.bouncycastle.asn1.cmp.CertResponse;
+import org.bouncycastle.asn1.cmp.PKIBody;
+import org.bouncycastle.asn1.cmp.PKIFailureInfo;
+import org.bouncycastle.asn1.cmp.PKIHeader;
+import org.bouncycastle.asn1.cmp.PKIMessage;
+import org.bouncycastle.asn1.cmp.PKIMessages;
+import org.bouncycastle.asn1.cmp.PKIStatus;
+import org.bouncycastle.asn1.crmf.AttributeTypeAndValue;
+import org.bouncycastle.asn1.crmf.CertReqMessages;
+import org.bouncycastle.asn1.crmf.CertReqMsg;
+import org.bouncycastle.asn1.crmf.CertRequest;
+import org.bouncycastle.asn1.crmf.CertTemplate;
+import org.bouncycastle.asn1.crmf.CertTemplateBuilder;
+import org.bouncycastle.asn1.crmf.Controls;
+import org.bouncycastle.asn1.crmf.POPOSigningKey;
+import org.bouncycastle.asn1.crmf.ProofOfPossession;
 import org.bouncycastle.asn1.edec.EdECObjectIdentifiers;
 import org.bouncycastle.asn1.pkcs.CertificationRequest;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
@@ -546,6 +589,7 @@ class RaDownstream {
     PKIMessage handleInputMessage(final PKIMessage in) {
         PersistencyContext persistencyContext = null;
         try {
+            int responseBodyType = PKIBody.TYPE_ERROR;
             try {
                 final int inBodyType = in.getBody().getType();
                 if (inBodyType == PKIBody.TYPE_NESTED) {
@@ -592,7 +636,7 @@ class RaDownstream {
                 final PKIMessage responseFromUpstream = handleValidatedRequest(in, persistencyContext);
                 // apply downstream protection
                 final List<CMPCertificate> issuingChain;
-                final int responseBodyType = responseFromUpstream.getBody().getType();
+                responseBodyType = responseFromUpstream.getBody().getType();
                 switch (responseBodyType) {
                     case PKIBody.TYPE_INIT_REP:
                     case PKIBody.TYPE_CERT_REP:
@@ -612,14 +656,20 @@ class RaDownstream {
                                 issuingChain);
             } catch (final BaseCmpException e) {
                 final PKIBody errorBody = e.asErrorBody();
-                return getOutputProtector(persistencyContext, errorBody.getType())
+                responseBodyType = errorBody.getType();
+                return getOutputProtector(persistencyContext, responseBodyType)
                         .generateAndProtectMessage(PkiMessageGenerator.buildRespondingHeaderProvider(in), errorBody);
             } catch (final RuntimeException ex) {
                 final PKIBody errorBody = new CmpProcessingException(INTERFACE_NAME, ex).asErrorBody();
-                return getOutputProtector(persistencyContext, errorBody.getType())
+                responseBodyType = errorBody.getType();
+                return getOutputProtector(persistencyContext, responseBodyType)
                         .generateAndProtectMessage(PkiMessageGenerator.buildRespondingHeaderProvider(in), errorBody);
             } finally {
                 if (persistencyContext != null) {
+                    final int offset = config.getDownstreamExpirationTime(
+                            ifNotNull(persistencyContext, PersistencyContext::getCertProfile), responseBodyType);
+                    persistencyContext.updateDownstreamExpirationTime(
+                            new Date(System.currentTimeMillis() + offset * 1000L));
                     persistencyContext.flush();
                 }
             }

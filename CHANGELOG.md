@@ -72,3 +72,5 @@ fix: Improve choice of key management technique for CKG, fix NPE
 
 feat: Enforce automatic formatting of the code via Spotless
 
+### 2.3.0 (Feb 28 2023)
+feat: implement transaction expiration

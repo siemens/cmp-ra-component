@@ -44,6 +44,15 @@ public interface Configuration {
      * @return the downstream interface configuration
      */
     CmpMessageInterface getDownstreamConfiguration(String certProfile, int bodyType);
+    /**
+     * get the time in seconds after last response to downstream when a transaction should be forgotten
+     * @param certProfile certificate profile extracted from the CMP request header
+     *                    generalInfo field or <code>null</code> if no certificate
+     *                    profile was specified
+     * @param bodyType    request/response PKI Message Body type
+     * @return transaction transaction lifetime after last downstream interaction in seconds
+     */
+    int getDownstreamExpirationTime(String certProfile, int bodyType);
 
     /**
      * provide VerificationContext used to validate an enrolled certificate and to

@@ -17,11 +17,8 @@
  */
 package com.siemens.pki.cmpracomponent.configuration;
 
-import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Map;
-import java.util.TreeMap;
+import com.siemens.pki.cmpracomponent.persistency.DefaultPersistencyImplementation;
+import java.util.Date;
 
 /**
  * an implementation of the {@link PersistencyInterface} is used to persist the
@@ -32,20 +29,12 @@ import java.util.TreeMap;
 public interface PersistencyInterface {
 
     /**
-     * simple local implementation, if providing own implementations overwrite all
-     * methods of {@link PersistencyInterface}
-     */
-    Map<byte[], byte[]> DEFAULT_PERSISTENCY_MAP = Collections.synchronizedSortedMap(new TreeMap<>(Arrays::compare));
-
-    byte[] aesKey = CertUtility.generateRandomBytes(16);
-
-    /**
      * clear and forget the last saved message related to a specific transaction.
      *
      * @param transactionId Id of a specific transaction
      */
     default void clearLastSavedMessage(final byte[] transactionId) {
-        DEFAULT_PERSISTENCY_MAP.remove(transactionId);
+        DefaultPersistencyImplementation.getInstance().clearLastSavedMessage(transactionId);
     }
 
     /**
@@ -55,7 +44,7 @@ public interface PersistencyInterface {
      * @return an AES key (16 bytes)
      */
     default byte[] getAesKeyForKeyWrapping() {
-        return aesKey;
+        return DefaultPersistencyImplementation.getInstance().getAesKeyForKeyWrapping();
     }
 
     /**
@@ -66,7 +55,7 @@ public interface PersistencyInterface {
      *         this transaction
      */
     default byte[] getLastSavedMessage(final byte[] transactionId) {
-        return DEFAULT_PERSISTENCY_MAP.get(transactionId);
+        return DefaultPersistencyImplementation.getInstance().getLastSavedMessage(transactionId);
     }
 
     /**
@@ -75,8 +64,10 @@ public interface PersistencyInterface {
      *
      * @param transactionId Id of a specific transaction
      * @param message       message to save
+     * @param expirationTime
+     *            time when the save message should expire
      */
-    default void saveLastMessage(final byte[] transactionId, final byte[] message) {
-        DEFAULT_PERSISTENCY_MAP.put(transactionId, message);
+    default void saveLastMessage(final byte[] transactionId, final byte[] message, final Date expirationTime) {
+        DefaultPersistencyImplementation.getInstance().saveLastMessage(transactionId, message, expirationTime);
     }
 }
