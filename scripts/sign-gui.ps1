@@ -263,15 +263,31 @@ This is a highly-sensitive operation, ensure you know what you are doing!
     $tempFile = "$env:TEMP\signgui_$timestamp.log"
     # +[System.IO.Path]::GetRandomFileName()
 
-    # Here we form the command line that will be invoked, it might look like this:
+
+
+    $originalWorkingDir = Get-Location
+    # if a path is relative, then we turn it into an absolute path, because SignClient doesn't work if launched
+    # from a directory other than its own.
+    If (-Not [System.IO.Path]::IsPathRooted($srcPath)) {$srcPath = Join-Path $originalWorkingDir $srcPath}
+    If (-Not [System.IO.Path]::IsPathRooted($dstPath)) {$dstPath = Join-Path $originalWorkingDir $dstPath}
+
+    # Here we form the command line that will be invoked, it might look like this, but note that relative paths
+    # will be made absolute:
     # /usr/bin/signclient signdocument -workername OpenPGPSignerMaven -infile CmpRaComponent-2.1.5.jar -outfile signature.asc -host signservice-playground.ct.siemens.com -port 443 -truststore truststore-playground.jks -truststorepwd "123456" -clientside -digestalgorithm SHA256 -filetype PGP -extraoption DETACHED_SIGNATURE=TRUE -extraoption KEY_ALGORITHM=RSA -extraoption KEY_ID=E9498CD6F99ED951
     $command = 'signclient.cmd'
     $arguments = "signdocument -workername $($CONFIG.signServerWorker) -infile $srcPath -outfile $dstPath -host $hostName -port $port -truststore $($CONFIG.trustStorePath) -truststorepwd $($PasswordValue.Text) -clientside -digestalgorithm SHA256 -filetype PGP -extraoption DETACHED_SIGNATURE=TRUE -extraoption KEY_ALGORITHM=RSA -extraoption KEY_ID=$($CONFIG.signServerKeyId)"
 
-    # uncomment the two lines below to simulate a successful
+
+    # uncomment the two lines below to simulate a successful signature
     #    $command = 'ping'
     #    $arguments = '8.8.8.8'
+    # WATCH OUT: here we change the directory to the place where signclient is located, because it does not work
+    #            otherwise. We set it back later, so the calling logic doesn't need to know about it.
     $process = Start-Process $command -ArgumentList $arguments -NoNewWindow -Wait -PassThru -RedirectStandardOutput $tempFile -WorkingDirectory $CONFIG.signClientPath
+
+    # go back to the original working directory, such that whatever logic invokes this script doesn't have to be
+    # aware of the working directory changes.
+    Set-Location $originalWorkingDir
 
     # load the contents of the file here, so we can put it in the messagebox later
     $output = Get-Content $tempFile
