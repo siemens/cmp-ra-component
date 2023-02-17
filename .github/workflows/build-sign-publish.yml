@@ -52,8 +52,17 @@ jobs:
           $fileToSign = "build-$version.jar"
           if (-not [Environment]::GetEnvironmentVariable('SignSettingsPath')) {throw "You must set the SignSettingsPath environment variable first"}
           Write-Output "Signing $fileToSign with settings from $env:SignSettingsPath"
-          scripts/sign-gui.ps1 target/$fileToSign -settingsFile $env:SignSettingsPath -SignaturePath $fileToSign.asc
+          scripts/sign-gui.ps1 target/$fileToSign -settingsFile $env:SignSettingsPath -SignaturePath target/$fileToSign.asc
+          Get-FileHash -Path target/$fileToSign -Algorithm MD5 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.md5
+          Get-FileHash -Path target/$fileToSign -Algorithm SHA256 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha256
+          Get-FileHash -Path target/$fileToSign -Algorithm SHA512 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha512
           $fileToSign = "build-$version-sources.jar"
-          scripts/sign-gui.ps1 target/$fileToSign -settingsFile $env:SignSettingsPath -SignaturePath $fileToSign.asc
+          scripts/sign-gui.ps1 target/$fileToSign -settingsFile $env:SignSettingsPath -SignaturePath target/$fileToSign.asc
+          Get-FileHash -Path target/$fileToSign -Algorithm MD5 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.md5
+          Get-FileHash -Path target/$fileToSign -Algorithm SHA256 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha256
+          Get-FileHash -Path target/$fileToSign -Algorithm SHA512 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha512
           $fileToSign = "build-$version-javadoc.jar"
-          scripts/sign-gui.ps1 target/$fileToSign -settingsFile $env:SignSettingsPath -SignaturePath $fileToSign.asc
+          scripts/sign-gui.ps1 target/$fileToSign -settingsFile $env:SignSettingsPath -SignaturePath target/$fileToSign.asc
+          Get-FileHash -Path target/$fileToSign -Algorithm MD5 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.md5
+          Get-FileHash -Path target/$fileToSign -Algorithm SHA256 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha256
+          Get-FileHash -Path target/$fileToSign -Algorithm SHA512 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha512
