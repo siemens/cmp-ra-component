@@ -54,15 +54,18 @@ jobs:
           Write-Output "Signing $fileToSign with settings from $env:SignSettingsPath"
           scripts/sign-gui.ps1 target/$fileToSign -settingsFile $env:SignSettingsPath -SignaturePath target/$fileToSign.asc
           Get-FileHash -Path target/$fileToSign -Algorithm MD5 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.md5
+          Get-FileHash -Path target/$fileToSign -Algorithm SHA1 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha1
           Get-FileHash -Path target/$fileToSign -Algorithm SHA256 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha256
           Get-FileHash -Path target/$fileToSign -Algorithm SHA512 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha512
           $fileToSign = "CmpRaComponent-$version-sources.jar"
           scripts/sign-gui.ps1 target/$fileToSign -settingsFile $env:SignSettingsPath -SignaturePath target/$fileToSign.asc
           Get-FileHash -Path target/$fileToSign -Algorithm MD5 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.md5
+          Get-FileHash -Path target/$fileToSign -Algorithm SHA1 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha1
           Get-FileHash -Path target/$fileToSign -Algorithm SHA256 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha256
           Get-FileHash -Path target/$fileToSign -Algorithm SHA512 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha512
           $fileToSign = "CmpRaComponent-$version-javadoc.jar"
           scripts/sign-gui.ps1 target/$fileToSign -settingsFile $env:SignSettingsPath -SignaturePath target/$fileToSign.asc
           Get-FileHash -Path target/$fileToSign -Algorithm MD5 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.md5
+          Get-FileHash -Path target/$fileToSign -Algorithm SHA1 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha1
           Get-FileHash -Path target/$fileToSign -Algorithm SHA256 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha256
           Get-FileHash -Path target/$fileToSign -Algorithm SHA512 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha512
