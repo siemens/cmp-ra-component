@@ -46,6 +46,7 @@ jobs:
           path: target
 
       - name: Process retrieved files
+        # here we sign them, compute hashes and write them to files, then upload to Maven Central
         run: |
           $versionNode = Select-Xml -Path pom.xml -XPath "x:project" -Namespace @{"x"="http://maven.apache.org/POM/4.0.0"} |Select -Expand Node
           $version = $versionNode.version
@@ -57,15 +58,23 @@ jobs:
           Get-FileHash -Path target/$fileToSign -Algorithm SHA1 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha1
           Get-FileHash -Path target/$fileToSign -Algorithm SHA256 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha256
           Get-FileHash -Path target/$fileToSign -Algorithm SHA512 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha512
+          #
+          # handling *-sources.jar
           $fileToSign = "CmpRaComponent-$version-sources.jar"
           scripts/sign-gui.ps1 target/$fileToSign -settingsFile $env:SignSettingsPath -SignaturePath target/$fileToSign.asc
           Get-FileHash -Path target/$fileToSign -Algorithm MD5 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.md5
           Get-FileHash -Path target/$fileToSign -Algorithm SHA1 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha1
           Get-FileHash -Path target/$fileToSign -Algorithm SHA256 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha256
           Get-FileHash -Path target/$fileToSign -Algorithm SHA512 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha512
+          #
+          # handling *-javadoc.jar
           $fileToSign = "CmpRaComponent-$version-javadoc.jar"
           scripts/sign-gui.ps1 target/$fileToSign -settingsFile $env:SignSettingsPath -SignaturePath target/$fileToSign.asc
           Get-FileHash -Path target/$fileToSign -Algorithm MD5 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.md5
           Get-FileHash -Path target/$fileToSign -Algorithm SHA1 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha1
           Get-FileHash -Path target/$fileToSign -Algorithm SHA256 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha256
           Get-FileHash -Path target/$fileToSign -Algorithm SHA512 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha512
+          #
+          # uploading to Maven Central
+          mvn jar:jar nexus-staging:deploy nexus-staging:deploy-staged -DskipTests
+          Write-Output "Done"
