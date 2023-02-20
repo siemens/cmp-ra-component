@@ -31,9 +31,11 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: compiled-jar
-          # We care about 3 files, e.g. CmpRaComponent-2.2.2.jar, CmpRaComponent-2.2.2-sources.jar and
-          # CmpRaComponent-2.2.2-javadoc.jar
-          path: target/CmpRaComponent*.jar
+          # We only care about 3 files, e.g.: CmpRaComponent-2.2.2.jar, CmpRaComponent-2.2.2-sources.jar and
+          # CmpRaComponent-2.2.2-javadoc.jar, however we upload the entire target/ directory, otherwise
+          # running `mvn jar:jar` in the next job will say `JAR will be empty - no content was marked for inclusion!`
+          # and produce an empty jar.
+          path: target
 
   sign:
     needs: build
