@@ -80,3 +80,8 @@ jobs:
           # uploading to Maven Central
           mvn jar:jar nexus-staging:deploy nexus-staging:deploy-staged -DskipTests
           Write-Output "Done"
+      - name: Upload resulting artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: jar-sig-hash
+          path: target/CmpRaComponent*.*
