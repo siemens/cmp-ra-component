@@ -22,11 +22,7 @@ jobs:
           cache: maven
 
       - name: Build the jars
-        run: |
-          mvn package -DskipTests
-          mvn source:jar
-          mvn javadoc:jar
-
+        run: mvn source:jar javadoc:jar package -DskipTests
       - name: Upload files for subsequent reuse by signer
         uses: actions/upload-artifact@v3
         with:
