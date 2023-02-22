@@ -77,6 +77,11 @@ jobs:
           Get-FileHash -Path target/$fileToSign -Algorithm SHA256 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha256
           Get-FileHash -Path target/$fileToSign -Algorithm SHA512 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha512
           #
+          # copy and sign pom.xml
+          $fileToSign = "CmpRaComponent-$version.pom"
+          cp ../pom.xml $fileToSign
+          scripts/sign-gui.ps1 target/$fileToSign -settingsFile $env:SignSettingsPath -SignaturePath target/$fileToSign.asc
+          #
           # uploading to Maven Central
           mvn jar:jar nexus-staging:deploy nexus-staging:deploy-staged -DskipTests
           Write-Output "Done"
