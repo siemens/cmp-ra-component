@@ -83,8 +83,12 @@ jobs:
           scripts/sign-gui.ps1 target/$fileToSign -settingsFile $env:SignSettingsPath -SignaturePath target/$fileToSign.asc
           #
           # Copy everything to the nexus staging directory, so they're there at the time maven runs again
-          $repositoryTargetId = 1f41d8502d4e8
-          cp target\CmpRaComponent*.* target\nexus-staging\staging\$repositoryTargetId\com\siemens\pki\CmpRaComponent\$version
+          $repositoryTargetId = "1f41d8502d4e8"
+          $nexusStagingDir = "target\nexus-staging\staging\$repositoryTargetId\com\siemens\pki\CmpRaComponent\$version"
+          # Here we re-create the directory structure - if it is not there, it is created, if it is already there, then
+          # -Force ensures the command runs without an error
+          New-Item -ItemType Directory -Path $nexusStagingDir -Force
+          cp target\CmpRaComponent*.* $nexusStagingDir
           #
           # uploading to Maven Central
           mvn jar:jar nexus-staging:deploy nexus-staging:deploy-staged -DskipTests
