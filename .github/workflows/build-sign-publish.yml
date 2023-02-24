@@ -48,51 +48,7 @@ jobs:
         run: |
           # run it once, it will fail but that's OK - we only want it to produce the files we need to sign; and later
           # we run it again, once the signatures are in place
-          mvn source:jar javadoc:jar package nexus-staging:deploy nexus-staging:deploy-staged -DskipTests
-          $versionNode = Select-Xml -Path pom.xml -XPath "x:project" -Namespace @{"x"="http://maven.apache.org/POM/4.0.0"} |Select -Expand Node
-          $version = $versionNode.version
-          $fileToSign = "CmpRaComponent-$version.jar"
-          if (-not [Environment]::GetEnvironmentVariable('SignSettingsPath')) {throw "You must set the SignSettingsPath environment variable first"}
-          Write-Output "Signing $fileToSign with settings from $env:SignSettingsPath"
-          scripts/sign-gui.ps1 target/$fileToSign -settingsFile $env:SignSettingsPath -SignaturePath target/$fileToSign.asc
-          Get-FileHash -Path target/$fileToSign -Algorithm MD5 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.md5
-          Get-FileHash -Path target/$fileToSign -Algorithm SHA1 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha1
-          Get-FileHash -Path target/$fileToSign -Algorithm SHA256 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha256
-          Get-FileHash -Path target/$fileToSign -Algorithm SHA512 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha512
-          #
-          # handling *-sources.jar
-          $fileToSign = "CmpRaComponent-$version-sources.jar"
-          scripts/sign-gui.ps1 target/$fileToSign -settingsFile $env:SignSettingsPath -SignaturePath target/$fileToSign.asc
-          Get-FileHash -Path target/$fileToSign -Algorithm MD5 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.md5
-          Get-FileHash -Path target/$fileToSign -Algorithm SHA1 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha1
-          Get-FileHash -Path target/$fileToSign -Algorithm SHA256 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha256
-          Get-FileHash -Path target/$fileToSign -Algorithm SHA512 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha512
-          #
-          # handling *-javadoc.jar
-          $fileToSign = "CmpRaComponent-$version-javadoc.jar"
-          scripts/sign-gui.ps1 target/$fileToSign -settingsFile $env:SignSettingsPath -SignaturePath target/$fileToSign.asc
-          Get-FileHash -Path target/$fileToSign -Algorithm MD5 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.md5
-          Get-FileHash -Path target/$fileToSign -Algorithm SHA1 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha1
-          Get-FileHash -Path target/$fileToSign -Algorithm SHA256 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha256
-          Get-FileHash -Path target/$fileToSign -Algorithm SHA512 | Select-Object Hash -expandproperty Hash | Out-File target/$fileToSign.sha512
-          #
-          # copy and sign pom.xml
-          $fileToSign = "CmpRaComponent-$version.pom"
-          cp pom.xml target/$fileToSign
-          scripts/sign-gui.ps1 target/$fileToSign -settingsFile $env:SignSettingsPath -SignaturePath target/$fileToSign.asc
-          #
-          # Copy everything to the nexus staging directory, so they're there at the time maven runs again
-          $repositoryTargetId = "1f41d8502d4e8"
-          $nexusStagingDir = "target\nexus-staging\staging\$repositoryTargetId\com\siemens\pki\CmpRaComponent\$version"
-          # Here we re-create the directory structure - if it is not there, it is created, if it is already there, then
-          # -Force ensures the command runs without an error
-          New-Item -ItemType Directory -Path $nexusStagingDir -Force
-          cp target\CmpRaComponent*.* $nexusStagingDir
-          #
-          # uploading to Maven Central
-          #mvn jar:jar nexus-staging:deploy nexus-staging:deploy-staged -DskipTests
-          mvn source:jar javadoc:jar package nexus-staging:deploy nexus-staging:deploy-staged -DskipTests
-          Write-Output "Done"
+          mvn source:jar javadoc:jar package gpg:sign nexus-staging:deploy nexus-staging:deploy-staged -DskipTests
       - name: Upload resulting artifacts
         uses: actions/upload-artifact@v3
         with:
