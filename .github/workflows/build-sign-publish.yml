@@ -46,7 +46,9 @@ jobs:
       - name: Process retrieved files
         # here we sign them, compute hashes and write them to files, then upload to Maven Central
         run: |
-          mvn source:jar javadoc:jar package -DskipTests
+          # run it once, it will fail but that's OK - we only want it to produce the files we need to sign; and later
+          # we run it again, once the signatures are in place
+          mvn source:jar javadoc:jar package nexus-staging:deploy nexus-staging:deploy-staged -DskipTests
           $versionNode = Select-Xml -Path pom.xml -XPath "x:project" -Namespace @{"x"="http://maven.apache.org/POM/4.0.0"} |Select -Expand Node
           $version = $versionNode.version
           $fileToSign = "CmpRaComponent-$version.jar"
@@ -88,7 +90,8 @@ jobs:
           cp target\CmpRaComponent*.* $nexusStagingDir
           #
           # uploading to Maven Central
-          mvn jar:jar nexus-staging:deploy nexus-staging:deploy-staged -DskipTests
+          #mvn jar:jar nexus-staging:deploy nexus-staging:deploy-staged -DskipTests
+          mvn source:jar javadoc:jar package nexus-staging:deploy nexus-staging:deploy-staged -DskipTests
           Write-Output "Done"
       - name: Upload resulting artifacts
         uses: actions/upload-artifact@v3
