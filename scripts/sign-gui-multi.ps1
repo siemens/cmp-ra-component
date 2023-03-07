@@ -142,7 +142,7 @@ $TrustStoreLabel.location = New-Object System.Drawing.Point(20, $LASTWIDGETROW)
 $TrustStoreLabel.Font = 'Microsoft Sans Serif,10,style=Bold'
 
 $TrustStoreValue = New-Object system.Windows.Forms.Label
-$TrustStoreValue.text = $CONFIG.trustStorePath
+$TrustStoreValue.text = $CONFIG.trustStorePathClient
 $TrustStoreValue.AutoSize = $true
 $TrustStoreValue.location = New-Object System.Drawing.Point($ValueOffset, $LASTWIDGETROW)
 $TrustStoreValue.Font = 'Microsoft Sans Serif,10'
@@ -250,7 +250,7 @@ function InvokeSignClient($srcPath, $dstPath, $logPath) {
     # will be made absolute:
     # /usr/bin/signclient signdocument -workername OpenPGPSignerMaven -infile CmpRaComponent-2.1.5.jar -outfile signature.asc -host signservice-playground.ct.siemens.com -port 443 -truststore truststore-playground.jks -truststorepwd "123456" -clientside -digestalgorithm SHA256 -filetype PGP -extraoption DETACHED_SIGNATURE=TRUE -extraoption KEY_ALGORITHM=RSA -extraoption KEY_ID=E9498CD6F99ED951
     $command = 'signclient.cmd'
-    $arguments = "signdocument -workername $($CONFIG.signServerWorker) -infile $srcPath -outfile $dstPath -host $hostName -port $port -truststore $($CONFIG.trustStorePath) -truststorepwd $($PasswordValue.Text) -clientside -digestalgorithm SHA256 -filetype PGP -extraoption DETACHED_SIGNATURE=TRUE -extraoption KEY_ALGORITHM=RSA -extraoption KEY_ID=$($CONFIG.signServerKeyId)"
+    $arguments = "signdocument -workername $($CONFIG.signServerWorker) -infile $srcPath -outfile $dstPath -host $hostName -port $port -truststore $($CONFIG.trustStorePathServer) -truststorepwd $($CONFIG.trustStorePathServerPassword) -keystore $($CONFIG.trustStorePathClient) -keystorepwd $($PasswordValue.Text) -clientside -digestalgorithm SHA512 -filetype PGP -extraoption DETACHED_SIGNATURE=TRUE -extraoption KEY_ALGORITHM=ECDSA -extraoption KEY_ID=$($CONFIG.signServerKeyId)"
 
 #    [System.Windows.Forms.MessageBox]::Show($arguments, 'ssss', 0, 'Error')
 #    exit
