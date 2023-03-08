@@ -151,7 +151,7 @@ $LASTWIDGETROW += $WIDGETSPACE
 #--------------------------------------------------
 
 $PasswordLabel = New-Object system.Windows.Forms.Label
-$PasswordLabel.text = "Password:"
+$PasswordLabel.text = "Card PIN:"
 $PasswordLabel.AutoSize = $true
 $PasswordLabel.width = 25
 $PasswordLabel.height = 10
@@ -250,7 +250,7 @@ function InvokeSignClient($srcPath, $dstPath, $logPath) {
     # will be made absolute:
     # /usr/bin/signclient signdocument -workername OpenPGPSignerMaven -infile CmpRaComponent-2.1.5.jar -outfile signature.asc -host signservice-playground.ct.siemens.com -port 443 -truststore truststore-playground.jks -truststorepwd "123456" -clientside -digestalgorithm SHA256 -filetype PGP -extraoption DETACHED_SIGNATURE=TRUE -extraoption KEY_ALGORITHM=RSA -extraoption KEY_ID=E9498CD6F99ED951
     $command = 'signclient.cmd'
-    $arguments = "signdocument -signrequest -workername $($CONFIG.signServerWorker) -infile $srcPath -outfile $dstPath -host $hostName -port $port -truststore $($CONFIG.trustStorePathServer) -truststorepwd $($CONFIG.trustStorePathServerPassword) -keystore $($CONFIG.trustStorePathClient) -keystorepwd $($PasswordValue.Text) -clientside -digestalgorithm SHA512 -filetype PGP -extraoption DETACHED_SIGNATURE=TRUE -extraoption KEY_ALGORITHM=ECDSA -extraoption KEY_ID=$($CONFIG.signServerKeyId)"
+    $arguments = "signdocument -signrequest -workername $($CONFIG.signServerWorker) -infile $srcPath -outfile $dstPath -host $hostName -port $port -truststore $($CONFIG.trustStorePathServer) -truststorepwd $($CONFIG.trustStorePathServerPassword) -keystoretype PKCS11_CONFIG -keystore $($CONFIG.pkcs11settings) -keystorepwd $($PasswordValue.Text) -clientside -digestalgorithm SHA512 -filetype PGP -extraoption DETACHED_SIGNATURE=TRUE -extraoption KEY_ALGORITHM=ECDSA -extraoption KEY_ID=$($CONFIG.signServerKeyId)"
 
 #    [System.Windows.Forms.MessageBox]::Show($arguments, 'ssss', 0, 'Error')
 #    exit
