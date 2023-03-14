@@ -666,9 +666,9 @@ class RaDownstream {
                         .generateAndProtectMessage(PkiMessageGenerator.buildRespondingHeaderProvider(in), errorBody);
             } finally {
                 if (persistencyContext != null) {
-                    final int offset = config.getDownstreamExpirationTime(
+                    final int offset = config.getTransactionMaxLifetime(
                             ifNotNull(persistencyContext, PersistencyContext::getCertProfile), responseBodyType);
-                    persistencyContext.updateDownstreamExpirationTime(
+                    persistencyContext.updateTransactionExpirationTime(
                             new Date(System.currentTimeMillis() + offset * 1000L));
                     persistencyContext.flush();
                 }

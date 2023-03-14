@@ -212,7 +212,7 @@ public class PersistencyContext {
         transactionStateTracker.trackMessage(msg);
     }
 
-    public void updateDownstreamExpirationTime(final Date downstreamExpirationTime) {
+    public void updateTransactionExpirationTime(final Date downstreamExpirationTime) {
         // only downstream can expire
         this.expirationTime = downstreamExpirationTime;
     }

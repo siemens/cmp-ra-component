@@ -74,3 +74,6 @@ feat: Enforce automatic formatting of the code via Spotless
 
 ### 2.3.0 (Feb 28 2023)
 feat: implement transaction expiration
+
+### 2.4.0 (Mar 14 2023)
+fix: rename DownstreamExpirationTime to TransactionMaxLifetime

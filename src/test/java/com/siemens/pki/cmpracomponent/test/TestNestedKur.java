@@ -127,7 +127,7 @@ public class TestNestedKur extends OnlineEnrollmentTestcaseBase {
             }
 
             @Override
-            public int getDownstreamExpirationTime(final String certProfile, final int bodyType) {
+            public int getTransactionMaxLifetime(final String certProfile, final int bodyType) {
                 return 10;
             }
 
@@ -408,7 +408,7 @@ public class TestNestedKur extends OnlineEnrollmentTestcaseBase {
             }
 
             @Override
-            public int getDownstreamExpirationTime(final String certProfile, final int bodyType) {
+            public int getTransactionMaxLifetime(final String certProfile, final int bodyType) {
                 return 10;
             }
 

@@ -52,7 +52,7 @@ public interface Configuration {
      * @param bodyType    request/response PKI Message Body type
      * @return transaction transaction lifetime after last downstream interaction in seconds
      */
-    int getDownstreamExpirationTime(String certProfile, int bodyType);
+    int getTransactionMaxLifetime(String certProfile, int bodyType);
 
     /**
      * provide VerificationContext used to validate an enrolled certificate and to
