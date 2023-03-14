@@ -283,6 +283,9 @@ function InvokeSignClient($srcPath, $dstPath, $logPath) {
     $process = Start-Process $command -ArgumentList $arguments -NoNewWindow -Wait -PassThru -RedirectStandardOutput $logPath -WorkingDirectory $CONFIG.signClientPath
     #    [System.Windows.Forms.MessageBox]::Show($srcPath, 'AFTER', 0, 'Information')
 
+    # log complete command to the log file, to ease troubleshooting
+    "`n`n`nThe executed command was: $command $arguments" | Out-File -FilePath $logPath -Append -encoding UTF8
+
     return $process.ExitCode
 
 
