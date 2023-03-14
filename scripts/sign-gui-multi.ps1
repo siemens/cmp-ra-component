@@ -62,22 +62,40 @@ $Prologue.height = 20
 $Prologue.location = New-Object System.Drawing.Point(20, 50)
 $Prologue.Font = 'Microsoft Sans Serif,10'
 
-$FilePath = New-Object system.Windows.Forms.TextBox
-$FilePath.Multiline = $True
+$FilePath = New-Object system.Windows.Forms.RichTextBox
+#$FilePath.Multiline = $True
 $FilePath.BackColor = "MistyRose"
 $FilePath.Scrollbars = "Vertical"
 $FilePath.Width = 420
 $FilePath.Height = 200
 $FilePath.location = New-Object System.Drawing.Point(20, $LASTWIDGETROW)
-$FilePath.Font = 'Microsoft Sans Serif,10'
 $FilePath.ReadOnly = $True
 
-#$combinedPaths =
-$FilePath.Text = $filesToSign -join ",`r`n"
+# Begin forming the string that will constitute the contents of the RichTextEdit. Note that it uses RTF syntax.
+# We render the full path normally, but the last element, i.e., the file name itself, is bold. This makes it
+# easier to focus on the important part - otherwise there is a lot of visual noise when the paths are very long.
+$Rtf = "{\rtf1\ansi \fs20"
 
-#ForEach ( $item in $filesToSign ) {
-#    $FilePath.Text  += "$item`r`n"
-#}
+ForEach ( $item in $filesToSign ) {
+    $pathParts = $item.split('\\')
+    # check how many levels of hierarchy there are in the path
+    if($pathParts.Count -eq 1) {
+        # if there's just one, it is only a file name in the current directory, we write it "as is"
+        $newLine = "`\b $item `\b0`\line `r`n"
+    }
+    else
+    {
+        # there are multiple directories in the path, so we render the directories with a regular font, and
+        # make only the file name bold.
+        $path = $pathParts[0..($pathParts.Count - 2)] -join "\\"
+        $fileNameBold = "`\b $( $pathParts[-1] ) `\b0"
+        $newLine = "$path`\`\$fileNameBold `\line `r`n"
+    }
+    $Rtf += $newLine
+}
+$Rtf += "}"
+$FilePath.Rtf = $Rtf
+
 
 $LASTWIDGETROW += $WIDGETSPACEEXTENDED + 140
 #--------------------------------------------------
