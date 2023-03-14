@@ -358,6 +358,11 @@ This is a highly-sensitive operation, ensure you know what you are doing!
             # can try to sign again
             $signBtn.BackColor = "#ff7b00"
             $signBtn.text = "Sign"
+
+            # Break the loop here, so we don't go on to try other files, and avoid showing other error messages.
+            # If a single file cannot be signed, the entire operation fails. Moreover, this will also prevent
+            # situations where we lock the card by using an incorrect PIN multiple times in a row.
+            break
             }
 
     }
