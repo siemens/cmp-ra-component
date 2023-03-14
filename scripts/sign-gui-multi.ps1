@@ -40,7 +40,7 @@ $ConfirmationWords = @("Responsible", "Consequence", "Implications", "Double-che
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
 $SignForm = New-Object system.Windows.Forms.Form
-$SignForm.ClientSize = '450, 540'
+$SignForm.ClientSize = '450, 640'
 $SignForm.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::Fixed3D
 $SignForm.Text = $Title
 $SignForm.Icon = [System.Drawing.SystemIcons]::Shield
@@ -66,24 +66,24 @@ $FilePath = New-Object system.Windows.Forms.TextBox
 $FilePath.Multiline = $True
 $FilePath.BackColor = "MistyRose"
 $FilePath.Scrollbars = "Vertical"
-$FilePath.Width = 390
-$FilePath.Height = 120
+$FilePath.Width = 420
+$FilePath.Height = 200
 $FilePath.location = New-Object System.Drawing.Point(20, $LASTWIDGETROW)
-$FilePath.Font = 'Microsoft Sans Serif,14'
+$FilePath.Font = 'Microsoft Sans Serif,10'
 $FilePath.ReadOnly = $True
 
 #$combinedPaths =
-$FilePath.Text = $filesToSign -join "`r`n"
+$FilePath.Text = $filesToSign -join ",`r`n"
 
 #ForEach ( $item in $filesToSign ) {
 #    $FilePath.Text  += "$item`r`n"
 #}
 
-$LASTWIDGETROW += $WIDGETSPACEEXTENDED + 80
+$LASTWIDGETROW += $WIDGETSPACEEXTENDED + 140
 #--------------------------------------------------
 
 $ServerLabel = New-Object system.Windows.Forms.Label
-$ServerLabel.text = "SignServer URL:"
+$ServerLabel.text = "Server URL:"
 $ServerLabel.AutoSize = $true
 $ServerLabel.width = 25
 $ServerLabel.height = 10
@@ -95,6 +95,25 @@ $ServerValue.text = $CONFIG.signServerUrl
 $ServerValue.AutoSize = $true
 $ServerValue.location = New-Object System.Drawing.Point($ValueOffset, $LASTWIDGETROW)
 $ServerValue.Font = 'Microsoft Sans Serif,10'
+
+$LASTWIDGETROW += $WIDGETSPACE
+
+#--------------------------------------------------
+
+# details used for authenticating the server
+$TrustStoreLabel = New-Object system.Windows.Forms.Label
+$TrustStoreLabel.text = "Server cert:"
+$TrustStoreLabel.AutoSize = $true
+$TrustStoreLabel.width = 25
+$TrustStoreLabel.height = 10
+$TrustStoreLabel.location = New-Object System.Drawing.Point(20, $LASTWIDGETROW)
+$TrustStoreLabel.Font = 'Microsoft Sans Serif,10,style=Bold'
+
+$TrustStoreValue = New-Object system.Windows.Forms.Label
+$TrustStoreValue.text = $CONFIG.trustStorePathServer
+$TrustStoreValue.AutoSize = $true
+$TrustStoreValue.location = New-Object System.Drawing.Point($ValueOffset, $LASTWIDGETROW)
+$TrustStoreValue.Font = 'Microsoft Sans Serif,10'
 
 $LASTWIDGETROW += $WIDGETSPACE
 #--------------------------------------------------
@@ -131,21 +150,22 @@ $KeyIdValue.location = New-Object System.Drawing.Point($ValueOffset, $LASTWIDGET
 $KeyIdValue.Font = 'Microsoft Sans Serif,10'
 
 $LASTWIDGETROW += $WIDGETSPACEEXTENDED
+
 #--------------------------------------------------
 
-$TrustStoreLabel = New-Object system.Windows.Forms.Label
-$TrustStoreLabel.text = "Trust store:"
-$TrustStoreLabel.AutoSize = $true
-$TrustStoreLabel.width = 25
-$TrustStoreLabel.height = 10
-$TrustStoreLabel.location = New-Object System.Drawing.Point(20, $LASTWIDGETROW)
-$TrustStoreLabel.Font = 'Microsoft Sans Serif,10,style=Bold'
+$KeyAliasLabel = New-Object system.Windows.Forms.Label
+$KeyAliasLabel.text = "Key alias:"
+$KeyAliasLabel.AutoSize = $true
+$KeyAliasLabel.width = 25
+$KeyAliasLabel.height = 10
+$KeyAliasLabel.location = New-Object System.Drawing.Point(20, $LASTWIDGETROW)
+$KeyAliasLabel.Font = 'Microsoft Sans Serif,10,style=Bold'
 
-$TrustStoreValue = New-Object system.Windows.Forms.Label
-$TrustStoreValue.text = $CONFIG.trustStorePathClient
-$TrustStoreValue.AutoSize = $true
-$TrustStoreValue.location = New-Object System.Drawing.Point($ValueOffset, $LASTWIDGETROW)
-$TrustStoreValue.Font = 'Microsoft Sans Serif,10'
+$KeyAliasValue = New-Object system.Windows.Forms.Label
+$KeyAliasValue.text = $CONFIG.pkcs11KeyAlias
+$KeyAliasValue.AutoSize = $true
+$KeyAliasValue.location = New-Object System.Drawing.Point($ValueOffset, $LASTWIDGETROW)
+$KeyAliasValue.Font = 'Microsoft Sans Serif,10'
 
 $LASTWIDGETROW += $WIDGETSPACE
 #--------------------------------------------------
@@ -208,7 +228,7 @@ $cancelBtn = New-Object system.Windows.Forms.Button
 $cancelBtn.text = "Quit"
 $cancelBtn.width = 90
 $cancelBtn.height = 30
-$cancelBtn.location = New-Object System.Drawing.Point(210, 480)
+$cancelBtn.location = New-Object System.Drawing.Point(210, $LASTWIDGETROW)
 $cancelBtn.Font = 'Microsoft Sans Serif,10'
 $cancelBtn.ForeColor = "#000"
 $cancelBtn.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
@@ -220,7 +240,7 @@ $signBtn.BackColor = "#ff7b00"
 $signBtn.text = "Sign"
 $signBtn.width = 90
 $signBtn.height = 30
-$signBtn.location = New-Object System.Drawing.Point(320, 480)
+$signBtn.location = New-Object System.Drawing.Point(320, $LASTWIDGETROW)
 $signBtn.Font = 'Microsoft Sans Serif,10'
 $signBtn.ForeColor = "white"
 #$signBtn.Image = [System.Drawing.SystemIcons]::Shield
@@ -234,11 +254,12 @@ $SignForm.Controls.AddRange(@(
     $MainTitle, $Prologue,
     $FilePathLabel, $FilePath,
     $ServerLabel, $ServerValue,
+    $TrustStoreLabel, $TrustStoreValue,
     $WorkerLabel, $WorkerValue,
     $KeyIdLabel, $KeyIdValue
-    $TrustStoreLabel, $TrustStoreValue,
     $PasswordLabel, $PasswordValue,
-    $ConfirmationLabel, $ConfirmationValue
+    $ConfirmationLabel, $ConfirmationValue,
+    $KeyAliasLabel, $KeyAliasValue
 ))
 
 function InvokeSignClient($srcPath, $dstPath, $logPath) {
