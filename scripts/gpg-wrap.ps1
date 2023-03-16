@@ -1,53 +1,32 @@
 # This is a simple script that partially mimics the CLI of GPG, so it can be invoked by
-# Maven's signing logic.
-# 1. Place this script in a directory featured in the system's PATH, such that it can be
-#    invoked at will.
-# 2. To make it executable (akin to chmod +x on *nix environments), import the following
-#    into your Windows Registry
-#    ------------------ save this as a .reg file (remove the # comments) ---------------
-# Windows Registry Editor Version 5.00
-#
-#
-#
-#[HKEY_CURRENT_USER\Software\Classes\Microsoft.PowerShellScript.1\Shell]
-#
-#@="0"
-
+# Maven's signing logic. Note that on Windows Powershell scripts cannot be called directly by Maven,
+# hence `gpg-wrap.cmd` is needed.
 
 if ($args.Contains('--version')) {
     Write-Output "gpg (GnuPG) 2.4.0
-libgcrypt 1.10.1
-Copyright (C) 2021 g10 Code GmbH
-License GNU GPL-3.0-or-later <https://gnu.org/licenses/gpl.html>
-This is free software: you are free to change and redistribute it.
-There is NO WARRANTY, to the extent permitted by law.
-
-Home: C:\\Users\\xxxxxx\\AppData\\Roaming\\gnupg
-Supported algorithms:
-Pubkey: RSA, ELG, DSA, ECDH, ECDSA, EDDSA
-Cipher: IDEA, 3DES, CAST5, BLOWFISH, AES, AES192, AES256, TWOFISH,
-      CAMELLIA128, CAMELLIA192, CAMELLIA256
-Hash: SHA1, RIPEMD160, SHA256, SHA384, SHA512, SHA224
-Compression: Uncompressed, ZIP, ZLIB, BZIP2"
+libgcrypt 1.10.1"
     return
 }
 
-#$raw = 'gpg-wrap --armor --detach-sign --output C:\\Users\\z004mkfh\\soft\\github-runner\\_work\\cmp-ra-component\\cmp-ra-component\\target\\CmpRaComponent-2.2.3-javadoc.jar.asc C:\\Users\\z004mkfh\\soft\\github-runner\\_work\\cmp-ra-component\\cmp-ra-component\\target\\CmpRaComponent-2.2.3-javadoc.jar'
 $fileToSign = $args[-1]
 
-if ($null -eq $env:SignClientInput) {
-    $env:SignClientInput = $fileToSign
-} else {
-    $env:SignClientInput = "$env:SignClientInput;$fileToSign"
-}
+# Append the command line argument to the end of a file (adding a new line, if necessary); the argument will be the
+# path to the file that Maven wants to sign
+Add-Content path_accumulator_ps.tmp $fileToSign
 
-if (([regex]::Matches($env:SignClientInput, ";" )).count -eq 3) {
-    Write-Output "Time to sign these 4 files: $env:SignClientInput"
+# Load all the file paths accumulated so far
+$accumulatedPaths = Get-Content path_accumulator_ps.tmp
+
+# Check if we've accumulated 4 files (the jar, javadoc, source and pom). If yes, then it is time to sign them all,
+# if not, we do nothing and wait for this program to be invoked again with new input data.
+if ($accumulatedPaths.Count -eq 4) {
+    Write-Output "Time to sign these 4 files: $accumulatedPaths"
 
     if (-not [Environment]::GetEnvironmentVariable('SignSettingsPath')) {throw "You must set the SignSettingsPath environment variable first"}
 
-    $accumulatedPaths = $($env:SignClientInput).Split(';')
-    Remove-Item Env:\SignClientInput
+    # now that we have all the info we need, remove the temporary file such that the next time we run Maven's build,
+    # we start from a clean slate
+    Remove-Item path_accumulator_ps.tmp
 
     Write-Output "Will run: .\scripts\sign-gui-multi.ps1 -filesToSign $accumulatedPaths -settingsFile $env:SignSettingsPath -signaturePath target"
     .\scripts\sign-gui-multi.ps1 -filesToSign $accumulatedPaths -settingsFile $env:SignSettingsPath -signaturePath target
