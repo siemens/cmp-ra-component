@@ -75,6 +75,7 @@ import org.bouncycastle.asn1.cmp.PKIHeader;
 import org.bouncycastle.asn1.cmp.PKIMessage;
 import org.bouncycastle.asn1.cmp.PKIMessages;
 import org.bouncycastle.asn1.cmp.PKIStatus;
+import org.bouncycastle.asn1.cmp.PollRepContent;
 import org.bouncycastle.asn1.crmf.AttributeTypeAndValue;
 import org.bouncycastle.asn1.crmf.CertReqMessages;
 import org.bouncycastle.asn1.crmf.CertReqMsg;
@@ -588,6 +589,7 @@ class RaDownstream {
      */
     PKIMessage handleInputMessage(final PKIMessage in) {
         PersistencyContext persistencyContext = null;
+        int retryAfterTime = 0;
         try {
             int responseBodyType = PKIBody.TYPE_ERROR;
             try {
@@ -643,6 +645,13 @@ class RaDownstream {
                     case PKIBody.TYPE_KEY_UPDATE_REP:
                         issuingChain = persistencyContext.getIssuingChain();
                         break;
+                    case PKIBody.TYPE_POLL_REP:
+                        retryAfterTime = (((PollRepContent)
+                                                (responseFromUpstream.getBody().getContent()))
+                                        .getCheckAfter(0))
+                                .intPositiveValueExact();
+                        issuingChain = null;
+                        break;
                     default:
                         issuingChain = null;
                 }
@@ -666,10 +675,13 @@ class RaDownstream {
                         .generateAndProtectMessage(PkiMessageGenerator.buildRespondingHeaderProvider(in), errorBody);
             } finally {
                 if (persistencyContext != null) {
-                    final int offset = config.getTransactionMaxLifetime(
+                    int offset = config.getDownstreamTimeout(
                             ifNotNull(persistencyContext, PersistencyContext::getCertProfile), responseBodyType);
+                    if (offset == 0) {
+                        offset = Integer.MAX_VALUE / 2;
+                    }
                     persistencyContext.updateTransactionExpirationTime(
-                            new Date(System.currentTimeMillis() + offset * 1000L));
+                            new Date(System.currentTimeMillis() + (offset + retryAfterTime) * 1000L));
                     persistencyContext.flush();
                 }
             }

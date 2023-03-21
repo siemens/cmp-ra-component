@@ -305,7 +305,7 @@ public class TestCentralKeyGenerationWithKeyAgreement extends CkgOnlineEnrollmen
             }
 
             @Override
-            public int getTransactionMaxLifetime(final String certProfile, final int bodyType) {
+            public int getDownstreamTimeout(final String certProfile, final int bodyType) {
                 return 10;
             }
 

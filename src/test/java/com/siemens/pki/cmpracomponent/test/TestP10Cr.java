@@ -121,7 +121,7 @@ public class TestP10Cr extends OnlineEnrollmentTestcaseBase {
             }
 
             @Override
-            public int getTransactionMaxLifetime(final String certProfile, final int bodyType) {
+            public int getDownstreamTimeout(final String certProfile, final int bodyType) {
                 return 10;
             }
 

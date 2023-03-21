@@ -77,3 +77,6 @@ feat: implement transaction expiration
 
 ### 2.4.0 (Mar 14 2023)
 fix: rename DownstreamExpirationTime to TransactionMaxLifetime
+
+### 2.5.0 (Mar 21 2023)
+fix: rename TransactionMaxLifetime to DownstreamTimeout
