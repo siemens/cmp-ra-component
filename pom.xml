@@ -114,7 +114,7 @@
 			<plugin>
 				<groupId>org.owasp</groupId>
 				<artifactId>dependency-check-maven</artifactId>
-				<version>8.1.2</version>
+				<version>8.2.0</version>
 				<executions>
 					<execution>
 						<goals>
@@ -124,6 +124,7 @@
 				</executions>
 				<configuration>
 					<failBuildOnCVSS>0</failBuildOnCVSS>
+					<suppressionFiles>resources/dependency-check-suppress.xml</suppressionFiles>
 				</configuration>
 			</plugin>
 			<plugin>
