@@ -20,14 +20,30 @@ package com.siemens.pki.cmpracomponent.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import com.siemens.pki.cmpracomponent.configuration.*;
+import com.siemens.pki.cmpracomponent.configuration.CheckAndModifyResult;
+import com.siemens.pki.cmpracomponent.configuration.CkgContext;
+import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
+import com.siemens.pki.cmpracomponent.configuration.Configuration;
+import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
+import com.siemens.pki.cmpracomponent.configuration.InventoryInterface;
+import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
+import com.siemens.pki.cmpracomponent.configuration.SupportMessageHandlerInterface;
+import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
-import com.siemens.pki.cmpracomponent.test.framework.*;
+import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
+import com.siemens.pki.cmpracomponent.test.framework.EnrollmentResult;
+import com.siemens.pki.cmpracomponent.test.framework.HeaderProviderForTest;
+import com.siemens.pki.cmpracomponent.test.framework.SignatureValidationCredentials;
+import com.siemens.pki.cmpracomponent.test.framework.TrustChainAndPrivateKey;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.math.BigInteger;
 import java.security.KeyPair;
-import org.bouncycastle.asn1.cmp.*;
+import org.bouncycastle.asn1.cmp.CMPCertificate;
+import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
+import org.bouncycastle.asn1.cmp.CertRepMessage;
+import org.bouncycastle.asn1.cmp.PKIBody;
+import org.bouncycastle.asn1.cmp.PKIMessage;
 import org.bouncycastle.asn1.crmf.AttributeTypeAndValue;
 import org.bouncycastle.asn1.crmf.CertId;
 import org.bouncycastle.asn1.crmf.CertTemplateBuilder;
@@ -108,6 +124,11 @@ public class TestNestedKur extends OnlineEnrollmentTestcaseBase {
                         return true;
                     }
                 };
+            }
+
+            @Override
+            public int getDownstreamTimeout(final String certProfile, final int bodyType) {
+                return 10;
             }
 
             @Override
@@ -384,6 +405,11 @@ public class TestNestedKur extends OnlineEnrollmentTestcaseBase {
                         return true;
                     }
                 };
+            }
+
+            @Override
+            public int getDownstreamTimeout(final String certProfile, final int bodyType) {
+                return 10;
             }
 
             @Override

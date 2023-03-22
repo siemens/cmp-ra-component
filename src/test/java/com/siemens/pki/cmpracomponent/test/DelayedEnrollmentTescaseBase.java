@@ -49,6 +49,23 @@ public class DelayedEnrollmentTescaseBase extends DelayedDeliveryTestcaseBase {
             final ProtectionProvider protectionProvider,
             final Function<PKIMessage, PKIMessage> cmpClient)
             throws Exception {
+        return executeDelayedCertificateRequest(
+                requestMesssageType,
+                expectedWaitingResponseMessageType,
+                protectionProvider,
+                cmpClient,
+                0,
+                PKIBody.TYPE_CONFIRM);
+    }
+
+    protected static EnrollmentResult executeDelayedCertificateRequest(
+            final int requestMesssageType,
+            final int expectedWaitingResponseMessageType,
+            final ProtectionProvider protectionProvider,
+            final Function<PKIMessage, PKIMessage> cmpClient,
+            final int delayBeforeConfirm,
+            final int confirmingBodyType)
+            throws Exception {
         final KeyPair keyPair = ConfigurationFactory.getKeyGenerator().generateKeyPair();
         final CertTemplateBuilder ctb = new CertTemplateBuilder()
                 .setPublicKey(
@@ -73,7 +90,7 @@ public class DelayedEnrollmentTescaseBase extends DelayedDeliveryTestcaseBase {
                 .getCertifiedKeyPair()
                 .getCertOrEncCert()
                 .getCertificate();
-
+        Thread.sleep(delayBeforeConfirm * 1000L);
         final PKIMessage certConf = PkiMessageGenerator.generateAndProtectMessage(
                 new HeaderProviderForTest(crResponse.getHeader()),
                 protectionProvider,
@@ -91,7 +108,7 @@ public class DelayedEnrollmentTescaseBase extends DelayedDeliveryTestcaseBase {
             // enabled
             LOGGER.debug("got:\n" + MessageDumper.dumpPkiMessage(pkiConf));
         }
-        assertEquals("message type", PKIBody.TYPE_CONFIRM, pkiConf.getBody().getType());
+        assertEquals("message type", confirmingBodyType, pkiConf.getBody().getType());
 
         return new EnrollmentResult(enrolledCertificate, keyPair.getPrivate());
     }

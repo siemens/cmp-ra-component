@@ -21,7 +21,7 @@ package com.siemens.pki.cmpracomponent.configuration;
  * the {@link Configuration} specifies the behavior of the generic RA component.
  */
 public interface Configuration {
-    // Please link to this file from doc/API/design.md
+    // @see doc/API/design.md
 
     /**
      * specify configuration needed to support central key generation
@@ -44,6 +44,15 @@ public interface Configuration {
      * @return the downstream interface configuration
      */
     CmpMessageInterface getDownstreamConfiguration(String certProfile, int bodyType);
+    /**
+     * get the time in seconds after last response to downstream when an unfinished transaction should be forgotten
+     * @param certProfile certificate profile extracted from the CMP request header
+     *                    generalInfo field or <code>null</code> if no certificate
+     *                    profile was specified
+     * @param bodyType    request/response PKI Message Body type
+     * @return maximum transaction lifetime after last downstream interaction in seconds. the value 0 disables the timeout.
+     */
+    int getDownstreamTimeout(String certProfile, int bodyType);
 
     /**
      * provide VerificationContext used to validate an enrolled certificate and to
@@ -91,7 +100,7 @@ public interface Configuration {
 
     /**
      * specify the retryAfter time in seconds to return on the downstream interface
-     * in case of delayed delivery
+     * in case of delayed delivery (polling)
      *
      * @param certProfile certificate profile extracted from the CMP request header
      *                    generalInfo field or <code>null</code> if no certificate

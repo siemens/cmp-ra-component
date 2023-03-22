@@ -19,7 +19,20 @@ package com.siemens.pki.cmpracomponent.test;
 
 import static org.junit.Assert.fail;
 
-import com.siemens.pki.cmpracomponent.configuration.*;
+import com.siemens.pki.cmpracomponent.configuration.CheckAndModifyResult;
+import com.siemens.pki.cmpracomponent.configuration.CkgContext;
+import com.siemens.pki.cmpracomponent.configuration.CkgKeyAgreementContext;
+import com.siemens.pki.cmpracomponent.configuration.CkgKeyTransportContext;
+import com.siemens.pki.cmpracomponent.configuration.CkgPasswordContext;
+import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
+import com.siemens.pki.cmpracomponent.configuration.Configuration;
+import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
+import com.siemens.pki.cmpracomponent.configuration.InventoryInterface;
+import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
+import com.siemens.pki.cmpracomponent.configuration.SharedSecretCredentialContext;
+import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
+import com.siemens.pki.cmpracomponent.configuration.SupportMessageHandlerInterface;
+import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.cryptoservices.CmsDecryptor;
 import com.siemens.pki.cmpracomponent.protection.PasswordBasedMacProtection;
@@ -71,7 +84,21 @@ public class TestCentralKeyGenerationWithPassword extends CkgOnlineEnrollmentTes
         {DEFAULT_PRF, DEFAULT_ITERATIONCOUNT, "AES256_CBC"},
         //
     };
+
+    @Parameters(name = "{index}: prf=>{0}, iterationCount=>{1}, kek={2}")
+    public static List<Object[]> data() {
+        final List<Object[]> ret = new ArrayList<>(inputList.length);
+        for (final Object[] aktInput : inputList) {
+            final Object prf = aktInput[0];
+            final Object iterationCount = aktInput[1];
+            final Object kek = aktInput[2];
+            ret.add(new Object[] {prf, ((Integer) iterationCount).toString(), kek, prf, iterationCount, kek});
+        }
+        return ret;
+    }
+
     private final String kekAlg;
+
     private final SharedSecret sharedSecret;
 
     public TestCentralKeyGenerationWithPassword(
@@ -92,18 +119,6 @@ public class TestCentralKeyGenerationWithPassword extends CkgOnlineEnrollmentTes
                 iterationCount);
         this.kekAlg = kek;
         launchCmpCaAndRa(buildPasswordbasedDownstreamConfiguration());
-    }
-
-    @Parameters(name = "{index}: prf=>{0}, iterationCount=>{1}, kek={2}")
-    public static List<Object[]> data() {
-        final List<Object[]> ret = new ArrayList<>(inputList.length);
-        for (final Object[] aktInput : inputList) {
-            final Object prf = aktInput[0];
-            final Object iterationCount = aktInput[1];
-            final Object kek = aktInput[2];
-            ret.add(new Object[] {prf, ((Integer) iterationCount).toString(), kek, prf, iterationCount, kek});
-        }
-        return ret;
     }
 
     public Configuration buildPasswordbasedDownstreamConfiguration() throws Exception {
@@ -251,6 +266,11 @@ public class TestCentralKeyGenerationWithPassword extends CkgOnlineEnrollmentTes
                         return true;
                     }
                 };
+            }
+
+            @Override
+            public int getDownstreamTimeout(final String certProfile, final int bodyType) {
+                return 10;
             }
 
             @Override

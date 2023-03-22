@@ -36,4 +36,20 @@ public class TestCrWithPolling extends DelayedEnrollmentTescaseBase {
                 ConfigurationFactory.getEeSignaturebasedProtectionProvider(),
                 getEeClient());
     }
+
+    /**
+     * Handling Delayed Delivery/Enrolling an End Entity to a Known PKI
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testCrWithPollingAndExpireingTransaction() throws Exception {
+        executeDelayedCertificateRequest(
+                PKIBody.TYPE_CERT_REQ,
+                PKIBody.TYPE_CERT_REP,
+                ConfigurationFactory.getEeSignaturebasedProtectionProvider(),
+                getEeClient(),
+                20,
+                PKIBody.TYPE_ERROR);
+    }
 }
