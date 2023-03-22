@@ -6,12 +6,13 @@
 	<groupId>com.siemens.pki</groupId>
 	<artifactId>CmpRaComponent</artifactId>
 	<version>2.5.0</version>
+	<packaging>jar</packaging>
 	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<parent.basedir>.</parent.basedir>
 		<spotless.version>2.35.0</spotless.version>
 		<jacoco.version>0.8.8</jacoco.version>
+		<source.version>3.2.1</source.version>
 		<maven.compiler.source>11</maven.compiler.source>
 		<maven.compiler.target>11</maven.compiler.target>
 		<maven-failsafe-plugin.version>3.0.0-M3</maven-failsafe-plugin.version>
@@ -24,6 +25,16 @@
 		<sonar.language>java</sonar.language>
 		<sonar.verbose>true</sonar.verbose>
 	</properties>
+	<distributionManagement>
+		<snapshotRepository>
+			<id>ossrh</id>
+			<url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+		</snapshotRepository>
+		<repository>
+			<id>ossrh</id>
+			<url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+		</repository>
+	</distributionManagement>
 	<build>
 		<plugins>
 			<plugin>
@@ -103,7 +114,7 @@
 			<plugin>
 				<groupId>org.owasp</groupId>
 				<artifactId>dependency-check-maven</artifactId>
-				<version>8.1.2</version>
+				<version>8.2.0</version>
 				<executions>
 					<execution>
 						<goals>
@@ -113,6 +124,7 @@
 				</executions>
 				<configuration>
 					<failBuildOnCVSS>0</failBuildOnCVSS>
+					<suppressionFiles>resources/dependency-check-suppress.xml</suppressionFiles>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -131,6 +143,43 @@
 						<phase>verify</phase>
 						<goals>
 							<goal>report</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.sonatype.plugins</groupId>
+				<artifactId>nexus-staging-maven-plugin</artifactId>
+				<version>1.6.13</version>
+				<extensions>true</extensions>
+				<configuration>
+					<serverId>ossrh</serverId>
+					<nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
+					<autoReleaseAfterClose>true</autoReleaseAfterClose>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-gpg-plugin</artifactId>
+				<version>3.0.1</version>
+				<executions>
+					<execution>
+						<id>sign-artifacts</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>sign</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<artifactId>maven-source-plugin</artifactId>
+				<version>${source.version}</version>
+				<executions>
+					<execution>
+						<id>attach-source</id>
+						<goals>
+							<goal>jar</goal>
 						</goals>
 					</execution>
 				</executions>
@@ -185,5 +234,26 @@
 	</organization>
 	<name>CMP RA Component</name>
 	<description>A generic CMP Registration Authority component library</description>
+	<url>https://github.com/siemens/cmp-ra-component/</url>
+	<licenses>
+		<license>
+			<name>The Apache License, Version 2.0</name>
+			<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+		</license>
+	</licenses>
+	<developers>
+		<developer>
+			<name>Andreas Kretschmer</name>
+			<email>Andreas.Kretschmer@siemens.com</email>
+			<organization>Siemens AG</organization>
+			<organizationUrl>https://siemens.com</organizationUrl>
+		</developer>
+		<developer>
+			<name>David von Oheimb</name>
+			<email>David.von.Oheimb@siemens.com</email>
+			<organization>Siemens AG</organization>
+			<organizationUrl>https://siemens.com</organizationUrl>
+		</developer>
+	</developers>
 </project>
 
