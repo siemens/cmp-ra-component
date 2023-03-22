@@ -1,0 +1,21 @@
+# Build and digitally sign the JAR file, then upload it to Maven
+name: Build and digitally sign the JAR
+
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  sign:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v3
+      - name: Process retrieved files
+        # here we build everything, then sign and upload to Maven Central, using the nexus-staging plugin
+        run: mvn source:jar javadoc:jar package gpg:sign nexus-staging:deploy nexus-staging:deploy-staged -DskipTests
+      - name: Upload resulting artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: jar-sig-hash
+          path: target/CmpRaComponent*.*
