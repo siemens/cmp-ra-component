@@ -7,11 +7,14 @@ param (
 
 # We expect a settings file, like the JSON below. If the file is not given, the script fails
 #{
-#    "trustStorePath": "/etc/truststore-playground.jks",
+#    "trustStorePathServer": "C:\\truststore-playground.jks",
+#    "trustStorePathServerPassword": "1111111111",
 #    "signServerUrl": "signservice.com:443",
 #    "signServerWorker": "OpenPGPSignerMaven",
 #    "signServerKeyId": "1bcde241252",
 #    "signClientPath": "C:\\programs\\signserver\\bin"
+#    "pkcs11settings": "C:\\settings-pkcs11.ini",
+#    "pkcs11KeyAlias": "Auth 2022-01-01 2024-01-01"
 #}
 
 
@@ -242,7 +245,6 @@ $LASTWIDGETROW += $WIDGETSPACEEXTENDED
 
 
 $cancelBtn = New-Object system.Windows.Forms.Button
-#$cancelBtn.BackColor = "#82e09b"
 $cancelBtn.text = "Quit"
 $cancelBtn.width = 90
 $cancelBtn.height = 30
@@ -261,7 +263,6 @@ $signBtn.height = 30
 $signBtn.location = New-Object System.Drawing.Point(320, $LASTWIDGETROW)
 $signBtn.Font = 'Microsoft Sans Serif,10'
 $signBtn.ForeColor = "white"
-#$signBtn.Image = [System.Drawing.SystemIcons]::Shield
 $SignForm.Controls.Add($signBtn)
 
 
@@ -285,21 +286,16 @@ function InvokeSignClient($srcPath, $dstPath, $logPath) {
     $hostName = $urlParts[0]
     $port = $urlParts[1]
 
-    # Here we form the command line that will be invoked, it might look like this, but note that relative paths
-    # will be made absolute:
-    # /usr/bin/signclient signdocument -workername OpenPGPSignerMaven -infile CmpRaComponent-2.1.5.jar -outfile signature.asc -host signservice-playground.ct.siemens.com -port 443 -truststore truststore-playground.jks -truststorepwd "123456" -clientside -digestalgorithm SHA256 -filetype PGP -extraoption DETACHED_SIGNATURE=TRUE -extraoption KEY_ALGORITHM=RSA -extraoption KEY_ID=E9498CD6F99ED951
+    # Here we form the command line that will be invoked, note that relative paths will be made absolute
     $command = 'signclient.cmd'
     $arguments = "signdocument -signrequest -workername $($CONFIG.signServerWorker) -infile $srcPath -outfile $dstPath -host $hostName -port $port -truststore $($CONFIG.trustStorePathServer) -truststorepwd $($CONFIG.trustStorePathServerPassword) -keystoretype PKCS11_CONFIG -keystore $($CONFIG.pkcs11settings) -keystorepwd $($PasswordValue.Text) -keyalias `"$($CONFIG.pkcs11KeyAlias)`" -clientside -digestalgorithm SHA512 -filetype PGP -extraoption DETACHED_SIGNATURE=TRUE -extraoption KEY_ALGORITHM=ECDSA -extraoption KEY_ID=$($CONFIG.signServerKeyId)"
 
-#    [System.Windows.Forms.MessageBox]::Show($arguments, 'ssss', 0, 'Error')
-#    exit
     # uncomment the two lines below to simulate a successful signature
     #    $command = 'ping'
     #    $arguments = '8.8.8.8'
     # WATCH OUT: here we change the directory to the place where signclient is located, because it does not work
     #            otherwise. We set it back later, so the calling logic doesn't need to know about it.
     $process = Start-Process $command -ArgumentList $arguments -NoNewWindow -Wait -PassThru -RedirectStandardOutput $logPath -WorkingDirectory $CONFIG.signClientPath
-    #    [System.Windows.Forms.MessageBox]::Show($srcPath, 'AFTER', 0, 'Information')
 
     # log complete command to the log file, to ease troubleshooting
     "`n`n`nThe executed command was: $command $arguments" | Out-File -FilePath $logPath -Append -encoding UTF8
@@ -336,7 +332,6 @@ This is a highly-sensitive operation, ensure you know what you are doing!
     # analysis (will be useful if there are errors)
     $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm"
     $tempLogFile = "$env:TEMP\signgui_$timestamp.log"
-    # +[System.IO.Path]::GetRandomFileName()
 
     $originalWorkingDir = Get-Location
     # if a path is relative, then we turn it into an absolute path, because SignClient doesn't work if launched
@@ -397,7 +392,6 @@ This is a highly-sensitive operation, ensure you know what you are doing!
 
 
     if (-not $errorsOccurred) {
-
         # if we got this far, it means that all exit codes were 0 and everything is fine, make it green
         $signBtn.BackColor = "#82e09b"
         $signBtn.ForeColor = "#000"
@@ -423,9 +417,3 @@ $signBtn.Add_Click({ SignFiles $filesToSign $SignaturePath 45})  # timeout is un
 
 
 [void]$SignForm.ShowDialog()
-
-
-
-# since we have 3 things to sign binary, sources and javadoc, it might be annoying to type credentials 3 times
-# perhaps we can cache them between runs, in an environment variable, and then UNSET the variable at the end of
-# a successful batch? (such that for the next job, we will have to enter the data again)
