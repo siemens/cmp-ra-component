@@ -28,6 +28,6 @@ if ($accumulatedPaths.Count -eq 4) {
     # we start from a clean slate
     Remove-Item path_accumulator_ps.tmp
 
-    Write-Output "Will run: .\scripts\sign-gui-multi.ps1 -filesToSign $accumulatedPaths -settingsFile $env:SignSettingsPath -signaturePath target"
-    .\scripts\sign-gui-multi.ps1 -filesToSign $accumulatedPaths -settingsFile $env:SignSettingsPath -signaturePath target
+    Write-Output "Will run: .\scripts\sign-gui.ps1 -filesToSign $accumulatedPaths -settingsFile $env:SignSettingsPath -signaturePath target"
+    .\scripts\sign-gui.ps1 -filesToSign $accumulatedPaths -settingsFile $env:SignSettingsPath -signaturePath target
 }
