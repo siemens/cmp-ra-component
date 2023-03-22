@@ -1,17 +1,20 @@
 param (
-    [Parameter(Mandatory = $true, HelpMessage='Path to file that needs to be signed')][string]$fileToSign,
+    [Parameter(Mandatory = $true, HelpMessage='Path to file that needs to be signed')][string[]]$filesToSign,
     [Parameter(Mandatory = $true, HelpMessage='Path to file where settings are stored')][string]$SettingsFile,
-    [Parameter(HelpMessage='File to which the signature will be written')][string]$SignaturePath='signature.asc'
+    [Parameter(HelpMessage='Directory to which the signature will be written')][string]$SignaturePath='target'
 )
 
 
 # We expect a settings file, like the JSON below. If the file is not given, the script fails
 #{
-#    "trustStorePath": "/etc/truststore-playground.jks",
+#    "trustStorePathServer": "C:\\truststore-playground.jks",
+#    "trustStorePathServerPassword": "1111111111",
 #    "signServerUrl": "signservice.com:443",
 #    "signServerWorker": "OpenPGPSignerMaven",
 #    "signServerKeyId": "1bcde241252",
 #    "signClientPath": "C:\\programs\\signserver\\bin"
+#    "pkcs11settings": "C:\\settings-pkcs11.ini",
+#    "pkcs11KeyAlias": "Auth 2022-01-01 2024-01-01"
 #}
 
 
@@ -28,7 +31,7 @@ $WIDGETSPACEEXTENDED = 70
 
 
 $Title = 'Digitally sign binary'
-$Subtitle = 'You are about to leave an auditable trace by signing this file:'
+$Subtitle = 'You are about to leave an auditable trace by signing:'
 
 # Imaginary vertical line that divides widgets with values we're dealing with
 $ValueOffset = 150
@@ -40,7 +43,7 @@ $ConfirmationWords = @("Responsible", "Consequence", "Implications", "Double-che
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
 $SignForm = New-Object system.Windows.Forms.Form
-$SignForm.ClientSize = '450, 480'
+$SignForm.ClientSize = '450, 640'
 $SignForm.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::Fixed3D
 $SignForm.Text = $Title
 $SignForm.Icon = [System.Drawing.SystemIcons]::Shield
@@ -62,18 +65,46 @@ $Prologue.height = 20
 $Prologue.location = New-Object System.Drawing.Point(20, 50)
 $Prologue.Font = 'Microsoft Sans Serif,10'
 
-$FilePath = New-Object system.Windows.Forms.TextBox
-$FilePath.text = $fileToSign
-$FilePath.Width = 390
+$FilePath = New-Object system.Windows.Forms.RichTextBox
+#$FilePath.Multiline = $True
+$FilePath.BackColor = "MistyRose"
+$FilePath.Scrollbars = "Vertical"
+$FilePath.Width = 420
+$FilePath.Height = 200
 $FilePath.location = New-Object System.Drawing.Point(20, $LASTWIDGETROW)
-$FilePath.Font = 'Microsoft Sans Serif,20'
 $FilePath.ReadOnly = $True
 
-$LASTWIDGETROW += $WIDGETSPACEEXTENDED
+# Begin forming the string that will constitute the contents of the RichTextEdit. Note that it uses RTF syntax.
+# We render the full path normally, but the last element, i.e., the file name itself, is bold. This makes it
+# easier to focus on the important part - otherwise there is a lot of visual noise when the paths are very long.
+$Rtf = "{\rtf1\ansi \fs20"
+
+ForEach ( $item in $filesToSign ) {
+    $pathParts = $item.split('\\')
+    # check how many levels of hierarchy there are in the path
+    if($pathParts.Count -eq 1) {
+        # if there's just one, it is only a file name in the current directory, we write it "as is"
+        $newLine = "`\b $item `\b0`\line `r`n"
+    }
+    else
+    {
+        # there are multiple directories in the path, so we render the directories with a regular font, and
+        # make only the file name bold.
+        $path = $pathParts[0..($pathParts.Count - 2)] -join "\\"
+        $fileNameBold = "`\b $( $pathParts[-1] ) `\b0"
+        $newLine = "$path`\`\$fileNameBold `\line `r`n"
+    }
+    $Rtf += $newLine
+}
+$Rtf += "}"
+$FilePath.Rtf = $Rtf
+
+
+$LASTWIDGETROW += $WIDGETSPACEEXTENDED + 140
 #--------------------------------------------------
 
 $ServerLabel = New-Object system.Windows.Forms.Label
-$ServerLabel.text = "SignServer URL:"
+$ServerLabel.text = "Server URL:"
 $ServerLabel.AutoSize = $true
 $ServerLabel.width = 25
 $ServerLabel.height = 10
@@ -85,6 +116,25 @@ $ServerValue.text = $CONFIG.signServerUrl
 $ServerValue.AutoSize = $true
 $ServerValue.location = New-Object System.Drawing.Point($ValueOffset, $LASTWIDGETROW)
 $ServerValue.Font = 'Microsoft Sans Serif,10'
+
+$LASTWIDGETROW += $WIDGETSPACE
+
+#--------------------------------------------------
+
+# details used for authenticating the server
+$TrustStoreLabel = New-Object system.Windows.Forms.Label
+$TrustStoreLabel.text = "Server cert:"
+$TrustStoreLabel.AutoSize = $true
+$TrustStoreLabel.width = 25
+$TrustStoreLabel.height = 10
+$TrustStoreLabel.location = New-Object System.Drawing.Point(20, $LASTWIDGETROW)
+$TrustStoreLabel.Font = 'Microsoft Sans Serif,10,style=Bold'
+
+$TrustStoreValue = New-Object system.Windows.Forms.Label
+$TrustStoreValue.text = $CONFIG.trustStorePathServer
+$TrustStoreValue.AutoSize = $true
+$TrustStoreValue.location = New-Object System.Drawing.Point($ValueOffset, $LASTWIDGETROW)
+$TrustStoreValue.Font = 'Microsoft Sans Serif,10'
 
 $LASTWIDGETROW += $WIDGETSPACE
 #--------------------------------------------------
@@ -121,27 +171,28 @@ $KeyIdValue.location = New-Object System.Drawing.Point($ValueOffset, $LASTWIDGET
 $KeyIdValue.Font = 'Microsoft Sans Serif,10'
 
 $LASTWIDGETROW += $WIDGETSPACEEXTENDED
+
 #--------------------------------------------------
 
-$TrustStoreLabel = New-Object system.Windows.Forms.Label
-$TrustStoreLabel.text = "Trust store:"
-$TrustStoreLabel.AutoSize = $true
-$TrustStoreLabel.width = 25
-$TrustStoreLabel.height = 10
-$TrustStoreLabel.location = New-Object System.Drawing.Point(20, $LASTWIDGETROW)
-$TrustStoreLabel.Font = 'Microsoft Sans Serif,10,style=Bold'
+$KeyAliasLabel = New-Object system.Windows.Forms.Label
+$KeyAliasLabel.text = "Key alias:"
+$KeyAliasLabel.AutoSize = $true
+$KeyAliasLabel.width = 25
+$KeyAliasLabel.height = 10
+$KeyAliasLabel.location = New-Object System.Drawing.Point(20, $LASTWIDGETROW)
+$KeyAliasLabel.Font = 'Microsoft Sans Serif,10,style=Bold'
 
-$TrustStoreValue = New-Object system.Windows.Forms.Label
-$TrustStoreValue.text = $CONFIG.trustStorePath
-$TrustStoreValue.AutoSize = $true
-$TrustStoreValue.location = New-Object System.Drawing.Point($ValueOffset, $LASTWIDGETROW)
-$TrustStoreValue.Font = 'Microsoft Sans Serif,10'
+$KeyAliasValue = New-Object system.Windows.Forms.Label
+$KeyAliasValue.text = $CONFIG.pkcs11KeyAlias
+$KeyAliasValue.AutoSize = $true
+$KeyAliasValue.location = New-Object System.Drawing.Point($ValueOffset, $LASTWIDGETROW)
+$KeyAliasValue.Font = 'Microsoft Sans Serif,10'
 
 $LASTWIDGETROW += $WIDGETSPACE
 #--------------------------------------------------
 
 $PasswordLabel = New-Object system.Windows.Forms.Label
-$PasswordLabel.text = "Password:"
+$PasswordLabel.text = "Card PIN:"
 $PasswordLabel.AutoSize = $true
 $PasswordLabel.width = 25
 $PasswordLabel.height = 10
@@ -194,11 +245,10 @@ $LASTWIDGETROW += $WIDGETSPACEEXTENDED
 
 
 $cancelBtn = New-Object system.Windows.Forms.Button
-#$cancelBtn.BackColor = "#82e09b"
 $cancelBtn.text = "Quit"
 $cancelBtn.width = 90
 $cancelBtn.height = 30
-$cancelBtn.location = New-Object System.Drawing.Point(210, 400)
+$cancelBtn.location = New-Object System.Drawing.Point(210, $LASTWIDGETROW)
 $cancelBtn.Font = 'Microsoft Sans Serif,10'
 $cancelBtn.ForeColor = "#000"
 $cancelBtn.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
@@ -210,10 +260,9 @@ $signBtn.BackColor = "#ff7b00"
 $signBtn.text = "Sign"
 $signBtn.width = 90
 $signBtn.height = 30
-$signBtn.location = New-Object System.Drawing.Point(320, 400)
+$signBtn.location = New-Object System.Drawing.Point(320, $LASTWIDGETROW)
 $signBtn.Font = 'Microsoft Sans Serif,10'
 $signBtn.ForeColor = "white"
-#$signBtn.Image = [System.Drawing.SystemIcons]::Shield
 $SignForm.Controls.Add($signBtn)
 
 
@@ -224,14 +273,39 @@ $SignForm.Controls.AddRange(@(
     $MainTitle, $Prologue,
     $FilePathLabel, $FilePath,
     $ServerLabel, $ServerValue,
+    $TrustStoreLabel, $TrustStoreValue,
     $WorkerLabel, $WorkerValue,
     $KeyIdLabel, $KeyIdValue
-    $TrustStoreLabel, $TrustStoreValue,
     $PasswordLabel, $PasswordValue,
-    $ConfirmationLabel, $ConfirmationValue
+    $ConfirmationLabel, $ConfirmationValue,
+    $KeyAliasLabel, $KeyAliasValue
 ))
 
-function SignFile($srcPath, $dstPath, $timeout) {
+function InvokeSignClient($srcPath, $dstPath, $logPath) {
+    $urlParts = $($CONFIG.signServerUrl).split(':')
+    $hostName = $urlParts[0]
+    $port = $urlParts[1]
+
+    # Here we form the command line that will be invoked, note that relative paths will be made absolute
+    $command = 'signclient.cmd'
+    $arguments = "signdocument -signrequest -workername $($CONFIG.signServerWorker) -infile $srcPath -outfile $dstPath -host $hostName -port $port -truststore $($CONFIG.trustStorePathServer) -truststorepwd $($CONFIG.trustStorePathServerPassword) -keystoretype PKCS11_CONFIG -keystore $($CONFIG.pkcs11settings) -keystorepwd $($PasswordValue.Text) -keyalias `"$($CONFIG.pkcs11KeyAlias)`" -clientside -digestalgorithm SHA512 -filetype PGP -extraoption DETACHED_SIGNATURE=TRUE -extraoption KEY_ALGORITHM=ECDSA -extraoption KEY_ID=$($CONFIG.signServerKeyId)"
+
+    # uncomment the two lines below to simulate a successful signature
+    #    $command = 'ping'
+    #    $arguments = '8.8.8.8'
+    # WATCH OUT: here we change the directory to the place where signclient is located, because it does not work
+    #            otherwise. We set it back later, so the calling logic doesn't need to know about it.
+    $process = Start-Process $command -ArgumentList $arguments -NoNewWindow -Wait -PassThru -RedirectStandardOutput $logPath -WorkingDirectory $CONFIG.signClientPath
+
+    # log complete command to the log file, to ease troubleshooting
+    "`n`n`nThe executed command was: $command $arguments" | Out-File -FilePath $logPath -Append -encoding UTF8
+
+    return $process.ExitCode
+
+
+}
+
+function SignFiles($srcPaths, $dstPath, $timeout) {
 
     if([string]::IsNullOrEmpty($PasswordValue.Text)) {
         [System.Windows.Forms.MessageBox]::Show("Please provide the trust store password", "More input required", 0, 'Exclamation')
@@ -250,95 +324,96 @@ This is a highly-sensitive operation, ensure you know what you are doing!
 
     # provide some feedback in the UI, change the button label and color
     $signBtn.BackColor = "gray"
-    $signBtn.text = "Signing ..."
+    $signBtn.text = "Signing "
 
 
-    $urlParts = $($CONFIG.signServerUrl).split(':')
-    $hostName = $urlParts[0]
-    $port = $urlParts[1]
 
     # generate a name for a unique temporary file, where the output of the signclient will be stored for subsequent
     # analysis (will be useful if there are errors)
     $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm"
-    $tempFile = "$env:TEMP\signgui_$timestamp.log"
-    # +[System.IO.Path]::GetRandomFileName()
-
-
+    $tempLogFile = "$env:TEMP\signgui_$timestamp.log"
 
     $originalWorkingDir = Get-Location
     # if a path is relative, then we turn it into an absolute path, because SignClient doesn't work if launched
     # from a directory other than its own.
-    If (-Not [System.IO.Path]::IsPathRooted($srcPath)) {$srcPath = Join-Path $originalWorkingDir $srcPath}
+    If (-Not [System.IO.Path]::IsPathRooted($srcPaths)) {$srcPaths = Join-Path $originalWorkingDir $srcPaths}
     If (-Not [System.IO.Path]::IsPathRooted($dstPath)) {$dstPath = Join-Path $originalWorkingDir $dstPath}
 
-    # Here we form the command line that will be invoked, it might look like this, but note that relative paths
-    # will be made absolute:
-    # /usr/bin/signclient signdocument -workername OpenPGPSignerMaven -infile CmpRaComponent-2.1.5.jar -outfile signature.asc -host signservice-playground.ct.siemens.com -port 443 -truststore truststore-playground.jks -truststorepwd "123456" -clientside -digestalgorithm SHA256 -filetype PGP -extraoption DETACHED_SIGNATURE=TRUE -extraoption KEY_ALGORITHM=RSA -extraoption KEY_ID=E9498CD6F99ED951
-    $command = 'signclient.cmd'
-    $arguments = "signdocument -workername $($CONFIG.signServerWorker) -infile $srcPath -outfile $dstPath -host $hostName -port $port -truststore $($CONFIG.trustStorePath) -truststorepwd $($PasswordValue.Text) -clientside -digestalgorithm SHA256 -filetype PGP -extraoption DETACHED_SIGNATURE=TRUE -extraoption KEY_ALGORITHM=RSA -extraoption KEY_ID=$($CONFIG.signServerKeyId)"
+    $exitCodes = @()
+    ForEach ( $srcPath in $srcPaths ) {
+        $srcFileName = Split-Path $srcPath -leaf
+        $exitCode = InvokeSignClient $srcPath "$dstPath\$srcFileName.asc" $tempLogFile
+
+        # add a dot to the end of the button title to turn it into a mini progress indicator
+        $signBtn.text += "."
+
+        $output = Get-Content $tempLogFile
+        $exitCodes += $exitCode
+        if (-Not $exitCode -eq 0) {
+            # there was an error, make it red
+            $signBtn.BackColor = "red"
+            $signBtn.ForeColor = "white"
+            $signBtn.text = "Error $exitCode"
+            $operationStatus = "Operation error"
+
+            $message = @"
+    Error while signing: $srcPath
+    Diagnostic details in signclient's log:
+    $tempLogFile
 
 
-    # uncomment the two lines below to simulate a successful signature
-    #    $command = 'ping'
-    #    $arguments = '8.8.8.8'
-    # WATCH OUT: here we change the directory to the place where signclient is located, because it does not work
-    #            otherwise. We set it back later, so the calling logic doesn't need to know about it.
-    $process = Start-Process $command -ArgumentList $arguments -NoNewWindow -Wait -PassThru -RedirectStandardOutput $tempFile -WorkingDirectory $CONFIG.signClientPath
+
+            $output
+"@
+            [System.Windows.Forms.MessageBox]::Show($message, $operationStatus, 0, 'Error')
+
+            # After the messagebox is closed, we restore the button's properties, so the user can see that they
+            # can try to sign again
+            $signBtn.BackColor = "#ff7b00"
+            $signBtn.text = "Sign"
+
+            # Break the loop here, so we don't go on to try other files, and avoid showing other error messages.
+            # If a single file cannot be signed, the entire operation fails. Moreover, this will also prevent
+            # situations where we lock the card by using an incorrect PIN multiple times in a row.
+            break
+            }
+
+    }
+
 
     # go back to the original working directory, such that whatever logic invokes this script doesn't have to be
     # aware of the working directory changes.
     Set-Location $originalWorkingDir
 
-    # load the contents of the file here, so we can put it in the messagebox later
-    $output = Get-Content $tempFile
+    $errorsOccurred = $false
+    ForEach ( $item in $exitCodes ) {
+        if (-Not $item -eq 0) {$errorsOccurred = $true}
+    }
 
 
-    if ($process.ExitCode -eq 0) {
-        # everything is fine, make it green and keep going
+    if (-not $errorsOccurred) {
+        # if we got this far, it means that all exit codes were 0 and everything is fine, make it green
         $signBtn.BackColor = "#82e09b"
         $signBtn.ForeColor = "#000"
         $signBtn.text = "Done"
         $operationStatus = "Signed successfully!"
 
         $message = @"
-Digital signature saved to $dstPath.
+Digital signatures saved successfully to: $dstPath
 
-The window will close and the pipeline will continue.
+Press OK to close this window and resume the pipeline.
 "@
         [System.Windows.Forms.MessageBox]::Show($message, $operationStatus, 0, 'Information')
 
         # nicely close the window after the messagebox is closed, and let the higher level logic take over
         $SignForm.Close()
+
     }
-    else {
-        # there was an error, make it red
-        $signBtn.BackColor = "red"
-        $signBtn.ForeColor = "white"
-        $signBtn.text = "Error $($process.ExitCode)"
-        $operationStatus = "Operation error"
-
-        $message = @"
-Diagnostic details in signclient's log:
-$tempFile
-
-
-
-$output
-"@
-        [System.Windows.Forms.MessageBox]::Show($message, $operationStatus, 0, 'Error')
-
-        # After the messagebox is closed, we restore the button's properties, so the user can see that they
-        # can try to sign again
-        $signBtn.BackColor = "#ff7b00"
-        $signBtn.text = "Sign"
-    }
-
-
 }
 
 
 
-$signBtn.Add_Click({SignFile $fileToSign $SignaturePath 45})  # timeout is unused for now
+$signBtn.Add_Click({ SignFiles $filesToSign $SignaturePath 45})  # timeout is unused for now
 
 
 [void]$SignForm.ShowDialog()
