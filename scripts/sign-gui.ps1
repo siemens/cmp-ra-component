@@ -297,6 +297,7 @@ function InvokeSignClient($srcPath, $dstPath, $logPath) {
     #            otherwise. We set it back later, so the calling logic doesn't need to know about it.
     $process = Start-Process $command -ArgumentList $arguments -NoNewWindow -Wait -PassThru -RedirectStandardOutput $logPath -WorkingDirectory $($CONFIG.signClientPath)
 
+
     # log complete command to the log file, to ease troubleshooting
     "`n`n`nThe executed command was: $command $arguments" | Out-File -FilePath $logPath -Append -encoding UTF8
 
