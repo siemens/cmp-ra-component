@@ -287,7 +287,7 @@ function InvokeSignClient($srcPath, $dstPath, $logPath) {
     $port = $urlParts[1]
 
     # Here we form the command line that will be invoked, note that relative paths will be made absolute
-    $command = './signclient.cmd'
+    $command = 'signclient.cmd'
     $arguments = "signdocument -signrequest -workername $($CONFIG.signServerWorker) -infile $srcPath -outfile $dstPath -host $hostName -port $port -truststore $($CONFIG.trustStorePathServer) -truststorepwd $($CONFIG.trustStorePathServerPassword) -keystoretype PKCS11_CONFIG -keystore $($CONFIG.pkcs11settings) -keystorepwd $($PasswordValue.Text) -keyalias `"$($CONFIG.pkcs11KeyAlias)`" -clientside -digestalgorithm SHA512 -filetype PGP -extraoption DETACHED_SIGNATURE=TRUE -extraoption KEY_ALGORITHM=ECDSA -extraoption KEY_ID=$($CONFIG.signServerKeyId)"
 
     # uncomment the two lines below to simulate a successful signature
@@ -295,7 +295,7 @@ function InvokeSignClient($srcPath, $dstPath, $logPath) {
     #    $arguments = '8.8.8.8'
     # WATCH OUT: here we change the directory to the place where signclient is located, because it does not work
     #            otherwise. We set it back later, so the calling logic doesn't need to know about it.
-    $process = Start-Process $command -ArgumentList $arguments -NoNewWindow -Wait -PassThru -RedirectStandardOutput $logPath -WorkingDirectory $CONFIG.signClientPath
+    $process = Start-Process $command -ArgumentList $arguments -NoNewWindow -Wait -PassThru -RedirectStandardOutput $logPath -WorkingDirectory $($CONFIG.signClientPath)
 
     # log complete command to the log file, to ease troubleshooting
     "`n`n`nThe executed command was: $command $arguments" | Out-File -FilePath $logPath -Append -encoding UTF8
