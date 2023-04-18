@@ -75,7 +75,7 @@ class SignatureProtectionValidator implements ValidatorIF<Void> {
                 if (keyUsage != null && !keyUsage[0] /* digitalSignature */) {
                     // be a little bit more lazy about key usage for protectingCert,
                     // in case of RR or KUR it might be absent.
-                    LOGGER.warn("the protecting certificate '" + protectingCert.getSubjectDN()
+                    LOGGER.warn("the protecting certificate '" + protectingCert.getSubjectX500Principal()
                             + "' is not valid for digitalSignature, weakness ignored");
                 }
                 return null;
