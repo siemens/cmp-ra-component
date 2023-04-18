@@ -47,6 +47,9 @@ $SignForm.ClientSize = '450, 640'
 $SignForm.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::Fixed3D
 $SignForm.Text = $Title
 $SignForm.Icon = [System.Drawing.SystemIcons]::Shield
+# Sometimes the window will be shown underneath others, making it look like the process is stuck,
+# so we make sure it is the top-most window.
+$SignForm.TopMost = $True
 
 
 $MainTitle = New-Object system.windows.Forms.Label
@@ -306,6 +309,13 @@ function InvokeSignClient($srcPath, $dstPath, $logPath) {
 
 }
 
+function PlayTone() {
+    # play a two-tone sound in the background to attract attention; it runs it in a separate process because
+    # [console]::beep is a blocking function, which makes the GUI non-responsive for a short while
+    $arguments = '-Command "& {[console]::beep(200, 580); [console]::beep(250, 1000)}"'
+    Start-Process "powershell.exe" -NoNewWindow -ArgumentList $arguments
+}
+
 function SignFiles($srcPaths, $dstPath, $timeout) {
 
     if([string]::IsNullOrEmpty($PasswordValue.Text)) {
@@ -417,4 +427,5 @@ Press OK to close this window and resume the pipeline.
 $signBtn.Add_Click({ SignFiles $filesToSign $SignaturePath 45})  # timeout is unused for now
 
 
+PlayTone
 [void]$SignForm.ShowDialog()
