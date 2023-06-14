@@ -23,15 +23,23 @@ import com.siemens.pki.cmpracomponent.configuration.Configuration;
 import com.siemens.pki.cmpracomponent.configuration.CrlUpdateRetrievalHandler;
 import com.siemens.pki.cmpracomponent.configuration.GetCaCertificatesHandler;
 import com.siemens.pki.cmpracomponent.configuration.GetCertificateRequestTemplateHandler;
+import com.siemens.pki.cmpracomponent.configuration.GetKemCiphertextHandler;
 import com.siemens.pki.cmpracomponent.configuration.GetRootCaCertificateUpdateHandler;
 import com.siemens.pki.cmpracomponent.configuration.GetRootCaCertificateUpdateHandler.RootCaCertificateUpdateResponse;
 import com.siemens.pki.cmpracomponent.configuration.SupportMessageHandlerInterface;
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
-import com.siemens.pki.cmpracomponent.msggeneration.MsgOutputProtector;
+import com.siemens.pki.cmpracomponent.msggeneration.HeaderProvider;
+import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
 import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
+import com.siemens.pki.cmpracomponent.msgvalidation.CmpValidationException;
+import com.siemens.pki.cmpracomponent.persistency.InitialKemContext;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
+import com.siemens.pki.cmpracomponent.persistency.PersistencyContext.InterfaceContext;
+import com.siemens.pki.cmpracomponent.protection.ProtectionProviderFactory;
 import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.security.NoSuchProviderException;
 import java.security.cert.CRLException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509CRL;
@@ -174,6 +182,26 @@ class ServiceImplementation {
         return new PKIBody(PKIBody.TYPE_GEN_REP, new GenRepContent(new InfoTypeAndValue(infoType)));
     }
 
+    private PKIBody handleGetKemCiphertext(
+            HeaderProvider respondingHeaderProvider,
+            PersistencyContext persistencyContext,
+            InfoTypeAndValue itav,
+            final GetKemCiphertextHandler messageHandler,
+            InterfaceContext interfaceContext,
+            X509Certificate trustedCertificate)
+            throws CmpValidationException, GeneralSecurityException, NoSuchProviderException {
+        final InitialKemContext initialKemContext = new InitialKemContext(
+                respondingHeaderProvider.getTransactionID(),
+                respondingHeaderProvider.getSenderNonce(),
+                respondingHeaderProvider.getRecipNonce(),
+                messageHandler.getPubKey(trustedCertificate));
+        persistencyContext.setInitialKemContext(initialKemContext, interfaceContext);
+        persistencyContext.markKemStart();
+        return new PKIBody(
+                PKIBody.TYPE_GEN_REP,
+                new GenRepContent(new InfoTypeAndValue(itav.getInfoType(), initialKemContext.getCiphertextInfo())));
+    }
+
     private PKIBody handleGetRootCaCertificateUpdate(
             final InfoTypeAndValue itav, final GetRootCaCertificateUpdateHandler messageHandler)
             throws CertificateException {
@@ -198,7 +226,8 @@ class ServiceImplementation {
                 new GenRepContent(new InfoTypeAndValue(CMPObjectIdentifiers.id_it_rootCaKeyUpdate)));
     }
 
-    protected PKIMessage handleValidatedInputMessage(final PKIMessage msg, final PersistencyContext persistencyContext)
+    protected PKIMessage handleValidatedInputMessage(
+            final PKIMessage msg, final PersistencyContext persistencyContext, InterfaceContext interfaceContext)
             throws BaseCmpException {
         try {
             final InfoTypeAndValue itav = ((GenMsgContent) msg.getBody().getContent()).toInfoTypeAndValueArray()[0];
@@ -210,6 +239,7 @@ class ServiceImplementation {
                 return null;
             }
             PKIBody body = null;
+            final HeaderProvider respondingHeaderProvider = PkiMessageGenerator.buildRespondingHeaderProvider(msg);
             if (messageHandler instanceof GetCaCertificatesHandler) {
                 body = handleGetCaCertificates(infoType, (GetCaCertificatesHandler) messageHandler);
             } else if (messageHandler instanceof GetCertificateRequestTemplateHandler) {
@@ -219,6 +249,19 @@ class ServiceImplementation {
                 body = handleGetRootCaCertificateUpdate(itav, (GetRootCaCertificateUpdateHandler) messageHandler);
             } else if (messageHandler instanceof CrlUpdateRetrievalHandler) {
                 body = handleCrlUpdateRetrieval(itav, (CrlUpdateRetrievalHandler) messageHandler);
+            } else if (messageHandler instanceof GetKemCiphertextHandler) {
+                final CMPCertificate[] extraCerts = msg.getExtraCerts();
+                X509Certificate trustedCertificate = null;
+                if (extraCerts != null && extraCerts.length > 0) {
+                    trustedCertificate = CertUtility.asX509Certificate(extraCerts[0]);
+                }
+                body = handleGetKemCiphertext(
+                        respondingHeaderProvider,
+                        persistencyContext,
+                        itav,
+                        (GetKemCiphertextHandler) messageHandler,
+                        interfaceContext,
+                        trustedCertificate);
             } else {
                 throw new CmpProcessingException(INTERFACE_NAME, PKIFailureInfo.systemFailure, "internal error");
             }
@@ -226,12 +269,16 @@ class ServiceImplementation {
                 // no specific processing found, return empty response
                 body = new PKIBody(PKIBody.TYPE_GEN_REP, new GenRepContent(new InfoTypeAndValue(infoType)));
             }
-            final MsgOutputProtector protector = new MsgOutputProtector(
-                    config.getDownstreamConfiguration(
-                            ifNotNull(persistencyContext, PersistencyContext::getCertProfile), body.getType()),
-                    INTERFACE_NAME,
-                    persistencyContext);
-            return protector.generateAndProtectResponseTo(msg, body);
+            return PkiMessageGenerator.generateAndProtectMessage(
+                    respondingHeaderProvider,
+                    ProtectionProviderFactory.createProtectionProvider(
+                            config.getDownstreamConfiguration(
+                                            ifNotNull(persistencyContext, PersistencyContext::getCertProfile),
+                                            body.getType())
+                                    .getOutputCredentials(),
+                            persistencyContext,
+                            PersistencyContext.InterfaceContext.downstream_send),
+                    body);
         } catch (final BaseCmpException ex) {
             throw ex;
         } catch (final Exception e) {

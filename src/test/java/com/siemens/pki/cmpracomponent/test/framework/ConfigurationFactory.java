@@ -20,6 +20,7 @@ package com.siemens.pki.cmpracomponent.test.framework;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
+import com.siemens.pki.cmpracomponent.cmpextension.NewCMPObjectIdentifiers;
 import com.siemens.pki.cmpracomponent.configuration.CheckAndModifyResult;
 import com.siemens.pki.cmpracomponent.configuration.CkgContext;
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
@@ -29,9 +30,11 @@ import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.CrlUpdateRetrievalHandler;
 import com.siemens.pki.cmpracomponent.configuration.GetCaCertificatesHandler;
 import com.siemens.pki.cmpracomponent.configuration.GetCertificateRequestTemplateHandler;
+import com.siemens.pki.cmpracomponent.configuration.GetKemCiphertextHandler;
 import com.siemens.pki.cmpracomponent.configuration.GetRootCaCertificateUpdateHandler;
 import com.siemens.pki.cmpracomponent.configuration.GetRootCaCertificateUpdateHandler.RootCaCertificateUpdateResponse;
 import com.siemens.pki.cmpracomponent.configuration.InventoryInterface;
+import com.siemens.pki.cmpracomponent.configuration.KEMCredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
 import com.siemens.pki.cmpracomponent.configuration.PersistencyInterface;
 import com.siemens.pki.cmpracomponent.configuration.SupportMessageHandlerInterface;
@@ -47,6 +50,8 @@ import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.cert.CRLException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -58,6 +63,7 @@ import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
 import org.bouncycastle.asn1.cmp.CertReqTemplateContent;
+import org.bouncycastle.asn1.cmp.PKIBody;
 import org.bouncycastle.asn1.crmf.AttributeTypeAndValue;
 import org.bouncycastle.asn1.crmf.CertTemplateBuilder;
 import org.bouncycastle.asn1.crmf.Controls;
@@ -80,6 +86,317 @@ public class ConfigurationFactory {
 
     private static SharedSecret eeSharedSecretCredentials;
 
+    public static Configuration buildKemBasedDownstreamConfiguration(PrivateKey privateKey) throws Exception {
+        final CredentialContext downstreamCredentials = new KEMCredentialContext() {
+            @Override
+            public PrivateKey getPrivkey() {
+                return privateKey;
+            }
+        };
+        final SignatureValidationCredentials downstreamTrust =
+                new SignatureValidationCredentials("credentials/CMP_EE_Root.pem", null);
+        new SignatureValidationCredentials("credentials/CMP_EE_Root.pem", null);
+        final TrustChainAndPrivateKey upstreamCredentials =
+                new TrustChainAndPrivateKey("credentials/CMP_LRA_UPSTREAM_Keystore.p12", "Password".toCharArray());
+        final SignatureValidationCredentials upstreamTrust =
+                new SignatureValidationCredentials("credentials/CMP_CA_Root.pem", null);
+        final SignatureValidationCredentials enrollmentTrust =
+                new SignatureValidationCredentials("credentials/ENROLL_Root.pem", null);
+
+        return buildSimpleRaConfiguration(
+                downstreamCredentials,
+                ReprotectMode.reprotect,
+                downstreamTrust,
+                upstreamCredentials,
+                upstreamTrust,
+                enrollmentTrust);
+    }
+
+    public static Configuration buildKemBasedDownstreamConfiguration(PublicKey publicKey) throws Exception {
+        final TrustChainAndPrivateKey downstreamCredentials =
+                new TrustChainAndPrivateKey("credentials/CMP_LRA_DOWNSTREAM_Keystore.p12", "Password".toCharArray());
+        final VerificationContext downstreamTrust = new VerificationContext() {};
+        new SignatureValidationCredentials("credentials/CMP_EE_Root.pem", null);
+        new SignatureValidationCredentials("credentials/CMP_EE_Root.pem", null);
+        final TrustChainAndPrivateKey upstreamCredentials =
+                new TrustChainAndPrivateKey("credentials/CMP_LRA_UPSTREAM_Keystore.p12", "Password".toCharArray());
+        final SignatureValidationCredentials upstreamTrust =
+                new SignatureValidationCredentials("credentials/CMP_CA_Root.pem", null);
+        final SignatureValidationCredentials enrollmentTrust =
+                new SignatureValidationCredentials("credentials/ENROLL_Root.pem", null);
+
+        return buildKemRaConfiguration(
+                downstreamCredentials,
+                ReprotectMode.keep,
+                downstreamTrust,
+                upstreamCredentials,
+                upstreamTrust,
+                enrollmentTrust,
+                publicKey);
+    }
+
+    public static Configuration buildKemRaConfiguration(
+            final CredentialContext downstreamCredentials,
+            ReprotectMode reprotectMode,
+            final VerificationContext downstreamTrust,
+            final CredentialContext upstreamCredentials,
+            final VerificationContext upstreamTrust,
+            final SignatureValidationCredentials enrollmentTrust,
+            PublicKey publicKey) {
+        return new Configuration() {
+            PersistencyInterface persistency = new DefaultPersistencyImplementation(5000);
+
+            @Override
+            public CkgContext getCkgConfiguration(final String certProfile, final int bodyType) {
+                fail(String.format(
+                        "getCkgConfiguration called with certprofile: {}, type: {}",
+                        certProfile,
+                        MessageDumper.msgTypeAsString(bodyType)));
+                return null;
+            }
+
+            @Override
+            public CmpMessageInterface getDownstreamConfiguration(final String certProfile, final int bodyType) {
+                LOGGER.debug(
+                        "getDownstreamConfiguration called with certprofile: {}, type: {}",
+                        certProfile,
+                        MessageDumper.msgTypeAsString(bodyType));
+                return new CmpMessageInterface() {
+
+                    @Override
+                    public VerificationContext getInputVerification() {
+                        if (bodyType == PKIBody.TYPE_GEN_MSG) {
+                            return null;
+                        }
+                        if (certProfile != null) {
+                            switch (certProfile) {
+                                case "certProfileForKur":
+                                case "certProfileForRr":
+                                    return enrollmentTrust;
+                            }
+                        }
+                        return downstreamTrust;
+                    }
+
+                    @Override
+                    public NestedEndpointContext getNestedEndpointContext() {
+                        return null;
+                    }
+
+                    @Override
+                    public CredentialContext getOutputCredentials() {
+                        try {
+                            return downstreamCredentials;
+                        } catch (final Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+
+                    @Override
+                    public ReprotectMode getReprotectMode() {
+                        return reprotectMode;
+                    }
+
+                    @Override
+                    public boolean getSuppressRedundantExtraCerts() {
+                        return false;
+                    }
+
+                    @Override
+                    public boolean isCacheExtraCerts() {
+                        return false;
+                    }
+
+                    @Override
+                    public boolean isMessageTimeDeviationAllowed(final long deviation) {
+                        return true;
+                    }
+                };
+            }
+
+            @Override
+            public int getDownstreamTimeout(final String certProfile, final int bodyType) {
+                return 10;
+            }
+
+            @Override
+            public VerificationContext getEnrollmentTrust(final String certProfile, final int bodyType) {
+                LOGGER.debug(
+                        "getEnrollmentTrust called with certprofile: {}, type: {}",
+                        certProfile,
+                        MessageDumper.msgTypeAsString(bodyType));
+                return enrollmentTrust;
+            }
+
+            @Override
+            public boolean getForceRaVerifyOnUpstream(final String certProfile, final int bodyType) {
+                LOGGER.debug(
+                        "getForceRaVerifyOnUpstream called with certprofile: {}, type: {}",
+                        certProfile,
+                        MessageDumper.msgTypeAsString(bodyType));
+                return false;
+            }
+
+            @Override
+            public InventoryInterface getInventory(final String certProfile, final int bodyType) {
+                LOGGER.debug(
+                        "getInventory called with certprofile: {}, type: {}",
+                        certProfile,
+                        MessageDumper.msgTypeAsString(bodyType));
+                return new InventoryInterface() {
+
+                    @Override
+                    public CheckAndModifyResult checkAndModifyCertRequest(
+                            final byte[] transactionID,
+                            final String requesterDn,
+                            final byte[] certTemplate,
+                            final String requestedSubjectDn,
+                            byte[] pkiMessage) {
+                        LOGGER.debug(
+                                "checkAndModifyCertRequest called with transactionID: {}, requesterDn: {}, requestedSubjectDn: {}",
+                                new BigInteger(transactionID),
+                                requesterDn,
+                                requestedSubjectDn);
+                        return new CheckAndModifyResult() {
+
+                            @Override
+                            public byte[] getUpdatedCertTemplate() {
+                                return null;
+                            }
+
+                            @Override
+                            public boolean isGranted() {
+                                return true;
+                            }
+                        };
+                    }
+
+                    @Override
+                    public boolean checkP10CertRequest(
+                            final byte[] transactionID,
+                            final String requesterDn,
+                            final byte[] pkcs10CertRequest,
+                            final String requestedSubjectDn,
+                            byte[] pkiMessage) {
+                        fail(String.format(
+                                "checkP10CertRequest called with transactionID: {}, requesterDn: {}, requestedSubjectDn: {}",
+                                new BigInteger(transactionID),
+                                requesterDn,
+                                requestedSubjectDn));
+                        return false;
+                    }
+
+                    @Override
+                    public boolean learnEnrollmentResult(
+                            final byte[] transactionID,
+                            final byte[] certificate,
+                            final String serialNumber,
+                            final String subjectDN,
+                            final String issuerDN) {
+                        LOGGER.debug(
+                                "learnEnrollmentResult called with transactionID: {}, serialNumber: {}, subjectDN: {}, issuerDN: {}",
+                                new BigInteger(transactionID),
+                                serialNumber,
+                                subjectDN,
+                                issuerDN);
+                        return true;
+                    }
+                };
+            }
+
+            @Override
+            public PersistencyInterface getPersistency() {
+                return persistency;
+            }
+
+            @Override
+            public int getRetryAfterTimeInSeconds(final String certProfile, final int bodyType) {
+                LOGGER.debug(
+                        "getRetryAfterTimeInSeconds called with certprofile: {}, type: {}",
+                        certProfile,
+                        MessageDumper.msgTypeAsString(bodyType));
+                return 1;
+            }
+
+            @Override
+            public SupportMessageHandlerInterface getSupportMessageHandler(
+                    final String certProfile, final String infoTypeOid) {
+                if (NewCMPObjectIdentifiers.it_kemCiphertextInfo.getId().equals(infoTypeOid)) {
+                    return new GetKemCiphertextHandler() {
+                        @Override
+                        public PublicKey getPubKey(X509Certificate trustedCertificate) {
+                            return publicKey;
+                        }
+                    };
+                }
+                LOGGER.debug(
+                        "getSupportMessageHandler called with certprofile: {}, infoTypeOid: {}",
+                        certProfile,
+                        infoTypeOid);
+                return null;
+            }
+
+            @Override
+            public CmpMessageInterface getUpstreamConfiguration(final String certProfile, final int bodyType) {
+                LOGGER.debug(
+                        "getUpstreamConfiguration called with certprofile: {}, type: {}",
+                        certProfile,
+                        MessageDumper.msgTypeAsString(bodyType));
+                return new CmpMessageInterface() {
+
+                    @Override
+                    public VerificationContext getInputVerification() {
+                        return upstreamTrust;
+                    }
+
+                    @Override
+                    public NestedEndpointContext getNestedEndpointContext() {
+                        return null;
+                    }
+
+                    @Override
+                    public CredentialContext getOutputCredentials() {
+
+                        try {
+                            return upstreamCredentials;
+                        } catch (final Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+
+                    @Override
+                    public ReprotectMode getReprotectMode() {
+                        return ReprotectMode.reprotect;
+                    }
+
+                    @Override
+                    public boolean getSuppressRedundantExtraCerts() {
+                        return false;
+                    }
+
+                    @Override
+                    public boolean isCacheExtraCerts() {
+                        return false;
+                    }
+
+                    @Override
+                    public boolean isMessageTimeDeviationAllowed(final long deviation) {
+                        return true;
+                    }
+                };
+            }
+
+            @Override
+            public boolean isRaVerifiedAcceptable(final String certProfile, final int bodyType) {
+                LOGGER.debug(
+                        "isRaVerifiedAcceptable called with certprofile: {}, type: {}",
+                        certProfile,
+                        MessageDumper.msgTypeAsString(bodyType));
+                return false;
+            }
+        };
+    }
+
     public static Configuration buildPasswordbasedDownstreamConfiguration() throws Exception {
         final CredentialContext downstreamCredentials = new SharedSecret("PBMAC1", TestUtils.PASSWORD);
         final VerificationContext downstreamTrust = new PasswordValidationCredentials(TestUtils.PASSWORD);
@@ -91,14 +408,13 @@ public class ConfigurationFactory {
         final SignatureValidationCredentials enrollmentTrust =
                 new SignatureValidationCredentials("credentials/ENROLL_Root.pem", null);
 
-        final Configuration config = buildSimpleRaConfiguration(
+        return buildSimpleRaConfiguration(
                 downstreamCredentials,
                 ReprotectMode.reprotect,
                 downstreamTrust,
                 upstreamCredentials,
                 upstreamTrust,
                 enrollmentTrust);
-        return config;
     }
 
     public static Configuration buildSignatureBasedDownstreamConfiguration() throws Exception {
@@ -703,27 +1019,38 @@ public class ConfigurationFactory {
     }
 
     public static ProtectionProvider getEePasswordbasedProtectionProvider()
-            throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException {
+            throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException, CertificateException {
         if (eePasswordbasedProtectionProvider == null) {
             eePasswordbasedProtectionProvider =
-                    ProtectionProviderFactory.createProtectionProvider(getEeSharedSecretCredentials());
+                    ProtectionProviderFactory.createProtectionProvider(getEeSharedSecretCredentials(), null, null);
         }
         return eePasswordbasedProtectionProvider;
     }
 
+    public static ProtectionProvider getEePbmac1ProtectionProvider()
+            throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException, CertificateException {
+        if (eePbmac1ProtectionProvider == null) {
+            eePbmac1ProtectionProvider = ProtectionProviderFactory.createProtectionProvider(
+                    new SharedSecret("PBMAC1", TestUtils.PASSWORD), null, null);
+        }
+        return eePbmac1ProtectionProvider;
+    }
+
     private static SharedSecret getEeSharedSecretCredentials() {
-        if (eeSharedSecretCredentials == null)
+        if (eeSharedSecretCredentials == null) {
             eeSharedSecretCredentials = new SharedSecret("PASSWORDBASEDMAC", TestUtils.PASSWORD);
+        }
         return eeSharedSecretCredentials;
     }
 
-    public static ProtectionProvider getEePbmac1ProtectionProvider()
-            throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException {
-        if (eePbmac1ProtectionProvider == null) {
-            eePbmac1ProtectionProvider =
-                    ProtectionProviderFactory.createProtectionProvider(new SharedSecret("PBMAC1", TestUtils.PASSWORD));
+    public static TrustChainAndPrivateKey getEeSignaturebasedCredentials() throws Exception {
+        if (eeSignaturebasedCredentials == null) {
+            eeSignaturebasedCredentials = new TrustChainAndPrivateKey(
+                    // "credentials/CMP_EE_Keystore_EdDSA.p12",
+                    // "credentials/CMP_EE_Keystore_RSA.p12",
+                    "credentials/CMP_EE_Keystore.p12", TestUtils.PASSWORD_AS_CHAR_ARRAY);
         }
-        return eePbmac1ProtectionProvider;
+        return eeSignaturebasedCredentials;
     }
 
     private static SharedSecret getEeSharedSecretCredentials() {
@@ -746,26 +1073,13 @@ public class ConfigurationFactory {
     public static ProtectionProvider getEeSignaturebasedProtectionProvider() throws Exception {
         if (eeSignaturebasedProtectionProvider == null) {
             eeSignaturebasedProtectionProvider =
-                    ProtectionProviderFactory.createProtectionProvider(getEeSignaturebasedCredentials());
+                    ProtectionProviderFactory.createProtectionProvider(getEeSignaturebasedCredentials(), null, null);
         }
         return eeSignaturebasedProtectionProvider;
     }
 
-    private static TrustChainAndPrivateKey eeSignaturebasedCredentials;
-    private static SharedSecret eeSharedSecretCredentials;
-
-    public static TrustChainAndPrivateKey getEeSignaturebasedCredentials() throws Exception {
-        if (eeSignaturebasedCredentials == null)
-            eeSignaturebasedCredentials = new TrustChainAndPrivateKey(
-                    // "credentials/CMP_EE_Keystore_EdDSA.p12",
-                    // "credentials/CMP_EE_Keystore_RSA.p12",
-                    "credentials/CMP_EE_Keystore.p12", TestUtils.PASSWORD_AS_CHAR_ARRAY);
-        return eeSignaturebasedCredentials;
-    }
-
     public static KeyPairGenerator getKeyGenerator() {
         if (keyGenerator == null) {
-
             try {
                 // keyGenerator = KeyPairGeneratorFactory
                 // .getEcKeyPairGenerator("secp256r1");

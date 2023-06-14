@@ -18,6 +18,7 @@
 package com.siemens.pki.cmpracomponent.configuration;
 
 import java.net.URI;
+import java.security.PublicKey;
 import java.security.cert.CertPathBuilder;
 import java.security.cert.PKIXRevocationChecker;
 import java.security.cert.X509CRL;
@@ -56,6 +57,14 @@ public interface VerificationContext {
      */
     default Collection<X509CRL> getCRLs() {
         return Collections.emptyList();
+    }
+
+    /**
+     * provide a public key used to build the shared secret key obtained by KEM encapsulation
+     * @return a public key
+     */
+    default PublicKey getKemPubkey() {
+        return null;
     }
 
     /**

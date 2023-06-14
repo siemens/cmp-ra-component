@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.siemens.pki.cmpracomponent.cmpextension.KemCiphertextInfo;
 import com.siemens.pki.cmpracomponent.configuration.PersistencyInterface;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -214,7 +215,10 @@ public class PersistencyContextManager {
         simpleModule.addDeserializer(ASN1OctetString.class, new Asn1ObjectDeserializer<>(ASN1OctetString.class));
         simpleModule.addDeserializer(CMPCertificate.class, new Asn1ObjectDeserializer<>(CMPCertificate.class));
         simpleModule.addDeserializer(PKIMessage.class, new Asn1ObjectDeserializer<>(PKIMessage.class));
+        simpleModule.addDeserializer(KemCiphertextInfo.class, new Asn1ObjectDeserializer<>(KemCiphertextInfo.class));
+        simpleModule.addDeserializer(ASN1OctetString.class, new Asn1ObjectDeserializer<>(ASN1OctetString.class));
         simpleModule.addDeserializer(PrivateKey.class, new PrivateKeyDeserializer(secretKey));
+
         objectMapper.registerModule(simpleModule);
     }
 
@@ -227,12 +231,6 @@ public class PersistencyContextManager {
         wrappedInterface.clearLastSavedMessage(transactionId);
     }
 
-    /**
-     * write PersistencyContext to external {@link PersistencyInterface}
-     *
-     * @param context context to write
-     * @throws IOException in case of eror
-     */
     void flushPersistencyContext(final PersistencyContext context) throws IOException {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(context));
@@ -241,13 +239,6 @@ public class PersistencyContextManager {
                 context.getTransactionId(), objectMapper.writeValueAsBytes(context), context.getExpirationTime());
     }
 
-    /**
-     * load or create {@link PersistencyContext} related to a transactionId
-     *
-     * @param transactionId the transactionId addressing the persistency context
-     * @return PersistencyContext
-     * @throws IOException in case of error
-     */
     public PersistencyContext loadCreatePersistencyContext(final byte[] transactionId) throws IOException {
         final PersistencyContext ret = loadPersistencyContext(transactionId);
         if (ret != null) {

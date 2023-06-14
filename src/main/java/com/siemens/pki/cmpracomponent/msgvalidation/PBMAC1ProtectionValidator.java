@@ -21,6 +21,7 @@ import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
 import com.siemens.pki.cmpracomponent.cryptoservices.WrappedMac;
 import com.siemens.pki.cmpracomponent.cryptoservices.WrappedMacFactory;
+import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import java.util.Arrays;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
@@ -50,7 +51,8 @@ public class PBMAC1ProtectionValidator extends MacValidator {
     }
 
     @Override
-    public Void validate(final PKIMessage message) throws BaseCmpException {
+    public Void validate(final PKIMessage message, PersistencyContext.InterfaceContext interfaceContext)
+            throws BaseCmpException {
         try {
             final PKIHeader header = message.getHeader();
             final byte[] passwordAsBytes = getSharedSecret(header);

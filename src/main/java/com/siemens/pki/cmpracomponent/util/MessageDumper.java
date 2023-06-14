@@ -19,6 +19,7 @@ package com.siemens.pki.cmpracomponent.util;
 
 import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
+import com.siemens.pki.cmpracomponent.cmpextension.NewCMPObjectIdentifiers;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -112,10 +113,6 @@ public class MessageDumper {
             this.oid = oid;
         }
 
-        /**
-         * get declaring class
-         * @return declaring class
-         */
         public String getBcDeclaration() {
             return ifNotNull(declaringClass, Class::getCanonicalName) + "." + id;
         }
@@ -155,6 +152,7 @@ public class MessageDumper {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageDumper.class);
     private static final Map<Integer, String> TYPE_MAP = new ConcurrentHashMap<>();
+
     private static Map<ASN1ObjectIdentifier, OidDescription> oidToKeyMap;
 
     static {
@@ -222,6 +220,14 @@ public class MessageDumper {
     }
 
     /**
+     * Dump PKI message to a string.
+     *
+     * @param msg PKI message to be dumped
+     *
+     * @return string representation of the PKI message
+     */
+
+    /**
      * Dump an ASN1Object as string
      *
      * @param object the object to be dumped
@@ -239,14 +245,6 @@ public class MessageDumper {
         }
         return ret.toString();
     }
-
-    /**
-     * Dump PKI message to a string.
-     *
-     * @param msg PKI message to be dumped
-     *
-     * @return string representation of the PKI message
-     */
 
     /**
      * Dump PKI message to a string.
@@ -464,7 +462,8 @@ public class MessageDumper {
                 PQCObjectIdentifiers.class,
                 org.bouncycastle.asn1.x509.Extension.class,
                 EdECObjectIdentifiers.class,
-                CMPObjectIdentifiers.class)) {
+                CMPObjectIdentifiers.class,
+                NewCMPObjectIdentifiers.class)) {
             for (final Field aktField : aktClass.getFields()) {
                 if (aktField.getType().equals(ASN1ObjectIdentifier.class)
                         && (aktField.getModifiers() & Modifier.STATIC) != 0) {
@@ -528,11 +527,6 @@ public class MessageDumper {
         return msgTypeAsString(msg.getBody());
     }
 
-    /**
-     * convert {@link PKIStatusInfo} to logging string
-     * @param status the PKIStatusInfo
-     * @return logging string
-     */
     public static String pkiStatus2String(final PKIStatusInfo status) {
         if (status == null) {
             return "<null>";

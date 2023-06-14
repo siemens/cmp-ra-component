@@ -25,6 +25,7 @@ import com.siemens.pki.cmpclientcomponent.main.CmpClient;
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
 import com.siemens.pki.cmpracomponent.configuration.Configuration;
 import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
+import com.siemens.pki.cmpracomponent.configuration.KEMCredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
 import com.siemens.pki.cmpracomponent.configuration.SharedSecretCredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
@@ -40,6 +41,8 @@ import com.siemens.pki.cmpracomponent.test.framework.SignatureValidationCredenti
 import java.io.File;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.Security;
 import java.security.cert.X509Certificate;
 import java.util.Collection;
@@ -53,6 +56,164 @@ public class CmpClientTestcaseBase {
 
     static {
         ConfigFileLoader.setConfigFileBase(CONFIG_DIRECTORY);
+    }
+
+    protected static CmpMessageInterface getKemBasedUpstreamconfiguration(
+            PrivateKey privateKey, String upstreamTrustPath) {
+        return new CmpMessageInterface() {
+
+            final SignatureValidationCredentials upstreamTrust =
+                    new SignatureValidationCredentials(upstreamTrustPath, null);
+
+            @Override
+            public VerificationContext getInputVerification() {
+                return upstreamTrust;
+            }
+
+            @Override
+            public NestedEndpointContext getNestedEndpointContext() {
+                return null;
+            }
+
+            @Override
+            public CredentialContext getOutputCredentials() {
+                return new KEMCredentialContext() {
+                    @Override
+                    public PrivateKey getPrivkey() {
+                        return privateKey;
+                    }
+                };
+            }
+
+            @Override
+            public ReprotectMode getReprotectMode() {
+                return ReprotectMode.reprotect;
+            }
+
+            @Override
+            public boolean getSuppressRedundantExtraCerts() {
+                return false;
+            }
+
+            @Override
+            public boolean isCacheExtraCerts() {
+                return false;
+            }
+
+            @Override
+            public boolean isMessageTimeDeviationAllowed(final long deviation) {
+                return deviation < 10;
+            }
+        };
+    }
+
+    protected static CmpMessageInterface getKemBasedUpstreamconfiguration(PublicKey publicKey) {
+        return new CmpMessageInterface() {
+
+            @Override
+            public VerificationContext getInputVerification() {
+                return new VerificationContext() {
+                    @Override
+                    public PublicKey getKemPubkey() {
+                        return publicKey;
+                    }
+                };
+            }
+
+            @Override
+            public NestedEndpointContext getNestedEndpointContext() {
+                return null;
+            }
+
+            @Override
+            public CredentialContext getOutputCredentials() {
+                try {
+                    return ConfigurationFactory.getEeSignaturebasedCredentials();
+                } catch (final Exception e) {
+                    fail(e.getLocalizedMessage());
+                    return null;
+                }
+            }
+
+            @Override
+            public ReprotectMode getReprotectMode() {
+                return ReprotectMode.reprotect;
+            }
+
+            @Override
+            public boolean getSuppressRedundantExtraCerts() {
+                return false;
+            }
+
+            @Override
+            public boolean isCacheExtraCerts() {
+                return false;
+            }
+
+            @Override
+            public boolean isMessageTimeDeviationAllowed(final long deviation) {
+                return deviation < 10;
+            }
+        };
+    }
+
+    protected static CmpMessageInterface getPasswordBasedUpstreamconfiguration(
+            SharedSecretCredentialContext protection, SignatureValidationCredentials keyValidationCredentials) {
+        return new CmpMessageInterface() {
+
+            final PasswordValidationCredentials passwordUpstreamTrust =
+                    new PasswordValidationCredentials(protection.getSharedSecret());
+
+            @Override
+            public VerificationContext getInputVerification() {
+                return new VerificationContext() {
+                    @Override
+                    public Collection<X509Certificate> getAdditionalCerts() {
+                        return keyValidationCredentials.getAdditionalCerts();
+                    }
+
+                    @Override
+                    public byte[] getSharedSecret(byte[] senderKID) {
+                        return passwordUpstreamTrust.getSharedSecret(senderKID);
+                    }
+
+                    @Override
+                    public Collection<X509Certificate> getTrustedCertificates() {
+                        return keyValidationCredentials.getTrustedCertificates();
+                    }
+                };
+            }
+
+            @Override
+            public NestedEndpointContext getNestedEndpointContext() {
+                return null;
+            }
+
+            @Override
+            public CredentialContext getOutputCredentials() {
+                return protection;
+            }
+
+            @Override
+            public ReprotectMode getReprotectMode() {
+                return ReprotectMode.reprotect;
+            }
+
+            @Override
+            public boolean getSuppressRedundantExtraCerts() {
+                return false;
+            }
+
+            @Override
+            public boolean isCacheExtraCerts() {
+                return false;
+            }
+
+            @Override
+            public boolean isMessageTimeDeviationAllowed(final long deviation) {
+                return deviation < 10;
+            }
+        };
     }
 
     protected static CmpMessageInterface getSignatureBasedUpstreamconfiguration(final String upstreamTrustPath) {
@@ -109,6 +270,35 @@ public class CmpClientTestcaseBase {
     }
 
     protected UpstreamExchange upstreamExchange;
+
+    protected CmpClient getKemBasedCmpClient(String certProfile, final ClientContext clientContext, PublicKey publicKey)
+            throws GeneralSecurityException {
+        return new CmpClient(
+                certProfile, getUpstreamExchange(), getKemBasedUpstreamconfiguration(publicKey), clientContext);
+    }
+
+    protected CmpClient getKemBasedCmpClient(
+            String certProfile, final ClientContext clientContext, String upstreamTrustPath, PrivateKey privateKey)
+            throws GeneralSecurityException {
+        return new CmpClient(
+                certProfile,
+                getUpstreamExchange(),
+                getKemBasedUpstreamconfiguration(privateKey, upstreamTrustPath),
+                clientContext);
+    }
+
+    protected CmpClient getPasswordBasedCmpClient(
+            String certProfile,
+            final ClientContext clientContext,
+            SharedSecretCredentialContext protection,
+            SignatureValidationCredentials keyValidationCredentials)
+            throws GeneralSecurityException {
+        return new CmpClient(
+                certProfile,
+                getUpstreamExchange(),
+                getPasswordBasedUpstreamconfiguration(protection, keyValidationCredentials),
+                clientContext);
+    }
 
     protected CmpClient getSignatureBasedCmpClient(
             String certProfile, final ClientContext clientContext, final String upstreamTrustPath)
@@ -182,74 +372,5 @@ public class CmpClientTestcaseBase {
             }
         };
         return upstreamExchange;
-    }
-
-    protected CmpClient getPasswordBasedCmpClient(
-            String certProfile,
-            final ClientContext clientContext,
-            SharedSecretCredentialContext protection,
-            SignatureValidationCredentials keyValidationCredentials)
-            throws GeneralSecurityException {
-        return new CmpClient(
-                certProfile,
-                getUpstreamExchange(),
-                getPasswordBasedUpstreamconfiguration(protection, keyValidationCredentials),
-                clientContext);
-    }
-
-    protected static CmpMessageInterface getPasswordBasedUpstreamconfiguration(
-            SharedSecretCredentialContext protection, SignatureValidationCredentials keyValidationCredentials) {
-        return new CmpMessageInterface() {
-
-            final PasswordValidationCredentials passwordUpstreamTrust =
-                    new PasswordValidationCredentials(protection.getSharedSecret());
-
-            @Override
-            public VerificationContext getInputVerification() {
-                return new VerificationContext() {
-                    public byte[] getSharedSecret(byte[] senderKID) {
-                        return passwordUpstreamTrust.getSharedSecret(senderKID);
-                    }
-
-                    public Collection<X509Certificate> getAdditionalCerts() {
-                        return keyValidationCredentials.getAdditionalCerts();
-                    }
-
-                    public Collection<X509Certificate> getTrustedCertificates() {
-                        return keyValidationCredentials.getTrustedCertificates();
-                    }
-                };
-            }
-
-            @Override
-            public NestedEndpointContext getNestedEndpointContext() {
-                return null;
-            }
-
-            @Override
-            public CredentialContext getOutputCredentials() {
-                return protection;
-            }
-
-            @Override
-            public ReprotectMode getReprotectMode() {
-                return ReprotectMode.reprotect;
-            }
-
-            @Override
-            public boolean getSuppressRedundantExtraCerts() {
-                return false;
-            }
-
-            @Override
-            public boolean isCacheExtraCerts() {
-                return false;
-            }
-
-            @Override
-            public boolean isMessageTimeDeviationAllowed(final long deviation) {
-                return deviation < 10;
-            }
-        };
     }
 }

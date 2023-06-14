@@ -17,6 +17,7 @@
  */
 package com.siemens.pki.cmpracomponent.msgvalidation;
 
+import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import org.bouncycastle.asn1.cmp.PKIMessage;
 
 /**
@@ -25,11 +26,12 @@ import org.bouncycastle.asn1.cmp.PKIMessage;
  */
 public interface ValidatorIF<ResultType> {
     /**
-     * validate a {@link PKIMessage}
-     * @param messageToValidate a message given to the validator
+     * @param messageToValidate a message given ot the validator
+     * @param interfaceContext TODO
      * @return additional validation result
      * @throws CmpProcessingException if the message is invalid
      * @throws CmpValidationException in case of validation error
      */
-    ResultType validate(PKIMessage messageToValidate) throws BaseCmpException;
+    ResultType validate(PKIMessage messageToValidate, PersistencyContext.InterfaceContext interfaceContext)
+            throws BaseCmpException;
 }

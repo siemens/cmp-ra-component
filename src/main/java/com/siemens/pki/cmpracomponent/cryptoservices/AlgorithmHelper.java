@@ -27,7 +27,9 @@ import java.util.Map;
 import javax.crypto.Mac;
 import javax.crypto.SecretKeyFactory;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.bc.BCObjectIdentifiers;
 import org.bouncycastle.asn1.edec.EdECObjectIdentifiers;
+import org.bouncycastle.asn1.iso.ISOIECObjectIdentifiers;
 import org.bouncycastle.asn1.nist.NISTObjectIdentifiers;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.sec.SECObjectIdentifiers;
@@ -115,7 +117,7 @@ public class AlgorithmHelper {
         }
     }
 
-    private static final DefaultDigestAlgorithmIdentifierFinder DIG_ALG_FINDER =
+    public static final DefaultDigestAlgorithmIdentifierFinder DIG_ALG_FINDER =
             new DefaultDigestAlgorithmIdentifierFinder();
     private static final DefaultJcaJceHelper HELPER = new DefaultJcaJceHelper();
     private static final JavaAlgorithmTable<PasswordRecipient.PRF> PBKDF2_ALG_NAMES = new JavaAlgorithmTable<>() {
@@ -136,6 +138,10 @@ public class AlgorithmHelper {
     private static final NameToOidTable KEY_ENCRYPTION_OIDS = new NameToOidTable();
 
     private static final NameToOidTable KEK_OIDS = new NameToOidTable();
+
+    private static final NameToOidTable KEM_OIDS = new NameToOidTable();
+
+    private static final NameToOidTable KDF_OIDS = new NameToOidTable();
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AlgorithmHelper.class);
 
@@ -241,15 +247,22 @@ public class AlgorithmHelper {
         KEY_ENCRYPTION_OIDS.addAll(CMSAlgorithm.AES128_CBC, "AES128_CBC", "AES128");
         KEY_ENCRYPTION_OIDS.addAll(CMSAlgorithm.AES192_CBC, "AES192_CBC", "AES192");
         KEY_ENCRYPTION_OIDS.addAll(CMSAlgorithm.AES256_CBC, "AES256_CBC", "AES256");
+
+        KEM_OIDS.addAll(BCObjectIdentifiers.kyber512, "kyber512");
+        KEM_OIDS.addAll(BCObjectIdentifiers.kyber1024_aes, "kyber1024_aes");
+        KEM_OIDS.addAll(BCObjectIdentifiers.kyber1024, "kyber1024");
+
+        KEM_OIDS.addAll(BCObjectIdentifiers.ntruhps2048509, "ntruhps2048509");
+        KEM_OIDS.addAll(BCObjectIdentifiers.pqc_kem_ntru, "NTRU", "KEM_NTRU");
+        KEM_OIDS.addAll(ISOIECObjectIdentifiers.id_kem_rsa, "RSA", "KEM_RSA");
+
+        KDF_OIDS.addAll(PKCSObjectIdentifiers.id_alg_hkdf_with_sha256, "id_alg_hkdf_with_sha256", "hkdf_with_sha256");
+        KDF_OIDS.addAll(PKCSObjectIdentifiers.id_alg_hkdf_with_sha384, "id_alg_hkdf_with_sha384", "hkdf_with_sha384");
+        KDF_OIDS.addAll(PKCSObjectIdentifiers.id_alg_hkdf_with_sha512, "id_alg_hkdf_with_sha512", "hkdf_with_sha512");
     }
 
-    /**
-     * convert shared secrets from byte[] to char[]
-     * @param sharedSecret sharedSecret as byte[]
-     * @return sharedSecret as char[]
-     */
-    public static char[] convertSharedSecretToPassword(final byte[] sharedSecret) {
-        if (sharedSecret == null || sharedSecret.length == 0) {
+    public static char[] convertSharedSecretToPassword(final byte[] password) {
+        if (password == null || password.length == 0) {
             return new char[0];
         }
         final char[] ret = new char[sharedSecret.length];
@@ -293,6 +306,10 @@ public class AlgorithmHelper {
         return null;
     }
 
+    public static AlgorithmIdentifier getKdfOID(final String algorithm) throws NoSuchAlgorithmException {
+        return ifNotNull(KDF_OIDS.getOid(algorithm), AlgorithmIdentifier::new);
+    }
+
     /**
      * get OID for name of KEK algorithm
      * @param id name of KEK algorithm
@@ -301,6 +318,12 @@ public class AlgorithmHelper {
      */
     public static ASN1ObjectIdentifier getKekOID(final String id) throws NoSuchAlgorithmException {
         return KEK_OIDS.getOid(id);
+    }
+
+    public static AlgorithmIdentifier getKemAlgIdFromName(final String signatureAlgorithmName)
+            throws NoSuchAlgorithmException {
+
+        return ifNotNull(KEM_OIDS.getOid(signatureAlgorithmName), AlgorithmIdentifier::new);
     }
 
     /**

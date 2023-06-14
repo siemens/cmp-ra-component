@@ -19,6 +19,7 @@ package com.siemens.pki.cmpracomponent.msgvalidation;
 
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
+import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -181,12 +182,13 @@ public class MessageBodyValidator implements ValidatorIF<String> {
     /**
      * Validates the given <code>message</code> to ensure that it conforms to the
      * CMP profile.
-     *
      * @param message the CMP message to validate
+     *
      * @throws BaseCmpException if validation failed
      */
     @Override
-    public String validate(final PKIMessage message) throws BaseCmpException {
+    public String validate(final PKIMessage message, PersistencyContext.InterfaceContext interfaceContext)
+            throws BaseCmpException {
         try {
             final ASN1GeneralizedTime messageTime = message.getHeader().getMessageTime();
             if (messageTime != null) {

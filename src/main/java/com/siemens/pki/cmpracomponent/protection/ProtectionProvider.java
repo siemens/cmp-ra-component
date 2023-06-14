@@ -69,4 +69,13 @@ public interface ProtectionProvider {
      * @return sender KID to use for protected message
      */
     DEROctetString getSenderKID();
+
+    /**
+     * do we need an initial GENM/GENP exchange to establish protection?
+     *
+     * @return <code>true</code> if initial GENM/GENP exchange is needed
+     */
+    default boolean needsClientInitialKemSetup() {
+        return false;
+    }
 }

@@ -20,6 +20,7 @@ package com.siemens.pki.cmpclientcomponent.main;
 import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
 import com.siemens.pki.cmpclientcomponent.configuration.ClientContext;
+import com.siemens.pki.cmpracomponent.cmpextension.NewCMPObjectIdentifiers;
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
 import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
@@ -34,6 +35,8 @@ import com.siemens.pki.cmpracomponent.msgvalidation.MessageBodyValidator;
 import com.siemens.pki.cmpracomponent.msgvalidation.MessageHeaderValidator;
 import com.siemens.pki.cmpracomponent.msgvalidation.ProtectionValidator;
 import com.siemens.pki.cmpracomponent.msgvalidation.ValidatorIF;
+import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
+import com.siemens.pki.cmpracomponent.persistency.PersistencyContext.InterfaceContext;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProviderFactory;
 import com.siemens.pki.cmpracomponent.util.FileTracer;
@@ -41,6 +44,7 @@ import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Objects;
+import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.DERNull;
 import org.bouncycastle.asn1.DEROctetString;
@@ -49,6 +53,8 @@ import org.bouncycastle.asn1.DERUTF8String;
 import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
 import org.bouncycastle.asn1.cmp.CertRepMessage;
 import org.bouncycastle.asn1.cmp.ErrorMsgContent;
+import org.bouncycastle.asn1.cmp.GenMsgContent;
+import org.bouncycastle.asn1.cmp.GenRepContent;
 import org.bouncycastle.asn1.cmp.InfoTypeAndValue;
 import org.bouncycastle.asn1.cmp.PKIBody;
 import org.bouncycastle.asn1.cmp.PKIFailureInfo;
@@ -81,6 +87,8 @@ class ClientRequestHandler {
 
         private final VerificationContext inputVerification;
 
+        private final PersistencyContext persistencyContext = new PersistencyContext(null, transactionId.getOctets());
+
         public ValidatorAndProtector(NestedEndpointContext nestedEndpoint) throws GeneralSecurityException {
             this(
                     NESTED_INTERFACE_NAME,
@@ -105,15 +113,24 @@ class ClientRequestHandler {
                 CmpMessageInterface upstreamConfiguration)
                 throws GeneralSecurityException {
             headerValidator = new MessageHeaderValidator(intefaceName);
-            outputProtection = ProtectionProviderFactory.createProtectionProvider(outputCredentials);
+            outputProtection = ProtectionProviderFactory.createProtectionProvider(
+                    outputCredentials, persistencyContext, PersistencyContext.InterfaceContext.upstream_send);
             this.inputVerification = inputVerification;
-            protectionValidator = new ProtectionValidator(intefaceName, inputVerification);
+            protectionValidator = new ProtectionValidator(
+                    intefaceName,
+                    inputVerification,
+                    persistencyContext,
+                    PersistencyContext.InterfaceContext.upstream_rec);
             if (upstreamConfiguration != null) {
                 bodyValidator =
                         new MessageBodyValidator(intefaceName, (x, y) -> false, upstreamConfiguration, certProfile);
             } else {
                 bodyValidator = DUMMY_VALIDATOR;
             }
+        }
+
+        public InfoTypeAndValue getGeneralInfo(HeaderProvider headerProvider) throws Exception {
+            return protectionValidator.getGeneralInfo(headerProvider);
         }
 
         public VerificationContext getInputVerification() {
@@ -124,15 +141,24 @@ class ClientRequestHandler {
             return outputProtection;
         }
 
-        private void validateResponse(final PKIMessage response) throws BaseCmpException {
-            headerValidator.validate(response);
-            protectionValidator.validate(response);
+        boolean needsClientInitialKemSetup() {
+            return outputProtection.needsClientInitialKemSetup();
+        }
 
-            bodyValidator.validate(response);
+        public void setInitialKemContext(PKIMessage response, InterfaceContext upstreamRec) throws BaseCmpException {
+            persistencyContext.setInitialKemContext(response, upstreamRec);
+        }
+
+        private void validateResponse(final PKIMessage response) throws BaseCmpException {
+            headerValidator.validate(response, InterfaceContext.upstream_rec);
+            persistencyContext.setInitialKemContext(response, InterfaceContext.upstream_rec);
+            protectionValidator.validate(response, InterfaceContext.upstream_rec);
+
+            bodyValidator.validate(response, InterfaceContext.upstream_rec);
         }
     }
 
-    private static final ValidatorIF<String> DUMMY_VALIDATOR = messageToValidate -> null;
+    private static final ValidatorIF<String> DUMMY_VALIDATOR = (messageToValidate, interfaceKontext) -> null;
 
     private static final int DEFAULT_PVNO = PKIHeader.CMP_2000;
 
@@ -152,6 +178,8 @@ class ClientRequestHandler {
     private final String certProfile;
 
     private final ValidatorAndProtector nestedValidatorAndProtector;
+
+    private final DEROctetString transactionId = new DEROctetString(CertUtility.generateRandomBytes(16));
 
     /**
      * @param certProfile           certificate profile to be used for enrollment.
@@ -197,8 +225,16 @@ class ClientRequestHandler {
 
     PKIMessage buildInitialRequest(final PKIBody requestBody, final boolean withImplicitConfirm, final int pvno)
             throws Exception {
-        return buildRequest(
-                requestBody, new DEROctetString(CertUtility.generateRandomBytes(16)), null, pvno, withImplicitConfirm);
+        ASN1OctetString recipNonce = null;
+        if (validatorAndProtector.needsClientInitialKemSetup()) {
+            final PKIMessage ret = establishInitialKemContext(requestBody.getType());
+            if (ret == null) {
+                LOGGER.warn("KEM exchange failed");
+                return null;
+            }
+            recipNonce = ret.getHeader().getSenderNonce();
+        }
+        return buildRequest(requestBody, transactionId, recipNonce, pvno, withImplicitConfirm);
     }
 
     private PKIMessage buildRequest(
@@ -208,21 +244,30 @@ class ClientRequestHandler {
             final int pvno,
             final boolean withImplicitConfirm)
             throws Exception {
+
         final HeaderProvider headerProvider = new HeaderProvider() {
             final ASN1OctetString senderNonce = new DEROctetString(CertUtility.generateRandomBytes(16));
 
             @Override
             public InfoTypeAndValue[] getGeneralInfo() {
-                if (certProfile == null && !withImplicitConfirm) {
-                    return null;
+                final ArrayList<InfoTypeAndValue> genList = new ArrayList<>(3);
+                try {
+                    final InfoTypeAndValue kemGeneralInfo = validatorAndProtector.getGeneralInfo(this);
+                    if (kemGeneralInfo != null) {
+                        genList.add(kemGeneralInfo);
+                    }
+                } catch (final Exception e) {
+                    LOGGER.error("failed to build KEM GeneralInfo");
                 }
-                final ArrayList<InfoTypeAndValue> genList = new ArrayList<>(2);
                 if (certProfile != null) {
                     genList.add(new InfoTypeAndValue(
                             CMPObjectIdentifiers.id_it_certProfile, new DERSequence(new DERUTF8String(certProfile))));
                 }
                 if (withImplicitConfirm) {
                     genList.add(new InfoTypeAndValue(CMPObjectIdentifiers.it_implicitConfirm, DERNull.INSTANCE));
+                }
+                if (genList.size() < 1) {
+                    return null;
                 }
                 return genList.toArray(new InfoTypeAndValue[0]);
             }
@@ -259,6 +304,89 @@ class ClientRequestHandler {
         };
         return PkiMessageGenerator.generateAndProtectMessage(
                 headerProvider, validatorAndProtector.getOutputProtection(), body);
+    }
+
+    private PKIMessage establishInitialKemContext(int requestType) throws Exception {
+        final PKIBody requestBody = new PKIBody(
+                PKIBody.TYPE_GEN_MSG,
+                new GenMsgContent(new InfoTypeAndValue(NewCMPObjectIdentifiers.it_kemCiphertextInfo)));
+
+        final HeaderProvider headerProvider = new HeaderProvider() {
+            final ASN1OctetString senderNonce = new DEROctetString(CertUtility.generateRandomBytes(16));
+
+            @Override
+            public InfoTypeAndValue[] getGeneralInfo() {
+                if (certProfile == null) {
+                    return null;
+                }
+                return new InfoTypeAndValue[] {
+                    new InfoTypeAndValue(
+                            CMPObjectIdentifiers.id_it_certProfile, new DERSequence(new DERUTF8String(certProfile)))
+                };
+            }
+
+            @Override
+            public int getPvno() {
+                return PKIHeader.CMP_2000;
+            }
+
+            @Override
+            public GeneralName getRecipient() {
+                return recipient;
+            }
+
+            @Override
+            public ASN1OctetString getRecipNonce() {
+                return null;
+            }
+
+            @Override
+            public GeneralName getSender() {
+                // TODO Auto-generated method stub
+                return null;
+            }
+
+            @Override
+            public ASN1OctetString getSenderNonce() {
+                // TODO Auto-generated method stub
+                return senderNonce;
+            }
+
+            @Override
+            public ASN1OctetString getTransactionID() {
+                return transactionId;
+            }
+        };
+        final PKIMessage request = PkiMessageGenerator.generateAndProtectMessage(
+                headerProvider, ProtectionProvider.NO_PROTECTION, requestBody);
+        FileTracer.logMessage(request, INTERFACE_NAME);
+        final byte[] rawresponse = upstreamExchange.sendReceiveMessage(request.getEncoded(), certProfile, requestType);
+        if (rawresponse == null) {
+            return null;
+        }
+        final PKIMessage response = PKIMessage.getInstance(rawresponse);
+        FileTracer.logMessage(response, INTERFACE_NAME);
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("client received:\n" + MessageDumper.dumpPkiMessage(response));
+        }
+        final PKIBody responseBody = response.getBody();
+        if (responseBody.getType() == PKIBody.TYPE_GEN_REP) {
+            final GenRepContent content = (GenRepContent) responseBody.getContent();
+            final InfoTypeAndValue[] itav = content.toInfoTypeAndValueArray();
+            if (itav != null) {
+                for (final InfoTypeAndValue aktitav : itav) {
+                    if (NewCMPObjectIdentifiers.it_kemCiphertextInfo.equals(aktitav.getInfoType())) {
+                        final ASN1Encodable infoValue = aktitav.getInfoValue();
+                        if (infoValue != null) {
+                            validatorAndProtector.setInitialKemContext(response, InterfaceContext.upstream_send);
+                            // kemCiphertextInfo found
+                            return response;
+                        }
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     public VerificationContext getInputVerification() {

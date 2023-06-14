@@ -72,6 +72,8 @@ class TransactionStateTracker {
 
     private final PersistencyContext persistencyContext;
 
+    private boolean kemStart = false;
+
     TransactionStateTracker(final PersistencyContext persistencyContext) {
         this.persistencyContext = persistencyContext;
     }
@@ -290,6 +292,10 @@ class TransactionStateTracker {
         }
     }
 
+    public void markKemStart() {
+        kemStart = true;
+    }
+
     /**
      * the main state machine
      *
@@ -299,7 +305,8 @@ class TransactionStateTracker {
      */
     public void trackMessage(final PKIMessage message) throws BaseCmpException, IOException {
         if (isResponse(message)) {
-            persistencyContext.setLastSenderNonce(message.getHeader().getSenderNonce());
+            persistencyContext.setLastSenderNonce(
+                    message.getHeader().getSenderNonce().getOctets());
         }
         if (isError(message)) {
             persistencyContext.setLastTransactionState(LastTransactionState.IN_ERROR_STATE);
@@ -312,8 +319,9 @@ class TransactionStateTracker {
                         PKIFailureInfo.transactionIdInUse,
                         "unexpected transcation ID for " + MessageDumper.msgAsShortString(message));
             }
-            if (!Objects.equals(
-                    persistencyContext.getLastSenderNonce(), message.getHeader().getRecipNonce())) {
+            if (!Arrays.equals(
+                    persistencyContext.getLastSenderNonce(),
+                    message.getHeader().getRecipNonce().getOctets())) {
                 throw new CmpValidationException(
                         INTERFACE_NAME,
                         PKIFailureInfo.badRecipientNonce,
@@ -468,7 +476,11 @@ class TransactionStateTracker {
                             PKIFailureInfo.transactionIdInUse,
                             "transaction in wrong state for " + MessageDumper.msgAsShortString(message));
                 }
-                persistencyContext.setLastTransactionState(LastTransactionState.GENREP_RETURNED);
+                if (kemStart) {
+                    persistencyContext.setLastTransactionState(LastTransactionState.INITIAL_STATE);
+                } else {
+                    persistencyContext.setLastTransactionState(LastTransactionState.GENREP_RETURNED);
+                }
                 return;
             case GEN_POLLING:
                 if (isPollRequest(message) || isPollResponse(message)) {

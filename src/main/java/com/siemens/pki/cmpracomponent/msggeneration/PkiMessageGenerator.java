@@ -21,16 +21,19 @@ import static com.siemens.pki.cmpracomponent.util.NullUtil.computeDefaultIfNull;
 import static com.siemens.pki.cmpracomponent.util.NullUtil.defaultIfNull;
 import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
+import com.siemens.pki.cmpracomponent.cmpextension.NewCMPObjectIdentifiers;
 import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.cryptoservices.CmsEncryptorBase;
 import com.siemens.pki.cmpracomponent.cryptoservices.DataSigner;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
+import com.siemens.pki.cmpracomponent.util.NullUtil;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.PrivateKey;
 import java.security.Signature;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -132,7 +135,9 @@ public class PkiMessageGenerator {
 
             @Override
             public InfoTypeAndValue[] getGeneralInfo() {
-                return header.getGeneralInfo();
+                return NullUtil.ifNotNull(header.getGeneralInfo(), orgGeneralInfo -> Arrays.stream(orgGeneralInfo)
+                        .filter(x -> !x.getInfoType().equals(NewCMPObjectIdentifiers.it_kemCiphertextInfo))
+                        .toArray(InfoTypeAndValue[]::new));
             }
 
             @Override
@@ -199,7 +204,9 @@ public class PkiMessageGenerator {
 
             @Override
             public InfoTypeAndValue[] getGeneralInfo() {
-                return header.getGeneralInfo();
+                return NullUtil.ifNotNull(header.getGeneralInfo(), orgGeneralInfo -> Arrays.stream(orgGeneralInfo)
+                        .filter(x -> !x.getInfoType().equals(NewCMPObjectIdentifiers.it_kemCiphertextInfo))
+                        .toArray(InfoTypeAndValue[]::new));
             }
 
             @Override
@@ -520,8 +527,8 @@ public class PkiMessageGenerator {
     /**
      * generate a RR body
      *
-     * @param issuer       issuer of certificate to revoke
-     * @param serialNumber serialNumber of certificate to revoke
+     * @param issuer           issuer of certificate to revoke
+     * @param serialNumber     serialNumber of certificate to revoke
      * @param revocationReason the reason for this revocation
      * @return generated RR body
      * @throws IOException in case of ASN.1 processing errors
