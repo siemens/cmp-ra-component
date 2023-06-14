@@ -46,7 +46,7 @@ public class DataSignVerifier extends TrustCredentialAdapter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DataSignVerifier.class);
     private static final JcaSimpleSignerInfoVerifierBuilder builder =
-            new JcaSimpleSignerInfoVerifierBuilder().setProvider(CertUtility.BOUNCY_CASTLE_PROVIDER);
+            new JcaSimpleSignerInfoVerifierBuilder().setProvider(CertUtility.getBouncyCastleProvider());
 
     public DataSignVerifier(final VerificationContext config) {
         super(config);
@@ -117,7 +117,7 @@ public class DataSignVerifier extends TrustCredentialAdapter {
         final PKCS8EncodedKeySpec pkcs8EncKeySpec = new PKCS8EncodedKeySpec(verifiedContent);
         for (final String keyType : new String[] {"RSA", "EC", "Ed448", "Ed25519"}) {
             try {
-                final KeyFactory factory = KeyFactory.getInstance(keyType, CertUtility.BOUNCY_CASTLE_PROVIDER);
+                final KeyFactory factory = KeyFactory.getInstance(keyType, CertUtility.getBouncyCastleProvider());
                 return factory.generatePrivate(pkcs8EncKeySpec);
             } catch (final Exception e) {
                 // try next key type
