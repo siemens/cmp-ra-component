@@ -80,3 +80,6 @@ fix: rename DownstreamExpirationTime to TransactionMaxLifetime
 
 ### 2.5.0 (Mar 21 2023)
 fix: rename TransactionMaxLifetime to DownstreamTimeout
+
+### 2.5.1 (Jun 27 2023)
+fix: update some dependencies
