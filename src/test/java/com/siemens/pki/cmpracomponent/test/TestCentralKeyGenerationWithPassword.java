@@ -304,7 +304,8 @@ public class TestCentralKeyGenerationWithPassword extends CkgOnlineEnrollmentTes
                             final byte[] transactionID,
                             final String requesterDn,
                             final byte[] certTemplate,
-                            final String requestedSubjectDn) {
+                            final String requestedSubjectDn,
+                            byte[] pkiMessage) {
                         LOGGER.debug(
                                 "checkAndModifyCertRequest called with transactionID: {}, requesterDn: {}, requestedSubjectDn: {}",
                                 new BigInteger(transactionID),
@@ -329,7 +330,8 @@ public class TestCentralKeyGenerationWithPassword extends CkgOnlineEnrollmentTes
                             final byte[] transactionID,
                             final String requesterDn,
                             final byte[] pkcs10CertRequest,
-                            final String requestedSubjectDn) {
+                            final String requestedSubjectDn,
+                            byte[] pkiMessage) {
                         LOGGER.debug(
                                 "checkP10CertRequest called with transactionID: {}, requesterDn: {}, requestedSubjectDn: {}",
                                 new BigInteger(transactionID),

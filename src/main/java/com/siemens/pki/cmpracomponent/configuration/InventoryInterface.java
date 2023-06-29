@@ -25,11 +25,11 @@ public interface InventoryInterface {
 
     /**
      * check and optionally modify a CRMF certificate request that was received in a
-     * CMP ir, cr or, kur message.
+     * CMP ir, cr or kur message.
      *
      * @param transactionID      the transactionID of the CMP request message. The
      *                           transactionID can be used to correlate calls of
-     *                           {@link #checkAndModifyCertRequest(byte[], String, byte[], String)}
+     *                           {@link #checkAndModifyCertRequest(byte[], String, byte[], String, byte[])}
      *                           and
      *                           {@link #learnEnrollmentResult(byte[], byte[], String, String, String)}.
      * @param requesterDn        Distinguished Name (DN) of the CMP requester. This
@@ -49,19 +49,24 @@ public interface InventoryInterface {
      *                           present. The DN is an X500 name formatted as string
      *                           according to the BouncyCastle library defaults.
      *                           This parameter is provided for convenience.
+     * @param pkiMessage         the ASN.1 DER-encoded CMP ir, cr or kur message
      * @return result of validation check
      */
     CheckAndModifyResult checkAndModifyCertRequest(
-            byte[] transactionID, String requesterDn, byte[] certTemplate, String requestedSubjectDn);
+            byte[] transactionID,
+            String requesterDn,
+            byte[] certTemplate,
+            String requestedSubjectDn,
+            byte[] pkiMessage);
 
     /**
-     * check PKCS#10 certificate request that was received in CMP p10cr mesage. Note
+     * check PKCS#10 certificate request that was received in CMP p10cr message. Note
      * that such certificate request cannot be modified because it is self-signed by
      * the requester.
      *
      * @param transactionID      the transactionID of the CMP request message. The
      *                           transactionID can be used to correlate calls of
-     *                           {@link #checkP10CertRequest(byte[], String, byte[], String)}
+     *                           {@link #checkP10CertRequest(byte[], String, byte[], String, byte[])}
      *                           and
      *                           {@link #learnEnrollmentResult(byte[], byte[], String, String, String)}.
      * @param requesterDn        Distinguished Name (DN) of the CMP requester. This
@@ -72,17 +77,22 @@ public interface InventoryInterface {
      *                           field was set the requesterDn is <code>null</code>.
      *                           The DN is an X500 name formatted as string
      *                           according to the BouncyCastle library defaults.
-     * @param pkcs10CertRequest  the ASN.1 DER-encoded.PKCS#10 certificate request
+     * @param pkcs10CertRequest  the ASN.1 DER-encoded PKCS#10 certificate request
      *                           as received from a requester in a p10cr request.
      * @param requestedSubjectDn subject DN extracted from the
      *                           CertificationRequestInfo of the pkcs10CertRequest.
      *                           The DN is an X500 name formatted as string
      *                           according to the BouncyCastle library defaults.
      *                           This parameter is provided for convenience.
+     * @param pkiMessage         the ASN.1 DER-encoded CMP p10cr message
      * @return <code>true</code> if the request is granted.
      */
     boolean checkP10CertRequest(
-            byte[] transactionID, String requesterDn, byte[] pkcs10CertRequest, String requestedSubjectDn);
+            byte[] transactionID,
+            String requesterDn,
+            byte[] pkcs10CertRequest,
+            String requestedSubjectDn,
+            byte[] pkiMessage);
 
     /**
      * learn the enrollment status including any new certificate. May respond false
@@ -90,9 +100,9 @@ public interface InventoryInterface {
      *
      * @param transactionID the transactionID of the CMP request/response message.
      *                      The transactionID can be used to correlate calls of
-     *                      {@link #checkAndModifyCertRequest(byte[], String, byte[], String)}
+     *                      {@link #checkAndModifyCertRequest(byte[], String, byte[], String, byte[])}
      *                      or
-     *                      {@link #checkP10CertRequest(byte[], String, byte[], String)}
+     *                      {@link #checkP10CertRequest(byte[], String, byte[], String, byte[])}
      *                      and
      *                      {@link #learnEnrollmentResult(byte[], byte[], String, String, String)}.
      * @param certificate   the new certificate, which is assumed to be ASN.1 DER

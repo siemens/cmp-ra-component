@@ -186,7 +186,8 @@ class RaDownstream {
                     persistencyContext.getTransactionId(),
                     requesterDn,
                     certTemplate.getEncoded(),
-                    ifNotNull(certTemplate.getSubject(), X500Name::toString));
+                    ifNotNull(certTemplate.getSubject(), X500Name::toString),
+                    incomingCertificateRequest.getEncoded());
 
             if (checkResult == null || !checkResult.isGranted()) {
                 throw new CmpEnrollmentException(
@@ -340,7 +341,8 @@ class RaDownstream {
                         persistencyContext.getTransactionId(),
                         requesterDn,
                         p10Request.getEncoded(),
-                        p10Request.getSubject().toString())) {
+                        p10Request.getSubject().toString(),
+                        incomingP10Request.getEncoded())) {
                     throw new CmpValidationException(
                             INTERFACE_NAME, PKIFailureInfo.badCertTemplate, "request refused by external inventory");
                 }

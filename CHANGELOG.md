@@ -83,3 +83,7 @@ fix: rename TransactionMaxLifetime to DownstreamTimeout
 
 ### 2.5.1 (Jun 27 2023)
 fix: update some dependencies
+
+### 2.6.0 (Jun 29 2023)
+feat: provide full CMP message ín inventory check methods
+note: This changes the existing API for the inventory interface
