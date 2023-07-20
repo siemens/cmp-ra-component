@@ -17,9 +17,12 @@
  */
 package com.siemens.pki.cmpracomponent.msggeneration;
 
-import static com.siemens.pki.cmpracomponent.util.NullUtil.*;
+import static com.siemens.pki.cmpracomponent.util.NullUtil.computeDefaultIfNull;
+import static com.siemens.pki.cmpracomponent.util.NullUtil.defaultIfNull;
+import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
 import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
+import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.cryptoservices.CmsEncryptorBase;
 import com.siemens.pki.cmpracomponent.cryptoservices.DataSigner;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
@@ -27,18 +30,59 @@ import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.PrivateKey;
-import java.security.SecureRandom;
 import java.security.Signature;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Stream;
-import org.bouncycastle.asn1.*;
-import org.bouncycastle.asn1.cmp.*;
-import org.bouncycastle.asn1.crmf.*;
+import org.bouncycastle.asn1.ASN1Encoding;
+import org.bouncycastle.asn1.ASN1Enumerated;
+import org.bouncycastle.asn1.ASN1GeneralizedTime;
+import org.bouncycastle.asn1.ASN1Integer;
+import org.bouncycastle.asn1.ASN1OctetString;
+import org.bouncycastle.asn1.ASN1Sequence;
+import org.bouncycastle.asn1.DERBitString;
+import org.bouncycastle.asn1.DEROctetString;
+import org.bouncycastle.asn1.DERSequence;
+import org.bouncycastle.asn1.cmp.CMPCertificate;
+import org.bouncycastle.asn1.cmp.CertConfirmContent;
+import org.bouncycastle.asn1.cmp.CertOrEncCert;
+import org.bouncycastle.asn1.cmp.CertRepMessage;
+import org.bouncycastle.asn1.cmp.CertResponse;
+import org.bouncycastle.asn1.cmp.CertStatus;
+import org.bouncycastle.asn1.cmp.CertifiedKeyPair;
+import org.bouncycastle.asn1.cmp.ErrorMsgContent;
+import org.bouncycastle.asn1.cmp.InfoTypeAndValue;
+import org.bouncycastle.asn1.cmp.PKIBody;
+import org.bouncycastle.asn1.cmp.PKIConfirmContent;
+import org.bouncycastle.asn1.cmp.PKIFailureInfo;
+import org.bouncycastle.asn1.cmp.PKIFreeText;
+import org.bouncycastle.asn1.cmp.PKIHeader;
+import org.bouncycastle.asn1.cmp.PKIHeaderBuilder;
+import org.bouncycastle.asn1.cmp.PKIMessage;
+import org.bouncycastle.asn1.cmp.PKIStatus;
+import org.bouncycastle.asn1.cmp.PKIStatusInfo;
+import org.bouncycastle.asn1.cmp.PollRepContent;
+import org.bouncycastle.asn1.cmp.PollReqContent;
+import org.bouncycastle.asn1.cmp.ProtectedPart;
+import org.bouncycastle.asn1.cmp.RevDetails;
+import org.bouncycastle.asn1.cmp.RevReqContent;
+import org.bouncycastle.asn1.crmf.CertReqMessages;
+import org.bouncycastle.asn1.crmf.CertReqMsg;
+import org.bouncycastle.asn1.crmf.CertRequest;
+import org.bouncycastle.asn1.crmf.CertTemplate;
+import org.bouncycastle.asn1.crmf.CertTemplateBuilder;
+import org.bouncycastle.asn1.crmf.Controls;
+import org.bouncycastle.asn1.crmf.EncryptedKey;
+import org.bouncycastle.asn1.crmf.POPOSigningKey;
+import org.bouncycastle.asn1.crmf.ProofOfPossession;
 import org.bouncycastle.asn1.x500.RDN;
 import org.bouncycastle.asn1.x500.X500Name;
-import org.bouncycastle.asn1.x509.*;
+import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
+import org.bouncycastle.asn1.x509.Certificate;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.ExtensionsGenerator;
+import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.cert.cmp.CMPException;
 import org.bouncycastle.cms.CMSException;
 import org.bouncycastle.operator.DefaultDigestAlgorithmIdentifierFinder;
@@ -67,17 +111,11 @@ public class PkiMessageGenerator {
      * needed to generate a cert hash
      */
     private static final BcDigestCalculatorProvider BC_DIGEST_CALCULATOR_PROVIDER = new BcDigestCalculatorProvider();
-    /**
-     * randomness is important
-     */
-    private static final SecureRandom RANDOM = new SecureRandom();
 
     /**
      * needed to generate a cert hash
      */
     private static final DigestAlgorithmIdentifierFinder DIG_ALG_FINDER = new DefaultDigestAlgorithmIdentifierFinder();
-
-    private PkiMessageGenerator() {}
 
     /**
      * build a {@link HeaderProvider} out the header of a message
@@ -113,8 +151,8 @@ public class PkiMessageGenerator {
             }
 
             @Override
-            public byte[] getRecipNonce() {
-                return ifNotNull(header.getRecipNonce(), ASN1OctetString::getOctets);
+            public ASN1OctetString getRecipNonce() {
+                return header.getRecipNonce();
             }
 
             @Override
@@ -123,8 +161,8 @@ public class PkiMessageGenerator {
             }
 
             @Override
-            public byte[] getSenderNonce() {
-                return ifNotNull(header.getSenderNonce(), ASN1OctetString::getOctets);
+            public ASN1OctetString getSenderNonce() {
+                return header.getSenderNonce();
             }
 
             @Override
@@ -156,6 +194,7 @@ public class PkiMessageGenerator {
      */
     public static HeaderProvider buildRespondingHeaderProvider(final PKIMessage msg) {
         return new HeaderProvider() {
+            final ASN1OctetString senderNonce = new DEROctetString(CertUtility.generateRandomBytes(16));
             private final PKIHeader header = msg.getHeader();
 
             @Override
@@ -186,8 +225,8 @@ public class PkiMessageGenerator {
             }
 
             @Override
-            public byte[] getRecipNonce() {
-                return ifNotNull(header.getSenderNonce(), ASN1OctetString::getOctets);
+            public ASN1OctetString getRecipNonce() {
+                return header.getSenderNonce();
             }
 
             @Override
@@ -196,10 +235,8 @@ public class PkiMessageGenerator {
             }
 
             @Override
-            public byte[] getSenderNonce() {
-                final byte[] byteString = new byte[16];
-                RANDOM.nextBytes(byteString);
-                return byteString;
+            public ASN1OctetString getSenderNonce() {
+                return senderNonce;
             }
 
             @Override
@@ -314,7 +351,7 @@ public class PkiMessageGenerator {
      * @return a IP, CP or KUP body
      */
     public static PKIBody generateIpCpKupBody(final int bodyType, final CMPCertificate certificate) {
-        final CertResponse[] response = new CertResponse[] {
+        final CertResponse[] response = {
             new CertResponse(
                     CERT_REQ_ID_0,
                     new PKIStatusInfo(PKIStatus.granted),
@@ -347,7 +384,7 @@ public class PkiMessageGenerator {
             throws Exception {
         final EncryptedKey encryptedPrivateKey =
                 new EncryptedKey(keyEncryptor.encrypt(keySigner.signPrivateKey(privateKey)));
-        final CertResponse[] response = new CertResponse[] {
+        final CertResponse[] response = {
             new CertResponse(
                     CERT_REQ_ID_0,
                     new PKIStatusInfo(PKIStatus.granted),
@@ -369,7 +406,7 @@ public class PkiMessageGenerator {
     public static PKIBody generateIpCpKupErrorBody(final int bodyType, final int failInfo, final String errorDetails) {
         final PKIStatusInfo pkiStatusInfo =
                 new PKIStatusInfo(PKIStatus.rejection, new PKIFreeText(errorDetails), new PKIFailureInfo(failInfo));
-        final CertResponse[] response = new CertResponse[] {new CertResponse(CERT_REQ_ID_0, pkiStatusInfo)};
+        final CertResponse[] response = {new CertResponse(CERT_REQ_ID_0, pkiStatusInfo)};
         return new PKIBody(bodyType, new CertRepMessage(null, response));
     }
 
@@ -438,7 +475,7 @@ public class PkiMessageGenerator {
             case PKIBody.TYPE_INIT_REQ:
             case PKIBody.TYPE_CERT_REQ:
             case PKIBody.TYPE_KEY_UPDATE_REQ: {
-                final CertResponse[] response = new CertResponse[] {
+                final CertResponse[] response = {
                     new CertResponse(CERT_REQ_ID_0, new PKIStatusInfo(PKIStatus.waiting, errorDetails), null, null)
                 };
                 return new PKIBody(requestBody.getType() + 1, new CertRepMessage(null, response));
@@ -491,4 +528,6 @@ public class PkiMessageGenerator {
             throws Exception {
         return generateAndProtectMessage(headerProvider, ProtectionProvider.NO_PROTECTION, body, null);
     }
+
+    private PkiMessageGenerator() {}
 }

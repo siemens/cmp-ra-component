@@ -87,3 +87,6 @@ fix: update some dependencies
 ### 2.6.0 (Jun 29 2023)
 feat: provide full CMP message ín inventory check methods
 note: This changes the existing API for the inventory interface
+
+### 2.6.1 (Jun 29 2023)
+feat: change internal HeaderProvider interface
