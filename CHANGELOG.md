@@ -90,3 +90,6 @@ note: This changes the existing API for the inventory interface
 
 ### 2.6.1 (Jun 29 2023)
 feat: change internal HeaderProvider interface
+
+### 2.6.2 (Aug 08 2023)
+feat: change internal HeaderProvider interface
