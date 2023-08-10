@@ -22,15 +22,49 @@ import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.security.*;
+import java.security.InvalidKeyException;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.security.Signature;
+import java.security.SignatureException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Date;
 import java.util.Objects;
 import java.util.function.BiPredicate;
-import org.bouncycastle.asn1.*;
-import org.bouncycastle.asn1.cmp.*;
-import org.bouncycastle.asn1.crmf.*;
+import org.bouncycastle.asn1.ASN1Encodable;
+import org.bouncycastle.asn1.ASN1Encoding;
+import org.bouncycastle.asn1.ASN1Enumerated;
+import org.bouncycastle.asn1.ASN1GeneralizedTime;
+import org.bouncycastle.asn1.ASN1Integer;
+import org.bouncycastle.asn1.cmp.CertConfirmContent;
+import org.bouncycastle.asn1.cmp.CertOrEncCert;
+import org.bouncycastle.asn1.cmp.CertRepMessage;
+import org.bouncycastle.asn1.cmp.CertResponse;
+import org.bouncycastle.asn1.cmp.CertStatus;
+import org.bouncycastle.asn1.cmp.CertifiedKeyPair;
+import org.bouncycastle.asn1.cmp.ErrorMsgContent;
+import org.bouncycastle.asn1.cmp.GenMsgContent;
+import org.bouncycastle.asn1.cmp.GenRepContent;
+import org.bouncycastle.asn1.cmp.InfoTypeAndValue;
+import org.bouncycastle.asn1.cmp.PKIBody;
+import org.bouncycastle.asn1.cmp.PKIConfirmContent;
+import org.bouncycastle.asn1.cmp.PKIFailureInfo;
+import org.bouncycastle.asn1.cmp.PKIMessage;
+import org.bouncycastle.asn1.cmp.PKIStatus;
+import org.bouncycastle.asn1.cmp.PKIStatusInfo;
+import org.bouncycastle.asn1.cmp.PollRepContent;
+import org.bouncycastle.asn1.cmp.PollReqContent;
+import org.bouncycastle.asn1.cmp.RevDetails;
+import org.bouncycastle.asn1.cmp.RevRepContent;
+import org.bouncycastle.asn1.cmp.RevReqContent;
+import org.bouncycastle.asn1.crmf.CertReqMessages;
+import org.bouncycastle.asn1.crmf.CertReqMsg;
+import org.bouncycastle.asn1.crmf.CertRequest;
+import org.bouncycastle.asn1.crmf.CertTemplate;
+import org.bouncycastle.asn1.crmf.POPOSigningKey;
+import org.bouncycastle.asn1.crmf.ProofOfPossession;
 import org.bouncycastle.asn1.pkcs.CertificationRequest;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.Extensions;
@@ -80,6 +114,67 @@ public class MessageBodyValidator implements ValidatorIF<String> {
         this.isRaVerifiedAcceptable = isRaVerifiedAcceptable;
         this.certProfile = certProfile;
         this.cmpInterfaceConfig = cmpInterfaceConfig;
+    }
+
+    private void assertEnrollmentEqual(
+            final int enrollmentType, final Object value1, final Object value2, final String errorMsg)
+            throws CmpEnrollmentException {
+        if (!Objects.equals(value1, value2)) {
+            throw new CmpEnrollmentException(enrollmentType, interfaceName, PKIFailureInfo.badDataFormat, errorMsg);
+        }
+    }
+
+    private void assertEnrollmentValueIsNull(
+            final int enrollmentType, final Object value, final int failInfo, final String errorMsg)
+            throws CmpEnrollmentException {
+        if (!Objects.isNull(value)) {
+            throw new CmpEnrollmentException(enrollmentType, interfaceName, failInfo, errorMsg);
+        }
+    }
+
+    private void assertEnrollmentValueNotNull(
+            final int enrollmentType, final Object value, final int failInfo, final String fieldName)
+            throws CmpEnrollmentException {
+        if (Objects.isNull(value)) {
+            throw new CmpEnrollmentException(enrollmentType, interfaceName, failInfo, "missing '" + fieldName + "'");
+        }
+    }
+
+    private void assertEqual(final Object value1, final Object value2, final String errorMsg)
+            throws CmpValidationException {
+        if (!Objects.equals(value1, value2)) {
+            throw new CmpValidationException(interfaceName, PKIFailureInfo.badDataFormat, errorMsg);
+        }
+    }
+
+    private void assertExactlyOneElementInArray(final Object[] array, final String fieldName)
+            throws CmpValidationException {
+        if (array == null) {
+            throw new CmpValidationException(
+                    interfaceName, PKIFailureInfo.addInfoNotAvailable, "missing '" + fieldName + "'");
+        }
+        if (array.length != 1) {
+            throw new CmpValidationException(
+                    interfaceName, PKIFailureInfo.badDataFormat, "'" + fieldName + "' must have one element");
+        }
+        if (array[0] == null) {
+            throw new CmpValidationException(
+                    interfaceName, PKIFailureInfo.addInfoNotAvailable, "missing '" + fieldName + "'");
+        }
+    }
+
+    private void assertValueIsNull(final Object value, final int failInfo, final String errorMsg)
+            throws CmpValidationException {
+        if (!Objects.isNull(value)) {
+            throw new CmpValidationException(interfaceName, failInfo, errorMsg);
+        }
+    }
+
+    private void assertValueNotNull(final Object value, final int failInfo, final String fieldName)
+            throws CmpValidationException {
+        if (Objects.isNull(value)) {
+            throw new CmpValidationException(interfaceName, failInfo, "missing '" + fieldName + "'");
+        }
     }
 
     /**
@@ -164,67 +259,6 @@ public class MessageBodyValidator implements ValidatorIF<String> {
         return certProfile;
     }
 
-    private void assertEnrollmentEqual(
-            final int enrollmentType, final Object value1, final Object value2, final String errorMsg)
-            throws CmpEnrollmentException {
-        if (!Objects.equals(value1, value2)) {
-            throw new CmpEnrollmentException(enrollmentType, interfaceName, PKIFailureInfo.badDataFormat, errorMsg);
-        }
-    }
-
-    private void assertEnrollmentValueIsNull(
-            final int enrollmentType, final Object value, final int failInfo, final String errorMsg)
-            throws CmpEnrollmentException {
-        if (!Objects.isNull(value)) {
-            throw new CmpEnrollmentException(enrollmentType, interfaceName, failInfo, errorMsg);
-        }
-    }
-
-    private void assertEnrollmentValueNotNull(
-            final int enrollmentType, final Object value, final int failInfo, final String fieldName)
-            throws CmpEnrollmentException {
-        if (Objects.isNull(value)) {
-            throw new CmpEnrollmentException(enrollmentType, interfaceName, failInfo, "missing '" + fieldName + "'");
-        }
-    }
-
-    private void assertEqual(final Object value1, final Object value2, final String errorMsg)
-            throws CmpValidationException {
-        if (!Objects.equals(value1, value2)) {
-            throw new CmpValidationException(interfaceName, PKIFailureInfo.badDataFormat, errorMsg);
-        }
-    }
-
-    private void assertExactlyOneElementInArray(final Object[] array, final String fieldName)
-            throws CmpValidationException {
-        if (array == null) {
-            throw new CmpValidationException(
-                    interfaceName, PKIFailureInfo.addInfoNotAvailable, "missing '" + fieldName + "'");
-        }
-        if (array.length != 1) {
-            throw new CmpValidationException(
-                    interfaceName, PKIFailureInfo.badDataFormat, "'" + fieldName + "' must have one element");
-        }
-        if (array[0] == null) {
-            throw new CmpValidationException(
-                    interfaceName, PKIFailureInfo.addInfoNotAvailable, "missing '" + fieldName + "'");
-        }
-    }
-
-    private void assertValueIsNull(final Object value, final int failInfo, final String errorMsg)
-            throws CmpValidationException {
-        if (!Objects.isNull(value)) {
-            throw new CmpValidationException(interfaceName, failInfo, errorMsg);
-        }
-    }
-
-    private void assertValueNotNull(final Object value, final int failInfo, final String fieldName)
-            throws CmpValidationException {
-        if (Objects.isNull(value)) {
-            throw new CmpValidationException(interfaceName, failInfo, "missing '" + fieldName + "'");
-        }
-    }
-
     private void validateCertConfirm(final CertConfirmContent content) throws BaseCmpException {
         final CertStatus[] certStatusArray = content.toCertStatusArray();
         assertExactlyOneElementInArray(certStatusArray, "certStatus");
@@ -269,7 +303,7 @@ public class MessageBodyValidator implements ValidatorIF<String> {
         }
         assertEnrollmentValueNotNull(
                 enrollmentType, certTemplate.getSubject(), PKIFailureInfo.badCertTemplate, "subject in template");
-        final ProofOfPossession popo = certReqMsg.getPopo();
+        final ProofOfPossession popo = certReqMsg.getPop();
         final SubjectPublicKeyInfo publicKeyInfo = certTemplate.getPublicKey();
         if (popo == null) {
             try {

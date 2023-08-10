@@ -93,3 +93,7 @@ feat: change internal HeaderProvider interface
 
 ### 2.6.2 (Aug 08 2023)
 feat: change internal HeaderProvider interface
+
+### 2.6.3 (Aug 10 2023)
+feat: improve file dumper
+fix: BC deprecatet method

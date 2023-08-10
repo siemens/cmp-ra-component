@@ -48,6 +48,14 @@ public class FileTracer {
 
     private static File msgDumpDirectory;
 
+    private static boolean enablePemDump;
+
+    private static boolean enableTxtDump;
+
+    private static boolean enableDerDump;
+
+    private static boolean enableAsn1Dump;
+
     static {
         final String dumpDirName = System.getProperty("dumpdir");
         if (dumpDirName != null) {
@@ -59,33 +67,55 @@ public class FileTracer {
                 LOGGER.info("dump transactions below " + msgDumpDirectory);
             }
         }
+        // "pem+txt+der+asn1"
+        final String dumpFormat = System.getProperty("dumpformat", "txt").toLowerCase();
+        enablePemDump = dumpFormat.contains("pem");
+        enableTxtDump = dumpFormat.contains("txt");
+        enableDerDump = dumpFormat.contains("der");
+        enableAsn1Dump = dumpFormat.contains("asn");
     }
 
-    // utility class
-    private FileTracer() {}
-
     public static void logMessage(final PKIMessage msg, final String interfaceName) {
-        if (msgDumpDirectory == null || msg == null) {
+        if (msgDumpDirectory == null
+                || msg == null
+                || !enablePemDump && !enableTxtDump && !enableDerDump && !enableAsn1Dump) {
             return;
         }
         final String subDirName = "trans_"
                 + B64_ENCODER_WITHOUT_PADDING.encodeToString(
                         msg.getHeader().getTransactionID().getOctets());
-        final File subDir = new File(msgDumpDirectory, subDirName);
-        if (!subDir.isDirectory()) {
-            subDir.mkdirs();
-        }
-        final String fileprefix = interfaceName + "_" + MessageDumper.msgTypeAsString(msg);
-        try (final FileOutputStream binOut = new FileOutputStream(new File(subDir, fileprefix + ".PKI"));
-                final FileWriter txtOut = new FileWriter(new File(subDir, fileprefix + ".txt"));
-                final PemWriter pemOut = new PemWriter(new FileWriter(new File(subDir, fileprefix + ".pem")))) {
-            final byte[] encodedMessage = msg.getEncoded(ASN1Encoding.DER);
-            binOut.write(encodedMessage);
-            pemOut.writeObject(new PemObject("PKIXCMP", encodedMessage));
-            txtOut.write(ASN1Dump.dumpAsString(msg, true));
-            txtOut.write(MessageDumper.dumpPkiMessage(msg));
+        try {
+            final File subDir = new File(msgDumpDirectory, subDirName);
+            if (!subDir.isDirectory()) {
+                subDir.mkdirs();
+            }
+            final String fileprefix = interfaceName + "_" + MessageDumper.msgTypeAsString(msg);
+            final byte[] encodedMessage = enableDerDump || enablePemDump ? msg.getEncoded(ASN1Encoding.DER) : null;
+            if (enableDerDump) {
+                try (final FileOutputStream binOut = new FileOutputStream(new File(subDir, fileprefix + ".PKI"))) {
+                    binOut.write(encodedMessage);
+                }
+            }
+            if (enablePemDump) {
+                try (final PemWriter pemOut = new PemWriter(new FileWriter(new File(subDir, fileprefix + ".pem")))) {
+                    pemOut.writeObject(new PemObject("PKIXCMP", encodedMessage));
+                }
+            }
+            if (enableAsn1Dump || enableTxtDump) {
+                try (final FileWriter txtOut = new FileWriter(new File(subDir, fileprefix + ".txt"))) {
+                    if (enableTxtDump) {
+                        txtOut.write(MessageDumper.dumpPkiMessage(msg));
+                    }
+                    if (enableAsn1Dump) {
+                        txtOut.write(ASN1Dump.dumpAsString(msg, true));
+                    }
+                }
+            }
         } catch (final IOException e) {
             LOGGER.error("error writing dump", e);
         }
     }
+
+    // utility class
+    private FileTracer() {}
 }
