@@ -23,6 +23,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.Base64.Encoder;
+import java.util.concurrent.atomic.AtomicLong;
 import org.bouncycastle.asn1.ASN1Encoding;
 import org.bouncycastle.asn1.cmp.PKIMessage;
 import org.bouncycastle.asn1.util.ASN1Dump;
@@ -75,6 +76,8 @@ public class FileTracer {
         enableAsn1Dump = dumpFormat.contains("asn");
     }
 
+    private static final AtomicLong messagecounter = new AtomicLong(0);
+
     public static void logMessage(final PKIMessage msg, final String interfaceName) {
         if (msgDumpDirectory == null
                 || msg == null
@@ -89,7 +92,8 @@ public class FileTracer {
             if (!subDir.isDirectory()) {
                 subDir.mkdirs();
             }
-            final String fileprefix = interfaceName + "_" + MessageDumper.msgTypeAsString(msg);
+            final String fileprefix =
+                    interfaceName + "_" + messagecounter.incrementAndGet() + "_" + MessageDumper.msgTypeAsString(msg);
             final byte[] encodedMessage = enableDerDump || enablePemDump ? msg.getEncoded(ASN1Encoding.DER) : null;
             if (enableDerDump) {
                 try (final FileOutputStream binOut = new FileOutputStream(new File(subDir, fileprefix + ".PKI"))) {
