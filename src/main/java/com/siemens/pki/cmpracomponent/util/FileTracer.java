@@ -92,8 +92,8 @@ public class FileTracer {
             if (!subDir.isDirectory()) {
                 subDir.mkdirs();
             }
-            final String fileprefix =
-                    interfaceName + "_" + messagecounter.incrementAndGet() + "_" + MessageDumper.msgTypeAsString(msg);
+            final String fileprefix = String.format(
+                    "%03d_%s_%s", messagecounter.incrementAndGet(), interfaceName, MessageDumper.msgTypeAsString(msg));
             final byte[] encodedMessage = enableDerDump || enablePemDump ? msg.getEncoded(ASN1Encoding.DER) : null;
             if (enableDerDump) {
                 try (final FileOutputStream binOut = new FileOutputStream(new File(subDir, fileprefix + ".PKI"))) {
