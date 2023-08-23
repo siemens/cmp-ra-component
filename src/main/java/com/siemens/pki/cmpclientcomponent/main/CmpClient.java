@@ -19,26 +19,6 @@ package com.siemens.pki.cmpclientcomponent.main;
 
 import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
-import com.siemens.pki.cmpclientcomponent.configuration.ClientContext;
-import com.siemens.pki.cmpclientcomponent.configuration.EnrollmentContext;
-import com.siemens.pki.cmpclientcomponent.configuration.EnrollmentContext.TemplateExtension;
-import com.siemens.pki.cmpclientcomponent.configuration.RevocationContext;
-import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
-import com.siemens.pki.cmpracomponent.configuration.CrlUpdateRetrievalHandler;
-import com.siemens.pki.cmpracomponent.configuration.GetCaCertificatesHandler;
-import com.siemens.pki.cmpracomponent.configuration.GetCertificateRequestTemplateHandler;
-import com.siemens.pki.cmpracomponent.configuration.GetRootCaCertificateUpdateHandler;
-import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
-import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
-import com.siemens.pki.cmpracomponent.cryptoservices.CmsDecryptor;
-import com.siemens.pki.cmpracomponent.cryptoservices.DataSignVerifier;
-import com.siemens.pki.cmpracomponent.cryptoservices.TrustCredentialAdapter;
-import com.siemens.pki.cmpracomponent.main.CmpRaComponent.UpstreamExchange;
-import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
-import com.siemens.pki.cmpracomponent.protection.MacProtection;
-import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
-import com.siemens.pki.cmpracomponent.protection.SignatureBasedProtection;
-import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -50,9 +30,11 @@ import java.security.cert.X509CRL;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.Set;
+import java.util.stream.Stream;
+
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
@@ -91,6 +73,27 @@ import org.bouncycastle.asn1.x509.Time;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.siemens.pki.cmpclientcomponent.configuration.ClientContext;
+import com.siemens.pki.cmpclientcomponent.configuration.EnrollmentContext;
+import com.siemens.pki.cmpclientcomponent.configuration.RevocationContext;
+import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
+import com.siemens.pki.cmpracomponent.configuration.CrlUpdateRetrievalHandler;
+import com.siemens.pki.cmpracomponent.configuration.GetCaCertificatesHandler;
+import com.siemens.pki.cmpracomponent.configuration.GetCertificateRequestTemplateHandler;
+import com.siemens.pki.cmpracomponent.configuration.GetRootCaCertificateUpdateHandler;
+import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
+import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
+import com.siemens.pki.cmpracomponent.cryptoservices.CmsDecryptor;
+import com.siemens.pki.cmpracomponent.cryptoservices.DataSignVerifier;
+import com.siemens.pki.cmpracomponent.cryptoservices.TrustCredentialAdapter;
+import com.siemens.pki.cmpracomponent.main.CmpRaComponent.UpstreamExchange;
+import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
+import com.siemens.pki.cmpracomponent.protection.MacProtection;
+import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
+import com.siemens.pki.cmpracomponent.protection.SignatureBasedProtection;
+import com.siemens.pki.cmpracomponent.util.MessageDumper;
+import com.siemens.pki.cmpracomponent.util.NullUtil;
 
 /**
  * a CMP client implementation
@@ -173,6 +176,19 @@ public class CmpClient
             }
         });
         return ret;
+    }
+
+    private Extension fetchSubjectAlternativeName(final X509Certificate cert) {
+        final Stream<Extension> criticalOids =
+                NullUtil.defaultIfNull(cert.getCriticalExtensionOIDs(), Collections.<String>emptySet()).stream()
+                        .map(oid -> new Extension(new ASN1ObjectIdentifier(oid), true, cert.getExtensionValue(oid)));
+        final Stream<Extension> nonCriticalOids =
+                NullUtil.defaultIfNull(cert.getNonCriticalExtensionOIDs(), Collections.<String>emptySet()).stream()
+                        .map(oid -> new Extension(new ASN1ObjectIdentifier(oid), false, cert.getExtensionValue(oid)));
+        final Extension[] ret = Stream.concat(criticalOids, nonCriticalOids)
+                .filter(x -> x.getExtnId().equals(Extension.subjectAlternativeName))
+                .toArray(Extension[]::new);
+        return ret.length > 0 ? ret[0] : null;
     }
 
     /**
@@ -387,13 +403,7 @@ public class CmpClient
     public EnrollmentResult invokeEnrollment() {
 
         try {
-
-            int pvno = PKIHeader.CMP_2000;
-
             final EnrollmentContext enrollmentContext = clientContext.getEnrollmentContext();
-
-            final int enrollmentType = enrollmentContext.getEnrollmentType();
-
             final KeyPair certificateKeypair = enrollmentContext.getCertificateKeypair();
 
             PrivateKey enrolledPrivateKey = null;
@@ -403,99 +413,60 @@ public class CmpClient
                 enrolledPublicKeyInfo = SubjectPublicKeyInfo.getInstance(
                         certificateKeypair.getPublic().getEncoded());
             }
-            final PKIBody requestBody;
-            if (enrollmentType == PKIBody.TYPE_P10_CERT_REQ) {
-                final PKCS10CertificationRequest p10Request =
-                        new PKCS10CertificationRequest(enrollmentContext.getCertificationRequest());
-                enrolledPublicKeyInfo = p10Request.getSubjectPublicKeyInfo();
-                requestBody = new PKIBody(PKIBody.TYPE_P10_CERT_REQ, p10Request.toASN1Structure());
-            } else {
-                String subject = enrollmentContext.getSubject();
-                List<TemplateExtension> extensions = enrollmentContext.getExtensions();
-                final X509Certificate oldCert = enrollmentContext.getOldCert();
-                if (oldCert != null) {
-                    if (subject == null) {
-                        subject = oldCert.getSubjectDN().getName();
-                    }
-                    if (extensions == null) {
-                        extensions = new ArrayList<>();
-                        final Set<String> criticalExtensionOIDs = oldCert.getCriticalExtensionOIDs();
-                        if (criticalExtensionOIDs != null) {
-                            for (final String oid : criticalExtensionOIDs) {
-                                extensions.add(new TemplateExtension() {
-
-                                    @Override
-                                    public String getId() {
-                                        return oid;
-                                    }
-
-                                    @Override
-                                    public byte[] getValue() {
-                                        return oldCert.getExtensionValue(oid);
-                                    }
-
-                                    @Override
-                                    public boolean isCritical() {
-                                        return true;
-                                    }
-                                });
-                            }
-                        }
-                        final Set<String> nonCriticalExtensionOIDs = oldCert.getNonCriticalExtensionOIDs();
-                        if (nonCriticalExtensionOIDs != null) {
-                            for (final String oid : nonCriticalExtensionOIDs) {
-                                extensions.add(new TemplateExtension() {
-
-                                    @Override
-                                    public String getId() {
-                                        return oid;
-                                    }
-
-                                    @Override
-                                    public byte[] getValue() {
-                                        return oldCert.getExtensionValue(oid);
-                                    }
-
-                                    @Override
-                                    public boolean isCritical() {
-                                        return false;
-                                    }
-                                });
-                            }
-                        }
-                    }
+            PKIBody requestBody;
+            int pvno;
+            final int enrollmentType = enrollmentContext.getEnrollmentType();
+            switch (enrollmentType) {
+                case PKIBody.TYPE_P10_CERT_REQ: {
+                    final PKCS10CertificationRequest p10Request =
+                            new PKCS10CertificationRequest(enrollmentContext.getCertificationRequest());
+                    enrolledPublicKeyInfo = p10Request.getSubjectPublicKeyInfo();
+                    requestBody = new PKIBody(PKIBody.TYPE_P10_CERT_REQ, p10Request.toASN1Structure());
+                    pvno = PKIHeader.CMP_2000;
+                    break;
                 }
-
-                final CertTemplateBuilder ctb = new CertTemplateBuilder()
-                        .setSubject(ifNotNull(subject, X500Name::new))
-                        .setPublicKey(enrolledPublicKeyInfo);
-                if (extensions != null) {
-                    final Extension[] extensionsAsArray = new Extension[extensions.size()];
-                    int aktIndex = 0;
-                    for (final TemplateExtension aktTemplateExtension : extensions) {
-                        extensionsAsArray[aktIndex++] = new Extension(
-                                new ASN1ObjectIdentifier(aktTemplateExtension.getId()),
-                                aktTemplateExtension.isCritical(),
-                                aktTemplateExtension.getValue());
+                case PKIBody.TYPE_KEY_UPDATE_REQ: {
+                    final X509Certificate oldCert = enrollmentContext.getOldCert();
+                    if (oldCert == null) {
+                        LOGGER.error("oldCertificate for EnrollmentType 7(kur) reqired");
+                        return null;
                     }
-                    ctb.setExtensions(new Extensions(extensionsAsArray));
+                    final CertTemplateBuilder ctb = new CertTemplateBuilder()
+                            .setSubject(new X500Name(oldCert.getSubjectDN().getName()))
+                            .setPublicKey(enrolledPublicKeyInfo);
+                    final Extension sanExtension = fetchSubjectAlternativeName(oldCert);
+                    if (sanExtension != null) {
+                        ctb.setExtensions(new Extensions(sanExtension));
+                    }
+                    final Controls controls = new Controls(new AttributeTypeAndValue(
+                            CMPObjectIdentifiers.regCtrl_oldCertID,
+                            new CertId(
+                                    new GeneralName(new X500Name(
+                                            oldCert.getIssuerX500Principal().getName())),
+                                    oldCert.getSerialNumber())));
+                    requestBody = PkiMessageGenerator.generateIrCrKurBody(
+                            enrollmentType, ctb.build(), controls, enrolledPrivateKey);
+                    pvno = enrolledPrivateKey == null ? PKIHeader.CMP_2021 : PKIHeader.CMP_2000;
+                    break;
                 }
-
-                final Controls controls = ifNotNull(
-                        oldCert,
-                        oc -> new Controls(new AttributeTypeAndValue(
-                                CMPObjectIdentifiers.regCtrl_oldCertID,
-                                new CertId(
-                                        new GeneralName(new X500Name(
-                                                oc.getIssuerX500Principal().getName())),
-                                        oc.getSerialNumber()))));
-
-                requestBody = PkiMessageGenerator.generateIrCrKurBody(
-                        enrollmentType, ctb.build(), controls, enrolledPrivateKey);
-                if (enrolledPrivateKey == null) {
-                    // CKG in place
-                    pvno = PKIHeader.CMP_2021;
+                case PKIBody.TYPE_CERT_REQ:
+                case PKIBody.TYPE_INIT_REQ: {
+                    final String subject = enrollmentContext.getSubject();
+                    ifNotNull(enrollmentContext.getExtensions(), exts -> exts.stream()
+                            .map(ext -> new Extension(
+                                    new ASN1ObjectIdentifier(ext.getId()), ext.isCritical(), ext.getValue()))
+                            .toArray(Extension[]::new));
+                    final CertTemplateBuilder ctb = new CertTemplateBuilder()
+                            .setSubject(ifNotNull(subject, X500Name::new))
+                            .setPublicKey(enrolledPublicKeyInfo);
+                    requestBody = PkiMessageGenerator.generateIrCrKurBody(
+                            enrollmentType, ctb.build(), null, enrolledPrivateKey);
+                    pvno = enrolledPrivateKey == null ? PKIHeader.CMP_2021 : PKIHeader.CMP_2000;
+                    break;
                 }
+                default:
+                    LOGGER.error("EnrollmentType must be 0(ir), 2(cr), 7(kur) or 4(p10cr)");
+                    return null;
             }
             final PKIMessage responseMessage = requestHandler.sendReceiveValidateMessage(
                     requestHandler.buildInitialRequest(requestBody, enrollmentContext.getRequestImplictConfirm(), pvno),
