@@ -19,6 +19,26 @@ package com.siemens.pki.cmpclientcomponent.main;
 
 import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
+import com.siemens.pki.cmpclientcomponent.configuration.ClientContext;
+import com.siemens.pki.cmpclientcomponent.configuration.EnrollmentContext;
+import com.siemens.pki.cmpclientcomponent.configuration.RevocationContext;
+import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
+import com.siemens.pki.cmpracomponent.configuration.CrlUpdateRetrievalHandler;
+import com.siemens.pki.cmpracomponent.configuration.GetCaCertificatesHandler;
+import com.siemens.pki.cmpracomponent.configuration.GetCertificateRequestTemplateHandler;
+import com.siemens.pki.cmpracomponent.configuration.GetRootCaCertificateUpdateHandler;
+import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
+import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
+import com.siemens.pki.cmpracomponent.cryptoservices.CmsDecryptor;
+import com.siemens.pki.cmpracomponent.cryptoservices.DataSignVerifier;
+import com.siemens.pki.cmpracomponent.cryptoservices.TrustCredentialAdapter;
+import com.siemens.pki.cmpracomponent.main.CmpRaComponent.UpstreamExchange;
+import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
+import com.siemens.pki.cmpracomponent.protection.MacProtection;
+import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
+import com.siemens.pki.cmpracomponent.protection.SignatureBasedProtection;
+import com.siemens.pki.cmpracomponent.util.MessageDumper;
+import com.siemens.pki.cmpracomponent.util.NullUtil;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -34,7 +54,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Stream;
-
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
@@ -73,27 +92,6 @@ import org.bouncycastle.asn1.x509.Time;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.siemens.pki.cmpclientcomponent.configuration.ClientContext;
-import com.siemens.pki.cmpclientcomponent.configuration.EnrollmentContext;
-import com.siemens.pki.cmpclientcomponent.configuration.RevocationContext;
-import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
-import com.siemens.pki.cmpracomponent.configuration.CrlUpdateRetrievalHandler;
-import com.siemens.pki.cmpracomponent.configuration.GetCaCertificatesHandler;
-import com.siemens.pki.cmpracomponent.configuration.GetCertificateRequestTemplateHandler;
-import com.siemens.pki.cmpracomponent.configuration.GetRootCaCertificateUpdateHandler;
-import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
-import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
-import com.siemens.pki.cmpracomponent.cryptoservices.CmsDecryptor;
-import com.siemens.pki.cmpracomponent.cryptoservices.DataSignVerifier;
-import com.siemens.pki.cmpracomponent.cryptoservices.TrustCredentialAdapter;
-import com.siemens.pki.cmpracomponent.main.CmpRaComponent.UpstreamExchange;
-import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
-import com.siemens.pki.cmpracomponent.protection.MacProtection;
-import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
-import com.siemens.pki.cmpracomponent.protection.SignatureBasedProtection;
-import com.siemens.pki.cmpracomponent.util.MessageDumper;
-import com.siemens.pki.cmpracomponent.util.NullUtil;
 
 /**
  * a CMP client implementation

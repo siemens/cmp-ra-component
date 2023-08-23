@@ -327,11 +327,16 @@ class ClientRequestHandler {
             response = PKIMessages.getInstance(response.getBody().getContent()).toPKIMessageArray()[0];
         }
         validatorAndProtector.validateResponse(response);
-        final ASN1OctetString requestSenderNonce = request.getHeader().getSenderNonce();
-        final ASN1OctetString recipNonce = response.getHeader().getRecipNonce();
-        if (!Objects.equals(requestSenderNonce, recipNonce)) {
+        final PKIHeader requestHeader = request.getHeader();
+        final ASN1OctetString firstRequestSenderNonce = requestHeader.getSenderNonce();
+        final PKIHeader responseHeader = response.getHeader();
+        if (!Objects.equals(firstRequestSenderNonce, responseHeader.getRecipNonce())) {
             throw new CmpValidationException(
                     INTERFACE_NAME, PKIFailureInfo.badRecipientNonce, "nonce mismatch on upstream");
+        }
+        if (!Objects.equals(requestHeader.getTransactionID(), responseHeader.getTransactionID())) {
+            throw new CmpValidationException(
+                    INTERFACE_NAME, PKIFailureInfo.badMessageCheck, "transactionId mismatch on upstream");
         }
         if (!isWaitingIndication(response.getBody())) {
             // no delayed delivery
@@ -348,14 +353,20 @@ class ClientRequestHandler {
             response = PKIMessage.getInstance(rawresponse);
             FileTracer.logMessage(response, INTERFACE_NAME);
             validatorAndProtector.validateResponse(response);
-            if (!Objects.equals(requestSenderNonce, recipNonce)
-                    && !Objects.equals(pollReq.getHeader().getSenderNonce(), recipNonce)) {
+            final PKIBody responseBody = response.getBody();
+            final ASN1OctetString pollSenderNonce = pollReq.getHeader().getSenderNonce();
+            final ASN1OctetString pollRecipNonce = response.getHeader().getRecipNonce();
+            if (responseBody.getType() != PKIBody.TYPE_POLL_REP) {
+                if (!Objects.equals(firstRequestSenderNonce, pollRecipNonce)
+                        && !Objects.equals(pollSenderNonce, pollRecipNonce)) {
+                    throw new CmpValidationException(
+                            INTERFACE_NAME, PKIFailureInfo.badRecipientNonce, "nonce mismatch on upstream");
+                }
+                return response;
+            }
+            if (!Objects.equals(pollSenderNonce, pollRecipNonce)) {
                 throw new CmpValidationException(
                         INTERFACE_NAME, PKIFailureInfo.badRecipientNonce, "nonce mismatch on upstream");
-            }
-            final PKIBody responseBody = response.getBody();
-            if (responseBody.getType() != PKIBody.TYPE_POLL_REP) {
-                return response;
             }
             final int checkAfterTime = ((PollRepContent) responseBody.getContent())
                     .getCheckAfter(0)
