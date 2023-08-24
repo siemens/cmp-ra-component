@@ -524,6 +524,29 @@ public class CmpClient
                 LOGGER.error("wrong public key in enrolled cerificate");
                 return null;
             }
+
+            final X509Certificate enrolledCertAsX509 = CertUtility.asX509Certificate(enrolledCertificate);
+            final List<X509Certificate> enrollmentChain;
+            if (enrollmentContext.getEnrollmentTrust() != null) {
+                try {
+                    final List<? extends X509Certificate> validationResult = new TrustCredentialAdapter(
+                                    enrollmentContext.getEnrollmentTrust())
+                            .validateCertAgainstTrust(
+                                    enrolledCertAsX509,
+                                    CertUtility.asX509Certificates(responseMessage.getExtraCerts()));
+                    if (validationResult == null) {
+                        LOGGER.error("error building enrollment chain");
+                        return null;
+                    }
+                    enrollmentChain = new ArrayList<>(validationResult.size());
+                    enrollmentChain.addAll(validationResult);
+                } catch (final CertificateException e) {
+                    LOGGER.error("error building enrollment chain", e);
+                    return null;
+                }
+            } else {
+                enrollmentChain = null;
+            }
             if (!grantsImplicitConfirm(responseMessage) || !enrollmentContext.getRequestImplictConfirm()) {
                 final PKIMessage certConf = requestHandler.buildFurtherRequest(
                         responseMessage, PkiMessageGenerator.generateCertConfBody(enrolledCertificate));
@@ -541,26 +564,12 @@ public class CmpClient
 
                 @Override
                 public X509Certificate getEnrolledCertificate() {
-                    try {
-                        return CertUtility.asX509Certificate(enrolledCertificate);
-                    } catch (final CertificateException e) {
-                        return null;
-                    }
+                    return enrolledCertAsX509;
                 }
 
                 @Override
                 public List<X509Certificate> getEnrollmentChain() {
-                    final List<X509Certificate> ret = new ArrayList<>();
-                    try {
-                        ret.addAll(new TrustCredentialAdapter(enrollmentContext.getEnrollmentTrust())
-                                .validateCertAgainstTrust(
-                                        getEnrolledCertificate(),
-                                        CertUtility.asX509Certificates(responseMessage.getExtraCerts())));
-                        return ret;
-                    } catch (final CertificateException e) {
-                        LOGGER.error("error building enrollment chain", e);
-                        return null;
-                    }
+                    return enrollmentChain;
                 }
 
                 @Override
