@@ -21,6 +21,7 @@ import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.KeyFactory;
+import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -33,7 +34,11 @@ import org.bouncycastle.asn1.cms.CMSObjectIdentifiers;
 import org.bouncycastle.asn1.cms.ContentInfo;
 import org.bouncycastle.asn1.cms.SignedData;
 import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cms.*;
+import org.bouncycastle.cms.CMSException;
+import org.bouncycastle.cms.CMSSignedData;
+import org.bouncycastle.cms.CMSTypedData;
+import org.bouncycastle.cms.SignerInformation;
+import org.bouncycastle.cms.SignerInformationStore;
 import org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoVerifierBuilder;
 import org.bouncycastle.util.Store;
 import org.slf4j.Logger;
@@ -47,10 +52,6 @@ public class DataSignVerifier extends TrustCredentialAdapter {
     private static final Logger LOGGER = LoggerFactory.getLogger(DataSignVerifier.class);
     private static final JcaSimpleSignerInfoVerifierBuilder builder =
             new JcaSimpleSignerInfoVerifierBuilder().setProvider(CertUtility.getBouncyCastleProvider());
-
-    public DataSignVerifier(final VerificationContext config) {
-        super(config);
-    }
 
     public static byte[] verifySignature(final byte[] encodedSignedData)
             throws CertificateException, CMSException, IOException {
@@ -86,6 +87,15 @@ public class DataSignVerifier extends TrustCredentialAdapter {
             }
         }
         return null;
+    }
+
+    public DataSignVerifier(final VerificationContext config) {
+        super(config);
+    }
+
+    private boolean validate(final X509CertificateHolder cert, final List<X509Certificate> allCerts)
+            throws CertificateException, IOException, NoSuchProviderException {
+        return validateCertAgainstTrust(CertUtility.asX509Certificate(cert.getEncoded()), allCerts) != null;
     }
 
     /**
@@ -125,10 +135,5 @@ public class DataSignVerifier extends TrustCredentialAdapter {
         }
         LOGGER.error("could not load private key");
         return null;
-    }
-
-    private boolean validate(final X509CertificateHolder cert, final List<X509Certificate> allCerts)
-            throws CertificateException, IOException {
-        return validateCertAgainstTrust(CertUtility.asX509Certificate(cert.getEncoded()), allCerts) != null;
     }
 }

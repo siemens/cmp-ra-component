@@ -21,9 +21,25 @@ import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import java.net.URI;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.NoSuchAlgorithmException;
-import java.security.cert.*;
+import java.security.NoSuchProviderException;
+import java.security.cert.CertPathBuilder;
+import java.security.cert.CertPathBuilderException;
+import java.security.cert.CertStore;
+import java.security.cert.CertStoreParameters;
+import java.security.cert.CollectionCertStoreParameters;
+import java.security.cert.PKIXBuilderParameters;
+import java.security.cert.PKIXCertPathBuilderResult;
+import java.security.cert.PKIXRevocationChecker;
 import java.security.cert.PKIXRevocationChecker.Option;
-import java.util.*;
+import java.security.cert.TrustAnchor;
+import java.security.cert.X509CRL;
+import java.security.cert.X509CertSelector;
+import java.security.cert.X509Certificate;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +50,9 @@ import org.slf4j.LoggerFactory;
  * that will be used for building the certification chain.
  */
 public class TrustCredentialAdapter {
+
+    // private static final BouncyCastleProvider PROVIDER = CertUtility.getBouncyCastleProvider();
+    private static final String PROVIDER = "SUN";
 
     private static final String FALSE_STRING = "false";
 
@@ -61,10 +80,12 @@ public class TrustCredentialAdapter {
      *                                    validation
      * @return the validated chain without trust anchor but with cert or
      *         <code>null</code> if the validation failed
+     * @throws NoSuchProviderException if SUN provider is not available
      */
     @SuppressWarnings("unchecked")
     public synchronized List<? extends X509Certificate> validateCertAgainstTrust(
-            final X509Certificate cert, final List<X509Certificate> additionalIntermediateCerts) {
+            final X509Certificate cert, final List<X509Certificate> additionalIntermediateCerts)
+            throws NoSuchProviderException {
         final Collection<X509Certificate> trustedCertificates = config.getTrustedCertificates();
         if (trustedCertificates == null) {
             return null;
@@ -92,6 +113,15 @@ public class TrustCredentialAdapter {
             java.security.Security.setProperty(OCSP_ENABLE_PROP, FALSE_STRING);
             boolean revocationEnabled = false;
 
+            final X509CertSelector targetConstraints = new X509CertSelector();
+            targetConstraints.setCertificate(cert);
+
+            final Set<TrustAnchor> trust = trustedCertificates.stream()
+                    .map(trustedCert -> new TrustAnchor(trustedCert, null))
+                    .collect(Collectors.toSet());
+
+            final PKIXBuilderParameters params = new PKIXBuilderParameters(trust, targetConstraints);
+
             if (config.isAIAsEnabled()) {
                 revocationEnabled = true;
                 java.security.Security.setProperty(OCSP_ENABLE_PROP, "true");
@@ -116,35 +146,26 @@ public class TrustCredentialAdapter {
                         .forEach(lstCertCrlStores::add);
             }
 
-            lstCertCrlStores.addAll(config.getAdditionalCerts());
-
+            final Collection<X509Certificate> additionalCertsFromConfig = config.getAdditionalCerts();
+            if (additionalCertsFromConfig != null) {
+                lstCertCrlStores.addAll(additionalCertsFromConfig);
+            }
             lstCertCrlStores.add(cert);
+            final CertStore certStore =
+                    CertStore.getInstance("Collection", new CollectionCertStoreParameters(lstCertCrlStores), PROVIDER);
+            params.addCertStore(certStore);
 
-            CertStoreParameters csp = new CollectionCertStoreParameters(config.getCRLs());
-            CertStore crlStore = CertStore.getInstance("Collection", csp);
-
-            final Collection<X509CRL> crls = config.getCRLs();
-            if (crls != null && !crls.isEmpty()) {
-                revocationEnabled = true;
+            final Collection<X509CRL> crlsFromConfig = config.getCRLs();
+            if (crlsFromConfig != null) {
+                if (!crlsFromConfig.isEmpty()) {
+                    revocationEnabled = true;
+                    final CertStoreParameters csp = new CollectionCertStoreParameters(crlsFromConfig);
+                    final CertStore crlStore = CertStore.getInstance("Collection", csp);
+                    params.addCertStore(crlStore);
+                }
             }
 
-            final CollectionCertStoreParameters ccsp = new CollectionCertStoreParameters(lstCertCrlStores);
-
-            final CertStore store = CertStore.getInstance("Collection", ccsp, CertUtility.getBouncyCastleProvider());
-
-            final X509CertSelector targetConstraints = new X509CertSelector();
-            targetConstraints.setCertificate(cert);
-
-            final Set<TrustAnchor> trust = trustedCertificates.stream()
-                    .map(trustedCert -> new TrustAnchor(trustedCert, null))
-                    .collect(Collectors.toSet());
-
-            final PKIXBuilderParameters params = new PKIXBuilderParameters(trust, targetConstraints);
-
-            params.addCertStore(store);
-            params.addCertStore(crlStore);
-
-            final CertPathBuilder cpb = CertPathBuilder.getInstance("PKIX", CertUtility.getBouncyCastleProvider());
+            final CertPathBuilder cpb = CertPathBuilder.getInstance("PKIX", PROVIDER);
 
             final PKIXRevocationChecker revChecker = (PKIXRevocationChecker) cpb.getRevocationChecker();
 
