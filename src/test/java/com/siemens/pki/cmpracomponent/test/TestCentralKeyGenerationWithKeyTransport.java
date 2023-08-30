@@ -53,55 +53,11 @@ public class TestCentralKeyGenerationWithKeyTransport extends CkgOnlineEnrollmen
 
     private SignatureBasedProtection eeRsaCredentials;
 
-    @Override
-    @Before
-    public void setUp() throws Exception {
-        super.setUp();
-        eeRsaCredentials = new SignatureBasedProtection(
-                new TrustChainAndPrivateKey("credentials/CMP_EE_Keystore_RSA.p12", TestUtils.PASSWORD_AS_CHAR_ARRAY));
-        keyTransportDecryptor =
-                new CmsDecryptor(eeRsaCredentials.getEndCertificate(), eeRsaCredentials.getPrivateKey(), null);
-        launchCmpCaAndRa(buildSignatureBasedDownstreamConfiguration());
-    }
-
-    /**
-     * Central Key Generation/Using Key Transport Key Management Technique
-     *
-     * @throws Exception
-     */
-    @Test
-    public void testCrWithKeyTransport() throws Exception {
-        executeCrmfCertificateRequestWithoutKey(
-                PKIBody.TYPE_CERT_REQ, PKIBody.TYPE_CERT_REP, eeRsaCredentials, getEeClient(), keyTransportDecryptor);
-    }
-
-    /**
-     * Central Key Generation/Using Key Transport Key Management Technique
-     *
-     * @throws Exception
-     */
-    @Test
-    public void testIrWithKeyTransport() throws Exception {
-        executeCrmfCertificateRequestWithoutKey(
-                PKIBody.TYPE_INIT_REQ, PKIBody.TYPE_INIT_REP, eeRsaCredentials, getEeClient(), keyTransportDecryptor);
-    }
-
-    /**
-     * Central Key Generation/Using Key Transport Key Management Technique
-     *
-     * @throws Exception
-     */
-    @Test
-    public void testKurWithKeyTransport() throws Exception {
-        executeCrmfCertificateRequestWithoutKey(
-                PKIBody.TYPE_INIT_REQ, PKIBody.TYPE_INIT_REP, eeRsaCredentials, getEeClient(), keyTransportDecryptor);
-    }
-
-    private Configuration buildSignatureBasedDownstreamConfiguration() throws Exception {
+    private Configuration buildRsaSignatureBasedDownstreamConfiguration() throws Exception {
         final TrustChainAndPrivateKey downstreamCredentials =
                 new TrustChainAndPrivateKey("credentials/CMP_LRA_DOWNSTREAM_Keystore.p12", "Password".toCharArray());
         final SignatureValidationCredentials downstreamTrust =
-                new SignatureValidationCredentials("credentials/CMP_EE_Root.pem", null);
+                new SignatureValidationCredentials("credentials/CMP_EE_Root_RSA.pem", null);
         final TrustChainAndPrivateKey upstreamCredentials =
                 new TrustChainAndPrivateKey("credentials/CMP_LRA_UPSTREAM_Keystore.p12", "Password".toCharArray());
         final SignatureValidationCredentials upstreamTrust =
@@ -385,5 +341,49 @@ public class TestCentralKeyGenerationWithKeyTransport extends CkgOnlineEnrollmen
                 return true;
             }
         };
+    }
+
+    @Override
+    @Before
+    public void setUp() throws Exception {
+        super.setUp();
+        eeRsaCredentials = new SignatureBasedProtection(
+                new TrustChainAndPrivateKey("credentials/CMP_EE_Keystore_RSA.p12", TestUtils.PASSWORD_AS_CHAR_ARRAY));
+        keyTransportDecryptor =
+                new CmsDecryptor(eeRsaCredentials.getEndCertificate(), eeRsaCredentials.getPrivateKey(), null);
+        launchCmpCaAndRa(buildRsaSignatureBasedDownstreamConfiguration());
+    }
+
+    /**
+     * Central Key Generation/Using Key Transport Key Management Technique
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testCrWithKeyTransport() throws Exception {
+        executeCrmfCertificateRequestWithoutKey(
+                PKIBody.TYPE_CERT_REQ, PKIBody.TYPE_CERT_REP, eeRsaCredentials, getEeClient(), keyTransportDecryptor);
+    }
+
+    /**
+     * Central Key Generation/Using Key Transport Key Management Technique
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testIrWithKeyTransport() throws Exception {
+        executeCrmfCertificateRequestWithoutKey(
+                PKIBody.TYPE_INIT_REQ, PKIBody.TYPE_INIT_REP, eeRsaCredentials, getEeClient(), keyTransportDecryptor);
+    }
+
+    /**
+     * Central Key Generation/Using Key Transport Key Management Technique
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testKurWithKeyTransport() throws Exception {
+        executeCrmfCertificateRequestWithoutKey(
+                PKIBody.TYPE_INIT_REQ, PKIBody.TYPE_INIT_REP, eeRsaCredentials, getEeClient(), keyTransportDecryptor);
     }
 }
