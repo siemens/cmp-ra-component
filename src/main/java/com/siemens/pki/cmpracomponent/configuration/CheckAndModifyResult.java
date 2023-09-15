@@ -20,7 +20,7 @@ package com.siemens.pki.cmpracomponent.configuration;
 
 /**
  * result of a call to
- * {@link InventoryInterface#checkAndModifyCertRequest(byte[], String, byte[], String)}
+ * {@link InventoryInterface#checkAndModifyCertRequest(byte[], String, byte[], String, byte[])}
  */
 public interface CheckAndModifyResult {
 

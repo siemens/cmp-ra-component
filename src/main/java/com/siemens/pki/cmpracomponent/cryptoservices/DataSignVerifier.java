@@ -21,6 +21,7 @@ import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.KeyFactory;
+import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -33,7 +34,11 @@ import org.bouncycastle.asn1.cms.CMSObjectIdentifiers;
 import org.bouncycastle.asn1.cms.ContentInfo;
 import org.bouncycastle.asn1.cms.SignedData;
 import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cms.*;
+import org.bouncycastle.cms.CMSException;
+import org.bouncycastle.cms.CMSSignedData;
+import org.bouncycastle.cms.CMSTypedData;
+import org.bouncycastle.cms.SignerInformation;
+import org.bouncycastle.cms.SignerInformationStore;
 import org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoVerifierBuilder;
 import org.bouncycastle.util.Store;
 import org.slf4j.Logger;
@@ -46,11 +51,7 @@ public class DataSignVerifier extends TrustCredentialAdapter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DataSignVerifier.class);
     private static final JcaSimpleSignerInfoVerifierBuilder builder =
-            new JcaSimpleSignerInfoVerifierBuilder().setProvider(CertUtility.BOUNCY_CASTLE_PROVIDER);
-
-    public DataSignVerifier(final VerificationContext config) {
-        super(config);
-    }
+            new JcaSimpleSignerInfoVerifierBuilder().setProvider(CertUtility.getBouncyCastleProvider());
 
     public static byte[] verifySignature(final byte[] encodedSignedData)
             throws CertificateException, CMSException, IOException {
@@ -88,6 +89,15 @@ public class DataSignVerifier extends TrustCredentialAdapter {
         return null;
     }
 
+    public DataSignVerifier(final VerificationContext config) {
+        super(config);
+    }
+
+    private boolean validate(final X509CertificateHolder cert, final List<X509Certificate> allCerts)
+            throws CertificateException, IOException, NoSuchProviderException {
+        return validateCertAgainstTrust(CertUtility.asX509Certificate(cert.getEncoded()), allCerts) != null;
+    }
+
     /**
      * Verify the passed in encoding of a CMS SignedData, assumes encapsulated data.
      *
@@ -117,7 +127,7 @@ public class DataSignVerifier extends TrustCredentialAdapter {
         final PKCS8EncodedKeySpec pkcs8EncKeySpec = new PKCS8EncodedKeySpec(verifiedContent);
         for (final String keyType : new String[] {"RSA", "EC", "Ed448", "Ed25519"}) {
             try {
-                final KeyFactory factory = KeyFactory.getInstance(keyType, CertUtility.BOUNCY_CASTLE_PROVIDER);
+                final KeyFactory factory = KeyFactory.getInstance(keyType, CertUtility.getBouncyCastleProvider());
                 return factory.generatePrivate(pkcs8EncKeySpec);
             } catch (final Exception e) {
                 // try next key type
@@ -125,10 +135,5 @@ public class DataSignVerifier extends TrustCredentialAdapter {
         }
         LOGGER.error("could not load private key");
         return null;
-    }
-
-    private boolean validate(final X509CertificateHolder cert, final List<X509Certificate> allCerts)
-            throws CertificateException, IOException {
-        return validateCertAgainstTrust(CertUtility.asX509Certificate(cert.getEncoded()), allCerts) != null;
     }
 }

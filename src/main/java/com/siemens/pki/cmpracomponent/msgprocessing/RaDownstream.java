@@ -137,6 +137,41 @@ class RaDownstream {
         this.persistencyContextManager = persistencyContextManager;
     }
 
+    protected CmsEncryptorBase buildEncryptor(
+            final PKIMessage incomingRequest,
+            final CkgContext ckgConfiguration,
+            final int initialRequestType,
+            final String interfaceName)
+            throws GeneralSecurityException, CmpProcessingException, CmpEnrollmentException {
+        final ASN1ObjectIdentifier protectingAlgOID =
+                incomingRequest.getHeader().getProtectionAlg().getAlgorithm();
+        if (CMPObjectIdentifiers.passwordBasedMac.equals(protectingAlgOID)
+                || PKCSObjectIdentifiers.id_PBMAC1.equals(protectingAlgOID)) {
+            return new PasswordEncryptor(ckgConfiguration, initialRequestType, interfaceName);
+        }
+        final CMPCertificate[] incomingFirstExtraCerts = incomingRequest.getExtraCerts();
+        if (incomingFirstExtraCerts == null || incomingFirstExtraCerts.length < 1) {
+            throw new CmpProcessingException(
+                    INTERFACE_NAME,
+                    PKIFailureInfo.systemUnavail,
+                    "could not build key encryption context, no protecting cert in incoming request");
+        }
+        final X509Certificate recipientCert = CertUtility.asX509Certificate(incomingFirstExtraCerts[0]);
+
+        final boolean[] keyUsage = recipientCert.getKeyUsage();
+        if (keyUsage == null) {
+            if ("RSA".equals(recipientCert.getPublicKey().getAlgorithm())) {
+                return new KeyTransportEncryptor(ckgConfiguration, recipientCert, initialRequestType, interfaceName);
+            }
+            return new KeyAgreementEncryptor(ckgConfiguration, recipientCert, initialRequestType, interfaceName);
+        }
+        if (keyUsage[4] /* keyAgreement */) {
+            return new KeyAgreementEncryptor(ckgConfiguration, recipientCert, initialRequestType, interfaceName);
+        }
+        // fall back to key transport
+        return new KeyTransportEncryptor(ckgConfiguration, recipientCert, initialRequestType, interfaceName);
+    }
+
     private MsgOutputProtector getOutputProtector(final PersistencyContext persistencyContext, final int bodyType)
             throws Exception {
         return new MsgOutputProtector(
@@ -186,7 +221,8 @@ class RaDownstream {
                     persistencyContext.getTransactionId(),
                     requesterDn,
                     certTemplate.getEncoded(),
-                    ifNotNull(certTemplate.getSubject(), X500Name::toString));
+                    ifNotNull(certTemplate.getSubject(), X500Name::toString),
+                    incomingCertificateRequest.getEncoded());
 
             if (checkResult == null || !checkResult.isGranted()) {
                 throw new CmpEnrollmentException(
@@ -274,7 +310,7 @@ class RaDownstream {
                                     ? null
                                     : privateKey));
         }
-        final ProofOfPossession popo = certReqMsg.getPopo();
+        final ProofOfPossession popo = certReqMsg.getPop();
         if (config.getForceRaVerifyOnUpstream(persistencyContext.getCertProfile(), requestBodyType)
                 || popo == null
                 || popo.getType() == ProofOfPossession.TYPE_RA_VERIFIED) {
@@ -305,6 +341,116 @@ class RaDownstream {
                         requestBodyType,
                         new CertReqMessages(
                                 new CertReqMsg(certRequest, new ProofOfPossession(), certReqMsg.getRegInfo()))));
+    }
+
+    /**
+     * message handler implementation
+     *
+     * @param in received message
+     * @return message to respond
+     */
+    PKIMessage handleInputMessage(final PKIMessage in) {
+        PersistencyContext persistencyContext = null;
+        int retryAfterTime = 0;
+        try {
+            int responseBodyType = PKIBody.TYPE_ERROR;
+            try {
+                final int inBodyType = in.getBody().getType();
+                if (inBodyType == PKIBody.TYPE_NESTED) {
+                    final CmpMessageInterface downstreamConfiguration =
+                            config.getDownstreamConfiguration(null, inBodyType);
+                    final NestedEndpointContext nestedEndpointContext =
+                            downstreamConfiguration.getNestedEndpointContext();
+                    if (nestedEndpointContext != null) {
+                        final String NESTED_STRING = "nested ";
+                        final MessageHeaderValidator headerValidator =
+                                new MessageHeaderValidator(NESTED_STRING + INTERFACE_NAME);
+                        headerValidator.validate(in);
+                        final ProtectionValidator protectionValidator = new ProtectionValidator(
+                                NESTED_STRING + INTERFACE_NAME, nestedEndpointContext.getInputVerification());
+                        protectionValidator.validate(in);
+                        final PKIMessage[] embeddedMessages = PKIMessages.getInstance(
+                                        in.getBody().getContent())
+                                .toPKIMessageArray();
+                        if (embeddedMessages == null || embeddedMessages.length == 0) {
+                            throw new CmpProcessingException(
+                                    NESTED_STRING + INTERFACE_NAME,
+                                    PKIFailureInfo.badMessageCheck,
+                                    "no embedded messages inside NESTED message");
+                        }
+                        if (embeddedMessages.length == 1) {
+                            return handleInputMessage(embeddedMessages[0]);
+                        }
+                        final PKIMessage[] responses = Arrays.stream(embeddedMessages)
+                                .map(this::handleInputMessage)
+                                .toArray(PKIMessage[]::new);
+                        return getOutputProtector(persistencyContext, PKIBody.TYPE_NESTED)
+                                .generateAndProtectMessage(
+                                        PkiMessageGenerator.buildRespondingHeaderProvider(in),
+                                        new PKIBody(PKIBody.TYPE_NESTED, new PKIMessages(responses)));
+                    }
+                }
+                final InputValidator inputValidator = new InputValidator(
+                        INTERFACE_NAME,
+                        config::getDownstreamConfiguration,
+                        config::isRaVerifiedAcceptable,
+                        supportedMessageTypes,
+                        persistencyContextManager::loadCreatePersistencyContext);
+                persistencyContext = inputValidator.validate(in);
+                final PKIMessage responseFromUpstream = handleValidatedRequest(in, persistencyContext);
+                // apply downstream protection
+                final List<CMPCertificate> issuingChain;
+                responseBodyType = responseFromUpstream.getBody().getType();
+                switch (responseBodyType) {
+                    case PKIBody.TYPE_INIT_REP:
+                    case PKIBody.TYPE_CERT_REP:
+                    case PKIBody.TYPE_KEY_UPDATE_REP:
+                        issuingChain = persistencyContext.getIssuingChain();
+                        break;
+                    case PKIBody.TYPE_POLL_REP:
+                        retryAfterTime = ((PollRepContent)
+                                        responseFromUpstream.getBody().getContent())
+                                .getCheckAfter(0)
+                                .intPositiveValueExact();
+                        issuingChain = null;
+                        break;
+                    default:
+                        issuingChain = null;
+                }
+                return getOutputProtector(persistencyContext, responseBodyType)
+                        .protectAndForwardMessage(
+                                new PKIMessage(
+                                        responseFromUpstream.getHeader(),
+                                        responseFromUpstream.getBody(),
+                                        responseFromUpstream.getProtection(),
+                                        responseFromUpstream.getExtraCerts()),
+                                issuingChain);
+            } catch (final BaseCmpException e) {
+                final PKIBody errorBody = e.asErrorBody();
+                responseBodyType = errorBody.getType();
+                return getOutputProtector(persistencyContext, responseBodyType)
+                        .generateAndProtectMessage(PkiMessageGenerator.buildRespondingHeaderProvider(in), errorBody);
+            } catch (final RuntimeException ex) {
+                final PKIBody errorBody = new CmpProcessingException(INTERFACE_NAME, ex).asErrorBody();
+                responseBodyType = errorBody.getType();
+                return getOutputProtector(persistencyContext, responseBodyType)
+                        .generateAndProtectMessage(PkiMessageGenerator.buildRespondingHeaderProvider(in), errorBody);
+            } finally {
+                if (persistencyContext != null) {
+                    int offset = config.getDownstreamTimeout(
+                            ifNotNull(persistencyContext, PersistencyContext::getCertProfile), responseBodyType);
+                    if (offset == 0) {
+                        offset = Integer.MAX_VALUE / 2;
+                    }
+                    persistencyContext.updateTransactionExpirationTime(
+                            new Date(System.currentTimeMillis() + (offset + retryAfterTime) * 1000L));
+                    persistencyContext.flush();
+                }
+            }
+        } catch (final Exception ex) {
+            LOGGER.error("fatal exception at " + INTERFACE_NAME, ex);
+            throw new RuntimeException("fatal exception at " + INTERFACE_NAME, ex);
+        }
     }
 
     private PKIMessage handleP10CertificateRequest(
@@ -340,7 +486,8 @@ class RaDownstream {
                         persistencyContext.getTransactionId(),
                         requesterDn,
                         p10Request.getEncoded(),
-                        p10Request.getSubject().toString())) {
+                        p10Request.getSubject().toString(),
+                        incomingP10Request.getEncoded())) {
                     throw new CmpValidationException(
                             INTERFACE_NAME, PKIFailureInfo.badCertTemplate, "request refused by external inventory");
                 }
@@ -543,151 +690,6 @@ class RaDownstream {
                     INTERFACE_NAME,
                     PKIFailureInfo.wrongAuthority,
                     "could not properly process certificate response: " + ex);
-        }
-    }
-
-    protected CmsEncryptorBase buildEncryptor(
-            final PKIMessage incomingRequest,
-            final CkgContext ckgConfiguration,
-            final int initialRequestType,
-            final String interfaceName)
-            throws GeneralSecurityException, CmpProcessingException, CmpEnrollmentException {
-        final ASN1ObjectIdentifier protectingAlgOID =
-                incomingRequest.getHeader().getProtectionAlg().getAlgorithm();
-        if (CMPObjectIdentifiers.passwordBasedMac.equals(protectingAlgOID)
-                || PKCSObjectIdentifiers.id_PBMAC1.equals(protectingAlgOID)) {
-            return new PasswordEncryptor(ckgConfiguration, initialRequestType, interfaceName);
-        }
-        final CMPCertificate[] incomingFirstExtraCerts = incomingRequest.getExtraCerts();
-        if (incomingFirstExtraCerts == null || incomingFirstExtraCerts.length < 1) {
-            throw new CmpProcessingException(
-                    INTERFACE_NAME,
-                    PKIFailureInfo.systemUnavail,
-                    "could not build key encryption context, no protecting cert in incoming request");
-        }
-        final X509Certificate recipientCert = CertUtility.asX509Certificate(incomingFirstExtraCerts[0]);
-
-        final boolean[] keyUsage = recipientCert.getKeyUsage();
-        if (keyUsage == null) {
-            if ("RSA".equals(recipientCert.getPublicKey().getAlgorithm())) {
-                return new KeyTransportEncryptor(ckgConfiguration, recipientCert, initialRequestType, interfaceName);
-            }
-            return new KeyAgreementEncryptor(ckgConfiguration, recipientCert, initialRequestType, interfaceName);
-        }
-        if (keyUsage[4] /* keyAgreement */) {
-            return new KeyAgreementEncryptor(ckgConfiguration, recipientCert, initialRequestType, interfaceName);
-        }
-        // fall back to key transport
-        return new KeyTransportEncryptor(ckgConfiguration, recipientCert, initialRequestType, interfaceName);
-    }
-
-    /**
-     * message handler implementation
-     *
-     * @param in received message
-     * @return message to respond
-     */
-    PKIMessage handleInputMessage(final PKIMessage in) {
-        PersistencyContext persistencyContext = null;
-        int retryAfterTime = 0;
-        try {
-            int responseBodyType = PKIBody.TYPE_ERROR;
-            try {
-                final int inBodyType = in.getBody().getType();
-                if (inBodyType == PKIBody.TYPE_NESTED) {
-                    final CmpMessageInterface downstreamConfiguration =
-                            config.getDownstreamConfiguration(null, inBodyType);
-                    final NestedEndpointContext nestedEndpointContext =
-                            downstreamConfiguration.getNestedEndpointContext();
-                    if (nestedEndpointContext != null) {
-                        final String NESTED_STRING = "nested ";
-                        final MessageHeaderValidator headerValidator =
-                                new MessageHeaderValidator(NESTED_STRING + INTERFACE_NAME);
-                        headerValidator.validate(in);
-                        final ProtectionValidator protectionValidator = new ProtectionValidator(
-                                NESTED_STRING + INTERFACE_NAME, nestedEndpointContext.getInputVerification());
-                        protectionValidator.validate(in);
-                        final PKIMessage[] embeddedMessages = PKIMessages.getInstance(
-                                        in.getBody().getContent())
-                                .toPKIMessageArray();
-                        if (embeddedMessages == null || embeddedMessages.length == 0) {
-                            throw new CmpProcessingException(
-                                    NESTED_STRING + INTERFACE_NAME,
-                                    PKIFailureInfo.badMessageCheck,
-                                    "no embedded messages inside NESTED message");
-                        }
-                        if (embeddedMessages.length == 1) {
-                            return handleInputMessage(embeddedMessages[0]);
-                        }
-                        final PKIMessage[] responses = Arrays.stream(embeddedMessages)
-                                .map(this::handleInputMessage)
-                                .toArray(PKIMessage[]::new);
-                        return getOutputProtector(persistencyContext, PKIBody.TYPE_NESTED)
-                                .generateAndProtectMessage(
-                                        PkiMessageGenerator.buildRespondingHeaderProvider(in),
-                                        new PKIBody(PKIBody.TYPE_NESTED, new PKIMessages(responses)));
-                    }
-                }
-                final InputValidator inputValidator = new InputValidator(
-                        INTERFACE_NAME,
-                        config::getDownstreamConfiguration,
-                        config::isRaVerifiedAcceptable,
-                        supportedMessageTypes,
-                        persistencyContextManager::loadCreatePersistencyContext);
-                persistencyContext = inputValidator.validate(in);
-                final PKIMessage responseFromUpstream = handleValidatedRequest(in, persistencyContext);
-                // apply downstream protection
-                final List<CMPCertificate> issuingChain;
-                responseBodyType = responseFromUpstream.getBody().getType();
-                switch (responseBodyType) {
-                    case PKIBody.TYPE_INIT_REP:
-                    case PKIBody.TYPE_CERT_REP:
-                    case PKIBody.TYPE_KEY_UPDATE_REP:
-                        issuingChain = persistencyContext.getIssuingChain();
-                        break;
-                    case PKIBody.TYPE_POLL_REP:
-                        retryAfterTime = (((PollRepContent)
-                                                (responseFromUpstream.getBody().getContent()))
-                                        .getCheckAfter(0))
-                                .intPositiveValueExact();
-                        issuingChain = null;
-                        break;
-                    default:
-                        issuingChain = null;
-                }
-                return getOutputProtector(persistencyContext, responseBodyType)
-                        .protectAndForwardMessage(
-                                new PKIMessage(
-                                        responseFromUpstream.getHeader(),
-                                        responseFromUpstream.getBody(),
-                                        responseFromUpstream.getProtection(),
-                                        responseFromUpstream.getExtraCerts()),
-                                issuingChain);
-            } catch (final BaseCmpException e) {
-                final PKIBody errorBody = e.asErrorBody();
-                responseBodyType = errorBody.getType();
-                return getOutputProtector(persistencyContext, responseBodyType)
-                        .generateAndProtectMessage(PkiMessageGenerator.buildRespondingHeaderProvider(in), errorBody);
-            } catch (final RuntimeException ex) {
-                final PKIBody errorBody = new CmpProcessingException(INTERFACE_NAME, ex).asErrorBody();
-                responseBodyType = errorBody.getType();
-                return getOutputProtector(persistencyContext, responseBodyType)
-                        .generateAndProtectMessage(PkiMessageGenerator.buildRespondingHeaderProvider(in), errorBody);
-            } finally {
-                if (persistencyContext != null) {
-                    int offset = config.getDownstreamTimeout(
-                            ifNotNull(persistencyContext, PersistencyContext::getCertProfile), responseBodyType);
-                    if (offset == 0) {
-                        offset = Integer.MAX_VALUE / 2;
-                    }
-                    persistencyContext.updateTransactionExpirationTime(
-                            new Date(System.currentTimeMillis() + (offset + retryAfterTime) * 1000L));
-                    persistencyContext.flush();
-                }
-            }
-        } catch (final Exception ex) {
-            LOGGER.error("fatal exception at " + INTERFACE_NAME, ex);
-            throw new RuntimeException("fatal exception at " + INTERFACE_NAME, ex);
         }
     }
 }

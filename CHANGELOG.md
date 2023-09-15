@@ -80,3 +80,23 @@ fix: rename DownstreamExpirationTime to TransactionMaxLifetime
 
 ### 2.5.0 (Mar 21 2023)
 fix: rename TransactionMaxLifetime to DownstreamTimeout
+
+### 2.5.1 (Jun 27 2023)
+fix: update some dependencies
+
+### 2.6.0 (Jun 29 2023)
+feat: provide full CMP message ín inventory check methods
+note: This changes the existing API for the inventory interface
+
+### 2.6.1 (Jun 29 2023)
+feat: change internal HeaderProvider interface
+
+### 2.6.2 (Aug 08 2023)
+feat: change internal HeaderProvider interface
+
+### 2.6.3 (Aug 10 2023)
+feat: improve file dumper
+fix: BC deprecatet method
+
+### 2.6.4 (Aug 29 2023)
+fix: switch to SUN provider for chain validation

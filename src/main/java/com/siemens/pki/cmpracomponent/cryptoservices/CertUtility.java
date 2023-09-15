@@ -38,7 +38,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
  * A utility class for certificate handling
  */
 public class CertUtility {
-    static final BouncyCastleProvider BOUNCY_CASTLE_PROVIDER = new BouncyCastleProvider();
+    private static final BouncyCastleProvider BOUNCY_CASTLE_PROVIDER = new BouncyCastleProvider();
     private static final SecureRandom RANDOM = new SecureRandom();
     private static CertificateFactory certificateFactory;
 

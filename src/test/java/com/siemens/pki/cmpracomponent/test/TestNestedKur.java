@@ -162,7 +162,8 @@ public class TestNestedKur extends OnlineEnrollmentTestcaseBase {
                             final byte[] transactionID,
                             final String requesterDn,
                             final byte[] certTemplate,
-                            final String requestedSubjectDn) {
+                            final String requestedSubjectDn,
+                            byte[] pkiMessage) {
                         LOGGER.debug(
                                 "LRA: checkAndModifyCertRequest called with transactionID: {}, requesterDn: {}, requestedSubjectDn: {}",
                                 new BigInteger(transactionID),
@@ -187,7 +188,8 @@ public class TestNestedKur extends OnlineEnrollmentTestcaseBase {
                             final byte[] transactionID,
                             final String requesterDn,
                             final byte[] pkcs10CertRequest,
-                            final String requestedSubjectDn) {
+                            final String requestedSubjectDn,
+                            byte[] pkiMessage) {
                         fail(String.format(
                                 "LRA: checkP10CertRequest called with transactionID: {}, requesterDn: {}, requestedSubjectDn: {}",
                                 new BigInteger(transactionID),
@@ -443,7 +445,8 @@ public class TestNestedKur extends OnlineEnrollmentTestcaseBase {
                             final byte[] transactionID,
                             final String requesterDn,
                             final byte[] certTemplate,
-                            final String requestedSubjectDn) {
+                            final String requestedSubjectDn,
+                            byte[] pkiMessage) {
                         LOGGER.debug(
                                 "checkAndModifyCertRequest called with transactionID: {}, requesterDn: {}, requestedSubjectDn: {}",
                                 new BigInteger(transactionID),
@@ -468,7 +471,8 @@ public class TestNestedKur extends OnlineEnrollmentTestcaseBase {
                             final byte[] transactionID,
                             final String requesterDn,
                             final byte[] pkcs10CertRequest,
-                            final String requestedSubjectDn) {
+                            final String requestedSubjectDn,
+                            byte[] pkiMessage) {
                         fail(String.format(
                                 "checkP10CertRequest called with transactionID: {}, requesterDn: {}, requestedSubjectDn: {}",
                                 new BigInteger(transactionID),

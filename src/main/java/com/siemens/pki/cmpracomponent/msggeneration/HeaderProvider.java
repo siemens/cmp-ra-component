@@ -55,7 +55,7 @@ public interface HeaderProvider {
     /**
      * @return RecipNonce to be used in CMP header.
      */
-    byte[] getRecipNonce();
+    ASN1OctetString getRecipNonce();
 
     /**
      * @return Sender to be used in CMP header.
@@ -65,7 +65,7 @@ public interface HeaderProvider {
     /**
      * @return SenderNonce to be used in CMP header.
      */
-    byte[] getSenderNonce();
+    ASN1OctetString getSenderNonce();
 
     /**
      * @return TransactionID to be used in CMP header.
