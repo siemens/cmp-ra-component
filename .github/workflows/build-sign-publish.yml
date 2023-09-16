@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: Process retrieved files
         # here we build everything, then sign and upload to Maven Central, using the nexus-staging plugin
-        run: mvn source:jar javadoc:jar package gpg:sign nexus-staging:deploy nexus-staging:deploy-staged -DskipTests
+        run: mvn package gpg:sign nexus-staging:deploy nexus-staging:deploy-staged -DskipTests
       - name: Upload resulting artifacts
         uses: actions/upload-artifact@v3
         with:
