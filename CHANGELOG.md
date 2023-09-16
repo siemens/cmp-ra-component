@@ -96,7 +96,10 @@ feat: change internal HeaderProvider interface
 
 ### 2.6.3 (Aug 10 2023)
 feat: improve file dumper
-fix: BC deprecatet method
+fix: BC deprecated method
 
 ### 2.6.4 (Aug 29 2023)
 fix: switch to SUN provider for chain validation
+
+### 2.6.5 (Sep 16 2023)
+note: maintenance release with updated dependencies, an adjusted CI pipeline
