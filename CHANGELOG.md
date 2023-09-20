@@ -103,3 +103,7 @@ fix: switch to SUN provider for chain validation
 
 ### 2.6.5 (Sep 16 2023)
 note: maintenance release with updated dependencies, an adjusted CI pipeline
+
+### 2.6.6 (Sept 20 2023)
+
+fix: Add test credential generation, fix key usage in test credentials
