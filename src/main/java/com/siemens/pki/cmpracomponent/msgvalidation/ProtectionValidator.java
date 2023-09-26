@@ -83,7 +83,6 @@ public class ProtectionValidator implements ValidatorIF<Void> {
         }
         if (CMPObjectIdentifiers.passwordBasedMac.equals(protectionAlg.getAlgorithm())) {
             new PasswordBasedMacValidator(interfaceName, config).validate(message);
-
         } else if (PKCSObjectIdentifiers.id_PBMAC1.equals(protectionAlg.getAlgorithm())) {
             new PBMAC1ProtectionValidator(interfaceName, config).validate(message);
         } else {

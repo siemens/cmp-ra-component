@@ -45,6 +45,8 @@ import org.slf4j.LoggerFactory;
  */
 public class P10X509RaImplementation implements Function<byte[], byte[]> {
 
+    private static final String DOWNSTREAM_INTERFACE_NAME = "RaDownstream";
+
     private static final Collection<Integer> supportedMessageTypesOnDownstream =
             new HashSet<>(Arrays.asList(PKIBody.TYPE_P10_CERT_REQ, PKIBody.TYPE_CERT_CONFIRM));
 
@@ -105,13 +107,13 @@ public class P10X509RaImplementation implements Function<byte[], byte[]> {
                 LOGGER.trace("REQUEST at downstream >>>>>");
                 LOGGER.trace(MessageDumper.dumpPkiMessage(request));
             }
-            FileTracer.logMessage(request, "downstream");
+            FileTracer.logMessage(request, DOWNSTREAM_INTERFACE_NAME);
             final PKIMessage response = downstream.handleInputMessage(request);
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("RESPONSE at downstream <<<<");
                 LOGGER.trace(MessageDumper.dumpPkiMessage(response));
             }
-            FileTracer.logMessage(response, "downstream");
+            FileTracer.logMessage(response, DOWNSTREAM_INTERFACE_NAME);
             return ifNotNull(response, PKIMessage::getEncoded);
         } catch (final Exception e) {
             LOGGER.error("exception on downstream", e);

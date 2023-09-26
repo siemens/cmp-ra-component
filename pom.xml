@@ -5,8 +5,8 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.siemens.pki</groupId>
 	<artifactId>CmpRaComponent</artifactId>
-	<version>2.6.7</version>
 	<packaging>jar</packaging>
+	<version>3.0.0</version>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<parent.basedir>.</parent.basedir>
@@ -243,7 +243,7 @@
 		<url>www.siemens.com</url>
 	</organization>
 	<name>CMP RA Component</name>
-	<description>A generic CMP Registration Authority component library</description>
+	<description>A generic CMP Registration Authority and Client component library</description>
 	<url>https://github.com/siemens/cmp-ra-component/</url>
 	<licenses>
 		<license>

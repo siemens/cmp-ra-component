@@ -51,9 +51,6 @@ public class CertUtility {
     private static Provider BOUNCY_CASTLE_PROVIDER;
     private static CertificateFactory certificateFactory;
 
-    // utility class
-    private CertUtility() {}
-
     /**
      * conversion function from X509 certificate to CMPCertificate
      *
@@ -175,6 +172,21 @@ public class CertUtility {
     }
 
     /**
+     * Function to retrieve the static certificate factory object
+     *
+     * @return static certificate factory object
+     * @throws CertificateException thrown if the certificate factory could not be
+     *                              instantiated
+     * @throws CertificateException            in case of an error
+     */
+    public static synchronized CertificateFactory getCertificateFactory() throws CertificateException {
+        if (certificateFactory == null) {
+            certificateFactory = CertificateFactory.getInstance("X.509", BOUNCY_CASTLE_PROVIDER);
+        }
+        return certificateFactory;
+    }
+
+    /**
      * Checks whether given X.509 certificate is intermediate certificate and not
      * self-signed.
      *
@@ -198,21 +210,6 @@ public class CertUtility {
         }
     }
 
-    /**
-     * Function to retrieve the static certificate factory object
-     *
-     * @return static certificate factory object
-     * @throws CertificateException thrown if the certificate factory could not be
-     *                              instantiated
-     * @throws Exception            in case of an error
-     */
-    private static synchronized CertificateFactory getCertificateFactory() throws CertificateException {
-        if (certificateFactory == null) {
-            certificateFactory = CertificateFactory.getInstance("X.509", BOUNCY_CASTLE_PROVIDER);
-        }
-        return certificateFactory;
-    }
-
     private static class BouncyCastleInitializer {
         private static synchronized Provider getInstance() {
             return Arrays.stream(Security.getProviders())
@@ -221,4 +218,6 @@ public class CertUtility {
                     .orElseGet(BouncyCastleProvider::new);
         }
     }
+    // utility class
+    private CertUtility() {}
 }

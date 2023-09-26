@@ -47,6 +47,7 @@ import org.junit.Test;
  */
 public class TestCreateTestCertificateChains {
 
+    private static final String SIGNATURE_ALGORITHM = "SHA512WITHECDSA";
     private static final char[] STORE_PASSWORD = "Password".toCharArray();
     private static final File CREDENTIAL_ROOT =
             new File("src/test/java/com/siemens/pki/cmpracomponent/test/config/credentials");
@@ -129,23 +130,27 @@ public class TestCreateTestCertificateChains {
     @Ignore("execute if test credentials need a refresh")
     public void createTestCertificateChains() throws OperatorCreationException, IOException, GeneralSecurityException {
         final KeyPairGenerator keyPairGenerator = KeyPairGeneratorFactory.getEcKeyPairGenerator("secp521r1");
-        createEnrollTestCertificateChain("ENROLL", keyPairGenerator, "SHA512WITHECDSA");
-        createFullTestCertificateChain("CMP_CA", keyPairGenerator, "SHA512WITHECDSA");
+        createEnrollTestCertificateChain("ENROLL", keyPairGenerator, SIGNATURE_ALGORITHM);
+        createFullTestCertificateChain(
+                "CMP_CA",
+                keyPairGenerator,
+                SIGNATURE_ALGORITHM,
+                TestCertificateFactory.createExtendedKeyUsageExtension(KeyPurposeId.id_kp_cmcCA));
         createFullTestCertificateChain(
                 "CMP_LRA_UPSTREAM",
                 keyPairGenerator,
-                "SHA512WITHECDSA",
-                TestCertificateFactory.createExtendedKeyUsageExtension(
-                        KeyPurposeId.id_kp_cmcRA, KeyPurposeId.anyExtendedKeyUsage));
+                SIGNATURE_ALGORITHM,
+                TestCertificateFactory.createExtendedKeyUsageExtension(KeyPurposeId.id_kp_cmcRA));
         createFullTestCertificateChain(
                 "CMP_LRA_DOWNSTREAM",
                 keyPairGenerator,
-                "SHA512WITHECDSA",
-                TestCertificateFactory.createExtendedKeyUsageExtension(
-                        KeyPurposeId.id_kp_cmKGA, KeyPurposeId.anyExtendedKeyUsage));
-        createFullTestCertificateChain("CMP_EE", keyPairGenerator, "SHA512WITHECDSA");
-        //		createTestCertificateChain("TLS", keyPairGenerator, "SHA512WITHECDSA", TestCertificateFactory
-        //				.createExtendedKeyUsageExtension(KeyPurposeId.id_kp_clientAuth, KeyPurposeId.id_kp_serverAuth),
-        //				TestCertificateFactory.createSubjectAlternativeNameExtension("localhost"));
+                SIGNATURE_ALGORITHM,
+                TestCertificateFactory.createExtendedKeyUsageExtension(KeyPurposeId.id_kp_cmKGA));
+        createFullTestCertificateChain("CMP_EE", keyPairGenerator, SIGNATURE_ALGORITHM);
+        // createTestCertificateChain("TLS", keyPairGenerator, SIGNATURE_ALGORITHM,
+        // TestCertificateFactory
+        // .createExtendedKeyUsageExtension(KeyPurposeId.id_kp_clientAuth,
+        // KeyPurposeId.id_kp_serverAuth),
+        // TestCertificateFactory.createSubjectAlternativeNameExtension("localhost"));
     }
 }

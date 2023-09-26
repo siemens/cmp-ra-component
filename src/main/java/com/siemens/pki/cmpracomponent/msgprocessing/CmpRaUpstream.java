@@ -34,7 +34,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Objects;
-import org.bouncycastle.asn1.cmp.*;
+import org.bouncycastle.asn1.cmp.PKIBody;
+import org.bouncycastle.asn1.cmp.PKIFailureInfo;
+import org.bouncycastle.asn1.cmp.PKIHeader;
+import org.bouncycastle.asn1.cmp.PKIMessage;
+import org.bouncycastle.asn1.cmp.PKIMessages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -198,7 +202,7 @@ class CmpRaUpstream implements RaUpstream {
         final PersistencyContext persistencyContext = persistencyContextManager.loadPersistencyContext(
                 responseMessage.getHeader().getTransactionID().getOctets());
         if (persistencyContext == null) {
-            throw new IllegalStateException("no related request for known for provided response");
+            throw new IllegalStateException("no related request known for provided response");
         }
         persistencyContext.setPendingDelayedResponse(responseMessage);
         persistencyContext.flush();

@@ -21,7 +21,7 @@ import java.security.cert.X509Certificate;
 import java.util.List;
 
 /**
- * support message handler supporting Get CA certificates genm requests
+ * support message handler supporting Get CA certificates GENM requests
  */
 public interface GetCaCertificatesHandler extends SupportMessageHandlerInterface {
 

@@ -32,7 +32,7 @@ public interface CmpMessageInterface {
     VerificationContext getInputVerification();
 
     /**
-     * configuration if adding protection by uses of nested messages should be
+     * configuration if adding protection by use of nested messages should be
      * supported
      *
      * @return a NestedEndpointContext or <code>null</code> if no additional

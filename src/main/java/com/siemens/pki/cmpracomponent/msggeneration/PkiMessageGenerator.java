@@ -508,10 +508,24 @@ public class PkiMessageGenerator {
      * @throws IOException in case of ASN.1 processing errors
      */
     public static PKIBody generateRrBody(final X500Name issuer, final ASN1Integer serialNumber) throws IOException {
+        return generateRrBody(issuer, serialNumber, 0);
+    }
+
+    /**
+     * generate a RR body
+     *
+     * @param issuer       issuer of certificate to revoke
+     * @param serialNumber serialNumber of certificate to revoke
+     * @param revocationReason the reason for this revocation
+     * @return generated RR body
+     * @throws IOException in case of ASN.1 processing errors
+     */
+    public static PKIBody generateRrBody(final X500Name issuer, final ASN1Integer serialNumber, int revocationReason)
+            throws IOException {
         final CertTemplateBuilder ctb =
                 new CertTemplateBuilder().setIssuer(issuer).setSerialNumber(serialNumber);
         final ExtensionsGenerator extgen = new ExtensionsGenerator();
-        extgen.addExtension(Extension.reasonCode, false, new ASN1Enumerated(0));
+        extgen.addExtension(Extension.reasonCode, false, new ASN1Enumerated(revocationReason));
         final RevDetails revDetails = new RevDetails(ctb.build(), extgen.generate());
         return new PKIBody(PKIBody.TYPE_REVOCATION_REQ, new RevReqContent(revDetails));
     }

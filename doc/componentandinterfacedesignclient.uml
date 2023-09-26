@@ -1,0 +1,17 @@
+@startuml
+
+
+artifact embedding as "Embedding Application" {
+
+(**Upstream Interface**\n- provided by Embedding Application) as upif
+[**CmpClient Component**\n- instantiated by Embedding Application] as Client
+
+database "**Configuration Interface**\n- provided by Embedding Application" as config 
+
+Client <= config  : new CmpClient(config)
+
+left to right direction
+
+Client <--> upif : byte[] UpstreamExchange::sendReceiveMessage(byte[] request, String certProfile, int bodyTypeOfFirstRequest) 
+}
+@enduml
