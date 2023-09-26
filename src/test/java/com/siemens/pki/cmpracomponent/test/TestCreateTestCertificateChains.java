@@ -38,6 +38,7 @@ import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.KeyPurposeId;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.operator.OperatorCreationException;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -125,7 +126,7 @@ public class TestCreateTestCertificateChains {
     }
 
     @Test
-    // @Ignore("execute if test credentials need a refresh")
+    @Ignore("execute if test credentials need a refresh")
     public void createTestCertificateChains() throws OperatorCreationException, IOException, GeneralSecurityException {
         final KeyPairGenerator keyPairGenerator = KeyPairGeneratorFactory.getEcKeyPairGenerator("secp521r1");
         createEnrollTestCertificateChain("ENROLL", keyPairGenerator, "SHA512WITHECDSA");
