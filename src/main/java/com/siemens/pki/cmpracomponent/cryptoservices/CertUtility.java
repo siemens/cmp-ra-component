@@ -17,11 +17,7 @@
  */
 package com.siemens.pki.cmpracomponent.cryptoservices;
 
-import org.bouncycastle.asn1.ASN1Encoding;
-import org.bouncycastle.asn1.ASN1OctetString;
-import org.bouncycastle.asn1.DEROctetString;
-import org.bouncycastle.asn1.cmp.CMPCertificate;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -41,8 +37,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-
-import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
+import org.bouncycastle.asn1.ASN1Encoding;
+import org.bouncycastle.asn1.ASN1OctetString;
+import org.bouncycastle.asn1.DEROctetString;
+import org.bouncycastle.asn1.cmp.CMPCertificate;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 /**
  * A utility class for certificate handling
