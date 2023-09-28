@@ -26,6 +26,8 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.*;
+
+import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import org.bouncycastle.asn1.ASN1Encoding;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.DEROctetString;
@@ -39,7 +41,7 @@ import org.slf4j.LoggerFactory;
  */
 public class TestCertUtility {
 
-    public static final BouncyCastleProvider BOUNCY_CASTLE_PROVIDER = new BouncyCastleProvider();
+    public static final Provider BOUNCY_CASTLE_PROVIDER = CertUtility.getBouncyCastleProvider();
     private static final Logger LOGGER = LoggerFactory.getLogger(TestCertUtility.class);
 
     private static final char[] TRUSTSTORE_SECRET = "Unimportant password".toCharArray();
