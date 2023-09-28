@@ -107,3 +107,7 @@ note: maintenance release with updated dependencies, an adjusted CI pipeline
 ### 2.6.6 (Sept 20 2023)
 
 fix: Add test credential generation, fix key usage in test credentials
+
+### 2.6.7 (Sept 28 2023)
+
+fix: Bouncy Castle Provider initialized within the component only if not already registered in the current process
