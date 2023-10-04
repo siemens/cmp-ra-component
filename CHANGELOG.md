@@ -111,3 +111,7 @@ fix: Add test credential generation, fix key usage in test credentials
 ### 2.6.7 (Sept 28 2023)
 
 fix: Bouncy Castle Provider initialized within the component only if not already registered in the current process
+
+### 3.0.0 (Oct 04 2023)
+
+feat: provide CMP client implementation

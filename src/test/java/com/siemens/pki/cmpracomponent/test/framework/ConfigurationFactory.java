@@ -23,6 +23,7 @@ import static org.junit.Assert.fail;
 import com.siemens.pki.cmpracomponent.configuration.CheckAndModifyResult;
 import com.siemens.pki.cmpracomponent.configuration.CkgContext;
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
+import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface.ReprotectMode;
 import com.siemens.pki.cmpracomponent.configuration.Configuration;
 import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.CrlUpdateRetrievalHandler;
@@ -87,7 +88,12 @@ public class ConfigurationFactory {
                 new SignatureValidationCredentials("credentials/ENROLL_Root.pem", null);
 
         final Configuration config = buildSimpleRaConfiguration(
-                downstreamCredentials, downstreamTrust, upstreamCredentials, upstreamTrust, enrollmentTrust);
+                downstreamCredentials,
+                ReprotectMode.reprotect,
+                downstreamTrust,
+                upstreamCredentials,
+                upstreamTrust,
+                enrollmentTrust);
         return config;
     }
 
@@ -104,7 +110,12 @@ public class ConfigurationFactory {
                 new SignatureValidationCredentials("credentials/ENROLL_Root.pem", null);
 
         return buildSimpleRaConfiguration(
-                downstreamCredentials, downstreamTrust, upstreamCredentials, upstreamTrust, enrollmentTrust);
+                downstreamCredentials,
+                ReprotectMode.keep,
+                downstreamTrust,
+                upstreamCredentials,
+                upstreamTrust,
+                enrollmentTrust);
     }
 
     public static Configuration buildSignatureBasedDownstreamOnlyConfiguration() throws Exception {
@@ -389,6 +400,7 @@ public class ConfigurationFactory {
 
     public static Configuration buildSimpleRaConfiguration(
             final CredentialContext downstreamCredentials,
+            ReprotectMode reprotectMode,
             final VerificationContext downstreamTrust,
             final CredentialContext upstreamCredentials,
             final VerificationContext upstreamTrust,
@@ -441,7 +453,7 @@ public class ConfigurationFactory {
 
                     @Override
                     public ReprotectMode getReprotectMode() {
-                        return ReprotectMode.keep;
+                        return reprotectMode;
                     }
 
                     @Override
@@ -647,10 +659,16 @@ public class ConfigurationFactory {
     public static ProtectionProvider getEePasswordbasedProtectionProvider()
             throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException {
         if (eePasswordbasedProtectionProvider == null) {
-            eePasswordbasedProtectionProvider = ProtectionProviderFactory.createProtectionProvider(
-                    new SharedSecret("PASSWORDBASEDMAC", TestUtils.PASSWORD));
+            eePasswordbasedProtectionProvider =
+                    ProtectionProviderFactory.createProtectionProvider(getEeSharedSecretCredentials());
         }
         return eePasswordbasedProtectionProvider;
+    }
+
+    private static SharedSecret getEeSharedSecretCredentials() {
+        if (eeSharedSecretCredentials == null)
+            eeSharedSecretCredentials = new SharedSecret("PASSWORDBASEDMAC", TestUtils.PASSWORD);
+        return eeSharedSecretCredentials;
     }
 
     public static ProtectionProvider getEePbmac1ProtectionProvider()
@@ -665,12 +683,21 @@ public class ConfigurationFactory {
     public static ProtectionProvider getEeSignaturebasedProtectionProvider() throws Exception {
         if (eeSignaturebasedProtectionProvider == null) {
             eeSignaturebasedProtectionProvider =
-                    ProtectionProviderFactory.createProtectionProvider(new TrustChainAndPrivateKey(
-                            // "credentials/CMP_EE_Keystore_EdDSA.p12",
-                            // "credentials/CMP_EE_Keystore_RSA.p12",
-                            "credentials/CMP_EE_Keystore.p12", TestUtils.PASSWORD_AS_CHAR_ARRAY));
+                    ProtectionProviderFactory.createProtectionProvider(getEeSignaturebasedCredentials());
         }
         return eeSignaturebasedProtectionProvider;
+    }
+
+    private static TrustChainAndPrivateKey eeSignaturebasedCredentials;
+    private static SharedSecret eeSharedSecretCredentials;
+
+    public static TrustChainAndPrivateKey getEeSignaturebasedCredentials() throws Exception {
+        if (eeSignaturebasedCredentials == null)
+            eeSignaturebasedCredentials = new TrustChainAndPrivateKey(
+                    // "credentials/CMP_EE_Keystore_EdDSA.p12",
+                    // "credentials/CMP_EE_Keystore_RSA.p12",
+                    "credentials/CMP_EE_Keystore.p12", TestUtils.PASSWORD_AS_CHAR_ARRAY);
+        return eeSignaturebasedCredentials;
     }
 
     public static KeyPairGenerator getKeyGenerator() {

@@ -4,3 +4,4 @@
 *.bak
 
 /target/
+/path_accumulator_ps.tmp

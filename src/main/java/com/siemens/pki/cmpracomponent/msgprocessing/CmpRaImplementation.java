@@ -43,7 +43,9 @@ import org.slf4j.LoggerFactory;
  */
 public class CmpRaImplementation implements CmpRaInterface {
 
-    private static final String UPSTREAM_INTERFACE_NAME = "upstream";
+    private static final String DOWNSTREAM_INTERFACE_NAME = "RaDownstream";
+
+    private static final String UPSTREAM_INTERFACE_NAME = "RaUpstream";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CmpRaImplementation.class);
 
@@ -122,13 +124,13 @@ public class CmpRaImplementation implements CmpRaInterface {
             LOGGER.trace("REQUEST at downstream >>>>>");
             LOGGER.trace(MessageDumper.dumpPkiMessage(request));
         }
-        FileTracer.logMessage(request, "downstream");
+        FileTracer.logMessage(request, DOWNSTREAM_INTERFACE_NAME);
         final PKIMessage response = downstream.handleInputMessage(request);
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("RESPONSE at downstream <<<<");
             LOGGER.trace(MessageDumper.dumpPkiMessage(response));
         }
-        FileTracer.logMessage(response, "downstream");
+        FileTracer.logMessage(response, DOWNSTREAM_INTERFACE_NAME);
         return ifNotNull(response, PKIMessage::getEncoded);
     }
 }

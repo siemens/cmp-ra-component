@@ -19,6 +19,7 @@ package com.siemens.pki.cmpracomponent.test;
 
 import static org.junit.Assert.fail;
 
+import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface.ReprotectMode;
 import com.siemens.pki.cmpracomponent.configuration.Configuration;
 import com.siemens.pki.cmpracomponent.main.CmpRaComponent;
 import com.siemens.pki.cmpracomponent.main.CmpRaComponent.CmpRaInterface;
@@ -74,7 +75,12 @@ public class OnlineRaLraTestcasebase extends OnlineEnrollmentTestcaseBase {
                 new SignatureValidationCredentials("credentials/ENROLL_Root.pem", null);
 
         return ConfigurationFactory.buildSimpleRaConfiguration(
-                downStreamCredentials, downstreamTrust, upstreamCredentials, upstreamTrust, enrollmentTrust);
+                downStreamCredentials,
+                ReprotectMode.keep,
+                downstreamTrust,
+                upstreamCredentials,
+                upstreamTrust,
+                enrollmentTrust);
     }
 
     @Override

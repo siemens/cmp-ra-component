@@ -26,6 +26,10 @@ public class PasswordValidationCredentials implements VerificationContext {
         this.sharedSecret = sharedSecret.getBytes();
     }
 
+    public PasswordValidationCredentials(byte[] sharedSecret) {
+        this.sharedSecret = sharedSecret;
+    }
+
     @Override
     public byte[] getSharedSecret(final byte[] senderKID) {
         return sharedSecret;

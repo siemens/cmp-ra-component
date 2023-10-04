@@ -1,0 +1,57 @@
+@startuml
+
+entity "**Embedding Application**" as embedapp
+
+activate embedapp
+
+participant "Client Instance" as Client 
+participant "UpstreamExchange interface" as Upstream
+
+activate Upstream
+
+embedapp <-> Client : new CmpClient()
+
+activate Client
+
+hnote over embedapp, Client
+synchronous call of getCaCertificates(), 
+getCertificateRequestTemplate(), getCrls(), 
+getRootCaCertificateUpdate(),
+invokeEnrollment() or invokeRevocation()
+end note
+
+embedapp -> Client : invoke CmpClient method
+
+Client -> Upstream : sendReceiveMessage(**byte[]** request, **String** certProfile, **int** bodyTypeOfFirstRequest)
+
+alt synchronous
+Upstream --> Client : **byte[]** sendReceiveMessage (response)
+
+else asynchronous: delayed delivery
+
+Upstream --> Client : **byte[]** sendReceiveMessage (response with waiting indication)
+loop
+Client -> Upstream :  sendReceiveMessage(**byte[]** pollRequest, **String** certProfile, **int** bodyTypeOfFirstRequest)
+alt
+Upstream --> Client : **byte[]** sendReceiveMessage (pollResponse) 
+else
+break
+end
+
+end
+end
+
+Upstream --> Client : **byte[]** sendReceiveMessage (response)
+end
+opt sucessfull enrollment without implicit confirm
+Client -> Upstream :  sendReceiveMessage(**byte[]** certConf, **String** certProfile, **int** bodyTypeOfFirstRequest)
+Upstream --> Client : **byte[]** sendReceiveMessage (pkiConf)
+end
+hnote over embedapp, Client
+response of getCaCertificates(), getCertificateRequestTemplate()
+getCrls(), getRootCaCertificateUpdate(),
+invokeEnrollment() or invokeRevocation()
+end note
+
+Client -> embedapp: CmpClient method call returns
+@enduml

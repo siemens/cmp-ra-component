@@ -14,6 +14,6 @@ left to right direction
 downif <--> RA : byte[] processRequest(byte[] request) or\nFunction<byte[], byte[]>(byte[] request)
 
 RA <-- upif : void gotResponseAtUpstream(byte[] response)
-RA <--> upif : byte[] upstreamExchange(byte[] request, String certificateProfile) or\nBiFunction<byte[], String, byte[]>(byte[] p10csr, String certificateProfile)
+RA <--> upif :  byte[] UpstreamExchange::sendReceiveMessage(byte[] request, String certProfile, int bodyTypeOfFirstRequest) throws Exception; or\nBiFunction<byte[], String, byte[]>(byte[] p10csr, String certificateProfile)
 }
 @enduml

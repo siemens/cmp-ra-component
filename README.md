@@ -2,9 +2,16 @@
 
 # Features of the generic CMP RA component
 
-The generic CMP RA component supports the implementation of
-applications that provides CMP Registration Authority (RA) functions.
-
+The generic CMP RA component supports the implementation of applications
+that provide CMP Registration Authority (RA) functions.
+It implements the RA features specified in the
+[Lightweight Certificate Management Protocol (CMP) Profile](
+https://datatracker.ietf.org/doc/draft-ietf-lamps-lightweight-cmp-profile/),
+reflecting the updates to CMP (RFC 4210) and CRMF (RFC 4211) given in
+[Certificate Management Protocol (CMP) Updates](
+https://datatracker.ietf.org/doc/draft-ietf-lamps-cmp-updates/)
+and [Certificate Management Protocol (CMP) Algorithms](
+https://datatracker.ietf.org/doc/draft-ietf-lamps-cmp-algorithms/).
 
 ## Basic features for use in PoCs, reference implementations, and in production
 
@@ -38,7 +45,7 @@ applications that provides CMP Registration Authority (RA) functions.
 * The Configuration interface of the generic CMP RA component supports
   setting options also dynamically and dependent on certificate profiles.
 * The upstream message transfer interface of the component
-    * provides optional routing information via the certificate profile and
+    * provides optional routing information dependent on the certificate profile
     * supports legacy servers by using PKCS#10 requests
       and X.509 responses as alternative to CMP.
 * The component has an interface for authorizing and optionally
@@ -63,8 +70,9 @@ The picture below shows the overall design and relation to JAVA base components:
   Java libraries and runtime environment, including Java crypto provider (JCE).
 * Errors, warnings and information on internal message processing are logged
   using the framework [SLF4J](http://www.slf4j.org/).
-* The implementation uses the 
-  [Bouncy Castle library](https://www.bouncycastle.org/) (providing low-level CMP) internally.
+* The implementation uses internally the
+  [Bouncy Castle library](https://www.bouncycastle.org/),
+  which providesd a low-level CMP implementation.
 * As far as possible, errors are reported at application level
   as CMP error messages.
   Otherwise Java exceptions are thrown,
@@ -88,7 +96,7 @@ are exchanged as ASN.1 DER-encoded byte strings.
 * The transfer layer typically does not need to look into
   the contents of the request/response messages
   but can simply forward and return them as opaque data.
-* The byte string level is the least common denominator
+* The byte-string level is the least common denominator
   for representing PKIX-related data structures.
   Using it avoids the error-prone handling of inadequate class definitions
   provided by the standard Java RE.
@@ -112,13 +120,11 @@ It can regard incoming and outgoing CMP messages
 simply as opaque Java byte arrays.
 The externally usable interface is specified in [`com.siemens.pki.cmpracomponent.main.CmpRaComponent`](src/main/java/com/siemens/pki/cmpracomponent/main/CmpRaComponent.java).
 
-The UML diagram
-component and interface design](doc/componentandinterfacedesign.uml)
+The UML diagram [component and interface design](doc/componentandinterfacedesignra.uml)
 gives an overview about external components and interactions.
-![component and interface design](doc/componentandinterfacedesign.png)
+![component and interface design](doc/componentandinterfacedesignra.png)
 
-### Dynamic message exchange behavior on the downstream CMP interface and
-upstream PKCS#10/X.509 interface
+### Dynamic message exchange behavior on the downstream CMP interface and upstream PKCS#10/X.509 interface
 
 In the PKCS#10 case the upstream communication (towards the CA) is synchronous.
 The UML diagram [Sequence diagram for PKCS#10/X.509](doc/Sequence_instantiateP10X509CmpRaComponent.uml)
@@ -184,4 +190,126 @@ and status updates, and for persistency
 After the javadoc documentation has been generated locally by invoking
 `mvn javadoc:javadoc`, it can be found
 at `target/site/apidocs/com/siemens/pki/cmpracomponent/main/CmpRaComponent.html`.
+
+# Features of the generic CMP client component
+
+The client extends the
+[generic CMP RA component](#features-of-the-generic-cmp-client-component).
+It implements the End Entity features specified in the
+[Lightweight Certificate Management Protocol (CMP) Profile](
+https://datatracker.ietf.org/doc/draft-ietf-lamps-lightweight-cmp-profile/)
+reflecting the updates to CMP (RFC 4210) and CRMF (RFC 4211) given in
+[Certificate Management Protocol (CMP) Updates](
+https://datatracker.ietf.org/doc/draft-ietf-lamps-cmp-updates/)
+and [Certificate Management Protocol (CMP) Algorithms](
+https://datatracker.ietf.org/doc/draft-ietf-lamps-cmp-algorithms/).
+
+## Basic feature​s for use in PoCs, reference implementations, and in production
+
+* The generic CMP client component component implements
+the following CMP functions and features:
+    * Build, parse, and process CMP messages and validate their contents.
+    * Provide and validate CMP message protection,
+      based on signatures or shared secrets (MAC).
+    * Support all CMP use cases (including ir, cr, p10cr, kur, and rr)
+      defined in the [Lightweight CMP Profile](
+      https://datatracker.ietf.org/doc/html/draft-ietf-lamps-lightweight-cmp-profile).
+    * Support all general CMP features defined in Lightweight CMP Profile,
+      including error handling within CMP, local/central key generation,
+      and delayed delivery of all message types.
+* The component is usable in client contexts and in standalone applications.
+* Use of the component is as simple as possible,
+  not requiring specific (crypto, CMP, etc.) detailed knowledge.
+* The component supports very flexible configuration,
+  allowing to set all relevant options, with reasonable defaults.
+* The component provides error reporting and logging
+  towards embedding application or execution environment.
+* All messages are ASN.1 DER-encoded for maximal interoperability.
+* The component allows using any type of message transfer, such as HTTP(S).
+* Java interface is based on Bouncy Castle (low-level CMP)
+  and the Java crypto provider (JCE).
+
+## Advanced features, in particular for productive use
+
+* The Configuration interface of the generic CMP client component supports
+  setting options also dynamically and dependent on certificate profiles in a
+  similar way as for the CMP RA component.
+* The message transfer interface of the component provides
+  optional routing information dependent on the certificate profile
+
+# Structure of the generic CMP client component
+
+The picture below shows the overall design and relation to JAVA base components:
+
+![Structure of the generic CMP client component](doc/CmpEeComponentDesign.png)
+
+
+## Overall software design
+
+* The API for instantiating an CMP client component is specified as a Java class.
+* The API to access the generic CMP client component is based just on common
+  Java libraries and runtime environment, including Java crypto provider (JCE).
+* Errors, warnings and information on internal message processing are logged
+  using the framework [SLF4J](http://www.slf4j.org/).
+* The implementation uses internally the
+  [Bouncy Castle library](https://www.bouncycastle.org/),
+  which providesd a low-level CMP implementation.
+* Errors are reported as Java exceptions,
+  also in case of invalid configuration and on other fatal errors.
+
+
+## Message exchange API design
+
+For simplicity, there is only one upstream interface towards server (CA).
+In case multiple upstream interfaces are desired:
+* Differentiation in transport/routing
+  can be achieved by the embedding application multiplexing channels.
+* Differentiation in message protection or inventory behavior
+  can be achieved via the certificate profile mechanism.
+* If any further differentiation in CMP/application-level processing
+  is required, multiple CMP client instances are needed.
+
+All CMP messages are exchanged as ASN.1 DER-encoded byte strings.
+* The transfer layer typically does not need to look into
+  the contents of the request/response messages
+  but can simply forward and return them as opaque data.
+* The byte-string level is the least common denominator
+  for representing PKIX-related data structures.
+  Using it avoids the error-prone handling of inadequate class definitions
+  provided by the standard Java RE.
+
+The transport layer in the embedding client application
+is responsible for the following:
+* Forward request message provided by the client upstream interface
+  towards the server.
+* Collect response messages from server side and
+  provide them to the client upstream interface.
+
+## Component and interface design
+
+The embedding application does not need to know CMP specifics.
+It can regard incoming and outgoing CMP messages
+simply as opaque Java byte arrays.
+The externally usable interface is specified in [`com.siemens.pki.cmpclientcomponent.main.CmpClient`](src/main/java/com/siemens/pki/cmpclientcomponent/main/CmpClient.java).
+
+The UML diagram [component and interface design](doc/componentandinterfacedesignclient.uml)
+gives an overview about external components and interactions.
+![component and interface design](doc/componentandinterfacedesignclient.png)
+
+### Dynamic message exchange behavior for downstream and upstream CMP interface
+
+The UML diagram [Sequence diagram for CMP](doc/Sequence_instantiateCmpClientComponent.uml)
+gives an overview about instantiation and message exchange
+between CMP Client component and upstream interface:
+
+![Sequence diagram for CMP](doc/Sequence_instantiateCmpClientComponent.png)
+
+## Configuration interface design
+
+* Each CMP client instance is controlled by providing implementations of
+  * [`com.siemens.pki.cmpclientcomponent.main.CmpClient.ClientContext`](src/main/java/com/siemens/pki/cmpclientcomponent/main/CmpClient.java)
+  * [`com.siemens.pki.cmpracomponent.main.CmpRaComponent.UpstreamExchange`](src/main/java/com/siemens/pki/cmpracomponent/main/CmpRaComponent.java) and
+  * [`com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface`](src/main/java/com/siemens/pki/cmpracomponent/configuration/CmpMessageInterface.java)
+
+For configuration interface details see [RA Configuration interface design](#configuration-interface-design) which is partly reused for client configuration.
 
