@@ -21,13 +21,22 @@ import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.security.*;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.Provider;
+import java.security.PublicKey;
+import java.security.SecureRandom;
+import java.security.Security;
+import java.security.SignatureException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import org.bouncycastle.asn1.ASN1Encoding;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.DEROctetString;
@@ -38,8 +47,8 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
  * A utility class for certificate handling
  */
 public class CertUtility {
-    private static final BouncyCastleProvider BOUNCY_CASTLE_PROVIDER = new BouncyCastleProvider();
     private static final SecureRandom RANDOM = new SecureRandom();
+    private static Provider BOUNCY_CASTLE_PROVIDER;
     private static CertificateFactory certificateFactory;
 
     // utility class
@@ -150,7 +159,18 @@ public class CertUtility {
         return ret;
     }
 
-    public static BouncyCastleProvider getBouncyCastleProvider() {
+    /**
+     * get Bouncy Castle Provider.
+     * if already initialized will be retrieved from Security.getProviders()
+     * otherwise it will be instantiated and registered
+     *
+     * @return the Bouncy Castle Provider
+     */
+    public static Provider getBouncyCastleProvider() {
+        if (BOUNCY_CASTLE_PROVIDER == null) {
+            BOUNCY_CASTLE_PROVIDER = BouncyCastleInitializer.getInstance();
+        }
+
         return BOUNCY_CASTLE_PROVIDER;
     }
 
@@ -191,5 +211,14 @@ public class CertUtility {
             certificateFactory = CertificateFactory.getInstance("X.509", BOUNCY_CASTLE_PROVIDER);
         }
         return certificateFactory;
+    }
+
+    private static class BouncyCastleInitializer {
+        private static synchronized Provider getInstance() {
+            return Arrays.stream(Security.getProviders())
+                    .filter(it -> Objects.equals(it.getName(), BouncyCastleProvider.PROVIDER_NAME))
+                    .findFirst()
+                    .orElseGet(BouncyCastleProvider::new);
+        }
     }
 }
