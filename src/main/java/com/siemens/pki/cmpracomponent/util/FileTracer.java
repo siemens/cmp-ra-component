@@ -84,10 +84,10 @@ public class FileTracer {
                 || !enablePemDump && !enableTxtDump && !enableDerDump && !enableAsn1Dump) {
             return;
         }
-        final String subDirName = "trans_"
-                + B64_ENCODER_WITHOUT_PADDING.encodeToString(
-                        msg.getHeader().getTransactionID().getOctets());
         try {
+            final String subDirName = "trans_"
+                    + B64_ENCODER_WITHOUT_PADDING.encodeToString(
+                            msg.getHeader().getTransactionID().getOctets());
             final File subDir = new File(msgDumpDirectory, subDirName);
             if (!subDir.isDirectory()) {
                 subDir.mkdirs();
