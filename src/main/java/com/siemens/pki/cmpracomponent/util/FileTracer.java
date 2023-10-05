@@ -20,7 +20,6 @@ package com.siemens.pki.cmpracomponent.util;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.util.Base64;
 import java.util.Base64.Encoder;
 import java.util.concurrent.atomic.AtomicLong;
@@ -115,7 +114,7 @@ public class FileTracer {
                     }
                 }
             }
-        } catch (final IOException e) {
+        } catch (final Exception e) {
             LOGGER.error("error writing dump", e);
         }
     }
