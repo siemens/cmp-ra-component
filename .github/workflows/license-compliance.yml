@@ -20,5 +20,5 @@ jobs:
         run: mvn cyclonedx:makeAggregateBom
       - name: Produce concise license report
         run: /usr/bin/python3 scripts/license-check.py --sbom target/bom.json --report
-      - name: Produce concise license report
+      - name: Check license compliance
         run: /usr/bin/python3 scripts/license-check.py --sbom target/bom.json --enforce resources/allowed-licenses.txt
