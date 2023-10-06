@@ -123,7 +123,7 @@ if __name__ == '__main__':
         logging.info('Producing license report: \n%s', summary)
 
     if args.enforce:
-        allowed = load_allowed_licenses(args.allowed)
+        allowed = load_allowed_licenses(args.enforce)
         valid = check_license_compliance(parsed_sbom, allowed)
         if valid:
             logging.info('SUCCESS: No license issues found')
