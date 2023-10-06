@@ -5,4 +5,5 @@ MIT
 EPL-2.0
 BSD-3-Clause
 EPL-1.0
-Bouncy Castle Licence
+# commented for test purposes, to see how the pipeline fails
+#Bouncy Castle Licence
