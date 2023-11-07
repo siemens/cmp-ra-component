@@ -115,3 +115,7 @@ fix: Bouncy Castle Provider initialized within the component only if not already
 ### 3.0.0 (Oct 04 2023)
 
 feat: provide CMP client implementation
+
+### 3.0.1 (Nov 07 2023)
+
+fix: update some dependencies
