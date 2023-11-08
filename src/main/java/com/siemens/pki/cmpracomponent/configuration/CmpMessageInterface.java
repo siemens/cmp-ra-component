@@ -24,6 +24,24 @@ package com.siemens.pki.cmpracomponent.configuration;
 public interface CmpMessageInterface {
 
     /**
+     * the {@link ReprotectMode} controls how an outgoing message is protected
+     */
+    enum ReprotectMode {
+        /**
+         * the outgoing message will be reprotected in any case.
+         */
+        reprotect,
+        /**
+         * any protection is removed from the outgoing message
+         */
+        strip,
+        /**
+         * an existing protection of a forwarded message is preserved, if possible
+         */
+        keep
+    }
+
+    /**
      * configure trust for protection validation of incoming messages
      *
      * @return a trust configuration or <code>null</code> if protection validation
@@ -47,6 +65,15 @@ public interface CmpMessageInterface {
      *         of outgoing messages is requested
      */
     CredentialContext getOutputCredentials();
+
+    /**
+     * allow to set new recipient for outgoing messages. The  recipient is only updated if no or
+     * a new protection will be applied.
+     * @return new recipient in RDN notation or <code>null</code> if already set recipient should remain.
+     */
+    default String getRecipient() {
+    	return null;
+    }
 
     /**
      * provide configuration for protection mode of outgoing messages
@@ -82,22 +109,4 @@ public interface CmpMessageInterface {
      * @return allowed time offset in seconds
      */
     boolean isMessageTimeDeviationAllowed(long deviation);
-
-    /**
-     * the {@link ReprotectMode} controls how an outgoing message is protected
-     */
-    enum ReprotectMode {
-        /**
-         * the outgoing message will be reprotected in any case.
-         */
-        reprotect,
-        /**
-         * any protection is removed from the outgoing message
-         */
-        strip,
-        /**
-         * an existing protection of a forwarded message is preserved, if possible
-         */
-        keep
-    }
 }
