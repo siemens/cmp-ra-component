@@ -72,7 +72,7 @@ public interface CmpMessageInterface {
      * @return new recipient in RDN notation or <code>null</code> if already set recipient should remain.
      */
     default String getRecipient() {
-    	return null;
+        return null;
     }
 
     /**

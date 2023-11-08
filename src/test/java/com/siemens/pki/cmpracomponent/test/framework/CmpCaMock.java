@@ -36,9 +36,16 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import javax.security.auth.x500.X500Principal;
-import org.bouncycastle.asn1.cmp.*;
+import org.bouncycastle.asn1.cmp.CMPCertificate;
+import org.bouncycastle.asn1.cmp.PKIBody;
+import org.bouncycastle.asn1.cmp.PKIFailureInfo;
+import org.bouncycastle.asn1.cmp.PKIMessage;
+import org.bouncycastle.asn1.cmp.PKIStatus;
+import org.bouncycastle.asn1.cmp.PKIStatusInfo;
+import org.bouncycastle.asn1.cmp.RevRepContentBuilder;
 import org.bouncycastle.asn1.crmf.CertReqMessages;
 import org.bouncycastle.asn1.crmf.CertTemplate;
 import org.bouncycastle.asn1.pkcs.CertificationRequest;
@@ -70,6 +77,10 @@ public class CmpCaMock implements CmpRaComponent.UpstreamExchange {
     private static final JcaX509ContentVerifierProviderBuilder X509_CVPB =
             new JcaX509ContentVerifierProviderBuilder().setProvider(CertUtility.getBouncyCastleProvider());
     private static final JcaPEMKeyConverter JCA_KEY_CONVERTER = new JcaPEMKeyConverter();
+    private static final int MAX_LAST_RECEIVED = 10;
+
+    private final LinkedList<PKIMessage> lastReceivedMessages = new LinkedList<>();
+
     private final ProtectionProvider caProtectionProvider;
 
     private final SignatureCredentialContext enrollmentCredentials;
@@ -79,6 +90,127 @@ public class CmpCaMock implements CmpRaComponent.UpstreamExchange {
                 new TrustChainAndPrivateKey(enrollmentCredentials, TestUtils.PASSWORD_AS_CHAR_ARRAY);
         caProtectionProvider = new SignatureBasedProtection(
                 new TrustChainAndPrivateKey(protectionCredentials, TestUtils.PASSWORD_AS_CHAR_ARRAY));
+    }
+
+    private CMPCertificate createCertificate(
+            final X500Name subject, final SubjectPublicKeyInfo publicKey, final X509Certificate issuingCert)
+            throws PEMException, NoSuchAlgorithmException, CertIOException, CertificateException,
+                    OperatorCreationException {
+        final long now = System.currentTimeMillis();
+        final PublicKey pubKey = JCA_KEY_CONVERTER.getPublicKey(publicKey);
+        final X509v3CertificateBuilder v3CertBldr = new JcaX509v3CertificateBuilder(
+                issuingCert.getSubjectX500Principal(),
+                BigInteger.valueOf(now),
+                new Date(now - 60 * 60 * 1000L),
+                new Date(now + 100 * 60 * 60 * 1000L),
+                new X500Principal(subject.toString()),
+                pubKey);
+
+        final JcaX509ExtensionUtils extUtils = new JcaX509ExtensionUtils();
+        v3CertBldr.addExtension(Extension.subjectKeyIdentifier, false, extUtils.createSubjectKeyIdentifier(pubKey));
+        v3CertBldr.addExtension(
+                Extension.authorityKeyIdentifier, false, extUtils.createAuthorityKeyIdentifier(issuingCert));
+        v3CertBldr.addExtension(Extension.basicConstraints, true, new BasicConstraints(false));
+
+        final JcaContentSignerBuilder signerBuilder = new JcaContentSignerBuilder(
+                        AlgorithmHelper.getSigningAlgNameFromKey(enrollmentCredentials.getPrivateKey()))
+                .setProvider(TestCertUtility.BOUNCY_CASTLE_PROVIDER);
+
+        return TestCertUtility.cmpCertificateFromCertificate(new JcaX509CertificateConverter()
+                .setProvider(TestCertUtility.BOUNCY_CASTLE_PROVIDER)
+                .getCertificate(v3CertBldr.build(signerBuilder.build(enrollmentCredentials.getPrivateKey()))));
+    }
+
+    private PKIMessage generateError(final PKIMessage receivedMessage, final String errorDetails) throws Exception {
+        return PkiMessageGenerator.generateAndProtectMessage(
+                PkiMessageGenerator.buildRespondingHeaderProvider(receivedMessage),
+                caProtectionProvider,
+                PkiMessageGenerator.generateErrorBody(PKIFailureInfo.badRequest, errorDetails));
+    }
+
+    public PKIMessage getLastReceivedRequest() {
+        return lastReceivedMessages.getFirst();
+    }
+
+    public PKIMessage getReceivedRequestAt(int index) {
+        return lastReceivedMessages.get(index);
+    }
+
+    private PKIMessage handleCertConfirm(final PKIMessage receivedMessage) throws Exception {
+        return PkiMessageGenerator.generateAndProtectMessage(
+                PkiMessageGenerator.buildRespondingHeaderProvider(receivedMessage),
+                caProtectionProvider,
+                PkiMessageGenerator.generatePkiConfirmBody());
+    }
+
+    private PKIMessage handleCrmfCerticateRequest(final PKIMessage receivedMessage) throws Exception {
+        // get copy of enrollment chain
+        final List<X509Certificate> issuingChain = enrollmentCredentials.getCertificateChain();
+
+        final X509Certificate issuingCert = issuingChain.get(0);
+        final CertTemplate requestTemplate = ((CertReqMessages)
+                        receivedMessage.getBody().getContent())
+                .toCertReqMsgArray()[0]
+                .getCertReq()
+                .getCertTemplate();
+        final SubjectPublicKeyInfo publicKey = requestTemplate.getPublicKey();
+        final X500Name subject = requestTemplate.getSubject();
+        final CMPCertificate cmpCertificateFromCertificate = createCertificate(subject, publicKey, issuingCert);
+
+        // drop root certificate from copy
+        issuingChain.remove(issuingChain.size() - 1);
+        final List<CMPCertificate> issuingChainForExtraCerts = new ArrayList<>(issuingChain.size());
+        for (final X509Certificate aktCert : issuingChain) {
+            issuingChainForExtraCerts.add(TestCertUtility.cmpCertificateFromCertificate(aktCert));
+        }
+        return PkiMessageGenerator.generateAndProtectMessage(
+                PkiMessageGenerator.buildRespondingHeaderProvider(receivedMessage),
+                caProtectionProvider,
+                null,
+                PkiMessageGenerator.generateIpCpKupBody(
+                        receivedMessage.getBody().getType() + 1, cmpCertificateFromCertificate),
+                issuingChainForExtraCerts);
+    }
+
+    CMPCertificate handleP10CerticateRequest(final PKCS10CertificationRequest certificationRequest) throws Exception {
+        // get copy of enrollment chain
+        final List<X509Certificate> issuingChain = enrollmentCredentials.getCertificateChain();
+        final X509Certificate issuingCert = issuingChain.get(0);
+        return createCertificate(
+                certificationRequest.getSubject(), certificationRequest.getSubjectPublicKeyInfo(), issuingCert);
+    }
+
+    private PKIMessage handleP10CerticateRequest(final PKIMessage receivedMessage) throws Exception {
+        // get copy of enrollment chain
+        final List<X509Certificate> issuingChain = enrollmentCredentials.getCertificateChain();
+
+        final X509Certificate issuingCert = issuingChain.get(0);
+        final CertificationRequestInfo certificationRequestInfo =
+                ((CertificationRequest) receivedMessage.getBody().getContent()).getCertificationRequestInfo();
+        final CMPCertificate cmpCertificateFromCertificate = createCertificate(
+                certificationRequestInfo.getSubject(), certificationRequestInfo.getSubjectPublicKeyInfo(), issuingCert);
+
+        // drop root certificate from copy
+        issuingChain.remove(issuingChain.size() - 1);
+        final List<CMPCertificate> issuingChainForExtraCerts = new ArrayList<>(issuingChain.size());
+        for (final X509Certificate aktCert : issuingChain) {
+            issuingChainForExtraCerts.add(TestCertUtility.cmpCertificateFromCertificate(aktCert));
+        }
+        return PkiMessageGenerator.generateAndProtectMessage(
+                PkiMessageGenerator.buildRespondingHeaderProvider(receivedMessage),
+                caProtectionProvider,
+                null,
+                PkiMessageGenerator.generateIpCpKupBody(PKIBody.TYPE_CERT_REP, cmpCertificateFromCertificate),
+                issuingChainForExtraCerts);
+    }
+
+    private PKIMessage handleRevocationRequest(final PKIMessage receivedMessage) throws Exception {
+        final RevRepContentBuilder rrcb = new RevRepContentBuilder();
+        rrcb.add(new PKIStatusInfo(PKIStatus.granted));
+        return PkiMessageGenerator.generateAndProtectMessage(
+                PkiMessageGenerator.buildRespondingHeaderProvider(receivedMessage),
+                caProtectionProvider,
+                new PKIBody(PKIBody.TYPE_REVOCATION_REP, rrcb.build()));
     }
 
     public byte[] processP10CerticateRequest(final byte[] csr, final String certProfile) {
@@ -113,6 +245,10 @@ public class CmpCaMock implements CmpRaComponent.UpstreamExchange {
                 // enabled
                 LOGGER.debug("CA: got:\n" + MessageDumper.dumpPkiMessage(receivedMessage));
             }
+            lastReceivedMessages.addFirst(receivedMessage);
+            while (lastReceivedMessages.size() > MAX_LAST_RECEIVED) {
+                lastReceivedMessages.removeLast();
+            }
             final PKIMessage ret;
             switch (receivedMessage.getBody().getType()) {
                 case PKIBody.TYPE_INIT_REQ:
@@ -144,120 +280,5 @@ public class CmpCaMock implements CmpRaComponent.UpstreamExchange {
         } catch (final Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private CMPCertificate createCertificate(
-            final X500Name subject, final SubjectPublicKeyInfo publicKey, final X509Certificate issuingCert)
-            throws PEMException, NoSuchAlgorithmException, CertIOException, CertificateException,
-                    OperatorCreationException {
-        final long now = System.currentTimeMillis();
-        final PublicKey pubKey = JCA_KEY_CONVERTER.getPublicKey(publicKey);
-        final X509v3CertificateBuilder v3CertBldr = new JcaX509v3CertificateBuilder(
-                issuingCert.getSubjectX500Principal(),
-                BigInteger.valueOf(now),
-                new Date(now - 60 * 60 * 1000L),
-                new Date(now + 100 * 60 * 60 * 1000L),
-                new X500Principal(subject.toString()),
-                pubKey);
-
-        final JcaX509ExtensionUtils extUtils = new JcaX509ExtensionUtils();
-        v3CertBldr.addExtension(Extension.subjectKeyIdentifier, false, extUtils.createSubjectKeyIdentifier(pubKey));
-        v3CertBldr.addExtension(
-                Extension.authorityKeyIdentifier, false, extUtils.createAuthorityKeyIdentifier(issuingCert));
-        v3CertBldr.addExtension(Extension.basicConstraints, true, new BasicConstraints(false));
-
-        final JcaContentSignerBuilder signerBuilder = new JcaContentSignerBuilder(
-                        AlgorithmHelper.getSigningAlgNameFromKey(enrollmentCredentials.getPrivateKey()))
-                .setProvider(TestCertUtility.BOUNCY_CASTLE_PROVIDER);
-
-        final CMPCertificate cmpCertificateFromCertificate =
-                TestCertUtility.cmpCertificateFromCertificate(new JcaX509CertificateConverter()
-                        .setProvider(TestCertUtility.BOUNCY_CASTLE_PROVIDER)
-                        .getCertificate(v3CertBldr.build(signerBuilder.build(enrollmentCredentials.getPrivateKey()))));
-        return cmpCertificateFromCertificate;
-    }
-
-    private PKIMessage generateError(final PKIMessage receivedMessage, final String errorDetails) throws Exception {
-        return PkiMessageGenerator.generateAndProtectMessage(
-                PkiMessageGenerator.buildRespondingHeaderProvider(receivedMessage),
-                caProtectionProvider,
-                PkiMessageGenerator.generateErrorBody(PKIFailureInfo.badRequest, errorDetails));
-    }
-
-    private PKIMessage handleCertConfirm(final PKIMessage receivedMessage) throws Exception {
-        return PkiMessageGenerator.generateAndProtectMessage(
-                PkiMessageGenerator.buildRespondingHeaderProvider(receivedMessage),
-                caProtectionProvider,
-                PkiMessageGenerator.generatePkiConfirmBody());
-    }
-
-    private PKIMessage handleCrmfCerticateRequest(final PKIMessage receivedMessage) throws Exception {
-        // get copy of enrollment chain
-        final List<X509Certificate> issuingChain = enrollmentCredentials.getCertificateChain();
-
-        final X509Certificate issuingCert = issuingChain.get(0);
-        final CertTemplate requestTemplate = ((CertReqMessages)
-                        receivedMessage.getBody().getContent())
-                .toCertReqMsgArray()[0]
-                .getCertReq()
-                .getCertTemplate();
-        final SubjectPublicKeyInfo publicKey = requestTemplate.getPublicKey();
-        final X500Name subject = requestTemplate.getSubject();
-        final CMPCertificate cmpCertificateFromCertificate = createCertificate(subject, publicKey, issuingCert);
-
-        // drop root certificate from copy
-        issuingChain.remove(issuingChain.size() - 1);
-        final List<CMPCertificate> issuingChainForExtraCerts = new ArrayList<>(issuingChain.size());
-        for (final X509Certificate aktCert : issuingChain) {
-            issuingChainForExtraCerts.add(TestCertUtility.cmpCertificateFromCertificate(aktCert));
-        }
-        final PKIMessage ret = PkiMessageGenerator.generateAndProtectMessage(
-                PkiMessageGenerator.buildRespondingHeaderProvider(receivedMessage),
-                caProtectionProvider,
-                PkiMessageGenerator.generateIpCpKupBody(
-                        receivedMessage.getBody().getType() + 1, cmpCertificateFromCertificate),
-                issuingChainForExtraCerts);
-        return ret;
-    }
-
-    private PKIMessage handleP10CerticateRequest(final PKIMessage receivedMessage) throws Exception {
-        // get copy of enrollment chain
-        final List<X509Certificate> issuingChain = enrollmentCredentials.getCertificateChain();
-
-        final X509Certificate issuingCert = issuingChain.get(0);
-        final CertificationRequestInfo certificationRequestInfo =
-                ((CertificationRequest) receivedMessage.getBody().getContent()).getCertificationRequestInfo();
-        final CMPCertificate cmpCertificateFromCertificate = createCertificate(
-                certificationRequestInfo.getSubject(), certificationRequestInfo.getSubjectPublicKeyInfo(), issuingCert);
-
-        // drop root certificate from copy
-        issuingChain.remove(issuingChain.size() - 1);
-        final List<CMPCertificate> issuingChainForExtraCerts = new ArrayList<>(issuingChain.size());
-        for (final X509Certificate aktCert : issuingChain) {
-            issuingChainForExtraCerts.add(TestCertUtility.cmpCertificateFromCertificate(aktCert));
-        }
-        final PKIMessage ret = PkiMessageGenerator.generateAndProtectMessage(
-                PkiMessageGenerator.buildRespondingHeaderProvider(receivedMessage),
-                caProtectionProvider,
-                PkiMessageGenerator.generateIpCpKupBody(PKIBody.TYPE_CERT_REP, cmpCertificateFromCertificate),
-                issuingChainForExtraCerts);
-        return ret;
-    }
-
-    private PKIMessage handleRevocationRequest(final PKIMessage receivedMessage) throws Exception {
-        final RevRepContentBuilder rrcb = new RevRepContentBuilder();
-        rrcb.add(new PKIStatusInfo(PKIStatus.granted));
-        return PkiMessageGenerator.generateAndProtectMessage(
-                PkiMessageGenerator.buildRespondingHeaderProvider(receivedMessage),
-                caProtectionProvider,
-                new PKIBody(PKIBody.TYPE_REVOCATION_REP, rrcb.build()));
-    }
-
-    CMPCertificate handleP10CerticateRequest(final PKCS10CertificationRequest certificationRequest) throws Exception {
-        // get copy of enrollment chain
-        final List<X509Certificate> issuingChain = enrollmentCredentials.getCertificateChain();
-        final X509Certificate issuingCert = issuingChain.get(0);
-        return createCertificate(
-                certificationRequest.getSubject(), certificationRequest.getSubjectPublicKeyInfo(), issuingCert);
     }
 }

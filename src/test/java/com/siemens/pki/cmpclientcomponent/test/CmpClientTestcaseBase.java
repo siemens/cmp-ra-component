@@ -39,7 +39,6 @@ import com.siemens.pki.cmpracomponent.test.framework.PasswordValidationCredentia
 import com.siemens.pki.cmpracomponent.test.framework.SignatureValidationCredentials;
 import java.io.File;
 import java.io.IOException;
-import java.security.GeneralSecurityException;
 import java.security.Security;
 import java.security.cert.X509Certificate;
 import java.util.Collection;
@@ -53,6 +52,65 @@ public class CmpClientTestcaseBase {
 
     static {
         ConfigFileLoader.setConfigFileBase(CONFIG_DIRECTORY);
+    }
+
+    protected static CmpMessageInterface getPasswordBasedUpstreamconfiguration(
+            SharedSecretCredentialContext protection, SignatureValidationCredentials keyValidationCredentials) {
+        return new CmpMessageInterface() {
+
+            final PasswordValidationCredentials passwordUpstreamTrust =
+                    new PasswordValidationCredentials(protection.getSharedSecret());
+
+            @Override
+            public VerificationContext getInputVerification() {
+                return new VerificationContext() {
+                    @Override
+                    public Collection<X509Certificate> getAdditionalCerts() {
+                        return keyValidationCredentials.getAdditionalCerts();
+                    }
+
+                    @Override
+                    public byte[] getSharedSecret(byte[] senderKID) {
+                        return passwordUpstreamTrust.getSharedSecret(senderKID);
+                    }
+
+                    @Override
+                    public Collection<X509Certificate> getTrustedCertificates() {
+                        return keyValidationCredentials.getTrustedCertificates();
+                    }
+                };
+            }
+
+            @Override
+            public NestedEndpointContext getNestedEndpointContext() {
+                return null;
+            }
+
+            @Override
+            public CredentialContext getOutputCredentials() {
+                return protection;
+            }
+
+            @Override
+            public ReprotectMode getReprotectMode() {
+                return ReprotectMode.reprotect;
+            }
+
+            @Override
+            public boolean getSuppressRedundantExtraCerts() {
+                return false;
+            }
+
+            @Override
+            public boolean isCacheExtraCerts() {
+                return false;
+            }
+
+            @Override
+            public boolean isMessageTimeDeviationAllowed(final long deviation) {
+                return deviation < 10;
+            }
+        };
     }
 
     protected static CmpMessageInterface getSignatureBasedUpstreamconfiguration(final String upstreamTrustPath) {
@@ -110,9 +168,21 @@ public class CmpClientTestcaseBase {
 
     protected UpstreamExchange upstreamExchange;
 
+    protected CmpClient getPasswordBasedCmpClient(
+            String certProfile,
+            final ClientContext clientContext,
+            SharedSecretCredentialContext protection,
+            SignatureValidationCredentials keyValidationCredentials)
+            throws Exception {
+        return new CmpClient(
+                certProfile,
+                getUpstreamExchange(),
+                getPasswordBasedUpstreamconfiguration(protection, keyValidationCredentials),
+                clientContext);
+    }
+
     protected CmpClient getSignatureBasedCmpClient(
-            String certProfile, final ClientContext clientContext, final String upstreamTrustPath)
-            throws GeneralSecurityException {
+            String certProfile, final ClientContext clientContext, final String upstreamTrustPath) throws Exception {
         return new CmpClient(
                 certProfile,
                 getUpstreamExchange(),
@@ -182,74 +252,5 @@ public class CmpClientTestcaseBase {
             }
         };
         return upstreamExchange;
-    }
-
-    protected CmpClient getPasswordBasedCmpClient(
-            String certProfile,
-            final ClientContext clientContext,
-            SharedSecretCredentialContext protection,
-            SignatureValidationCredentials keyValidationCredentials)
-            throws GeneralSecurityException {
-        return new CmpClient(
-                certProfile,
-                getUpstreamExchange(),
-                getPasswordBasedUpstreamconfiguration(protection, keyValidationCredentials),
-                clientContext);
-    }
-
-    protected static CmpMessageInterface getPasswordBasedUpstreamconfiguration(
-            SharedSecretCredentialContext protection, SignatureValidationCredentials keyValidationCredentials) {
-        return new CmpMessageInterface() {
-
-            final PasswordValidationCredentials passwordUpstreamTrust =
-                    new PasswordValidationCredentials(protection.getSharedSecret());
-
-            @Override
-            public VerificationContext getInputVerification() {
-                return new VerificationContext() {
-                    public byte[] getSharedSecret(byte[] senderKID) {
-                        return passwordUpstreamTrust.getSharedSecret(senderKID);
-                    }
-
-                    public Collection<X509Certificate> getAdditionalCerts() {
-                        return keyValidationCredentials.getAdditionalCerts();
-                    }
-
-                    public Collection<X509Certificate> getTrustedCertificates() {
-                        return keyValidationCredentials.getTrustedCertificates();
-                    }
-                };
-            }
-
-            @Override
-            public NestedEndpointContext getNestedEndpointContext() {
-                return null;
-            }
-
-            @Override
-            public CredentialContext getOutputCredentials() {
-                return protection;
-            }
-
-            @Override
-            public ReprotectMode getReprotectMode() {
-                return ReprotectMode.reprotect;
-            }
-
-            @Override
-            public boolean getSuppressRedundantExtraCerts() {
-                return false;
-            }
-
-            @Override
-            public boolean isCacheExtraCerts() {
-                return false;
-            }
-
-            @Override
-            public boolean isMessageTimeDeviationAllowed(final long deviation) {
-                return deviation < 10;
-            }
-        };
     }
 }

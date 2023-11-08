@@ -45,7 +45,7 @@ public interface NestedEndpointContext {
      * @return new recipient in RDN notation or <code>null</code> if the recipient of the wrapped message should be used.
      */
     default String getRecipient() {
-    	return null;
+        return null;
     }
 
     /**

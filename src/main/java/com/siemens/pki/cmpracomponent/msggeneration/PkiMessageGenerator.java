@@ -251,21 +251,8 @@ public class PkiMessageGenerator {
      *
      * @param headerProvider     PKI header
      * @param protectionProvider PKI protection
-     * @param body               message body
-     * @return a fully build and protected message
-     * @throws Exception in case of error
-     */
-    public static PKIMessage generateAndProtectMessage(
-            final HeaderProvider headerProvider, final ProtectionProvider protectionProvider, final PKIBody body)
-            throws Exception {
-        return generateAndProtectMessage(headerProvider, protectionProvider, body, null);
-    }
-
-    /**
-     * generate and protect a new CMP message
-     *
-     * @param headerProvider     PKI header
-     * @param protectionProvider PKI protection
+     * @param newRecipient       outgoing recipient or <code>null</code> recipient
+     *                           from headerProvider should be used
      * @param body               message body
      * @param issuingChain       chain of enrolled certificate to append at the
      *                           extraCerts
@@ -275,15 +262,15 @@ public class PkiMessageGenerator {
     public static PKIMessage generateAndProtectMessage(
             final HeaderProvider headerProvider,
             final ProtectionProvider protectionProvider,
+            GeneralName newRecipient,
             final PKIBody body,
             final List<CMPCertificate> issuingChain)
             throws Exception {
         synchronized (protectionProvider) {
+            final GeneralName recipient = computeDefaultIfNull(newRecipient, headerProvider::getRecipient);
             final GeneralName sender = computeDefaultIfNull(protectionProvider.getSender(), headerProvider::getSender);
             final PKIHeaderBuilder headerBuilder = new PKIHeaderBuilder(
-                    headerProvider.getPvno(),
-                    defaultIfNull(sender, NULL_DN),
-                    defaultIfNull(headerProvider.getRecipient(), NULL_DN));
+                    headerProvider.getPvno(), defaultIfNull(sender, NULL_DN), defaultIfNull(recipient, NULL_DN));
             headerBuilder.setMessageTime(headerProvider.getMessageTime());
             headerBuilder.setProtectionAlg(protectionProvider.getProtectionAlg());
             headerBuilder.setSenderKID(protectionProvider.getSenderKID());
@@ -303,6 +290,21 @@ public class PkiMessageGenerator {
             return new PKIMessage(
                     generatedHeader, body, protection, generatedExtraCerts.length == 0 ? null : generatedExtraCerts);
         }
+    }
+
+    /**
+     * generate and protect a new CMP message
+     *
+     * @param headerProvider     PKI header
+     * @param protectionProvider PKI protection
+     * @param body               message body
+     * @return a fully build and protected message
+     * @throws Exception in case of error
+     */
+    public static PKIMessage generateAndProtectMessage(
+            final HeaderProvider headerProvider, final ProtectionProvider protectionProvider, final PKIBody body)
+            throws Exception {
+        return generateAndProtectMessage(headerProvider, protectionProvider, null, body, null);
     }
 
     /**
@@ -518,8 +520,8 @@ public class PkiMessageGenerator {
     /**
      * generate a RR body
      *
-     * @param issuer       issuer of certificate to revoke
-     * @param serialNumber serialNumber of certificate to revoke
+     * @param issuer           issuer of certificate to revoke
+     * @param serialNumber     serialNumber of certificate to revoke
      * @param revocationReason the reason for this revocation
      * @return generated RR body
      * @throws IOException in case of ASN.1 processing errors
@@ -544,7 +546,7 @@ public class PkiMessageGenerator {
      */
     public static PKIMessage generateUnprotectMessage(final HeaderProvider headerProvider, final PKIBody body)
             throws Exception {
-        return generateAndProtectMessage(headerProvider, ProtectionProvider.NO_PROTECTION, body, null);
+        return generateAndProtectMessage(headerProvider, ProtectionProvider.NO_PROTECTION, null, body, null);
     }
 
     private PkiMessageGenerator() {}
