@@ -29,46 +29,52 @@ import org.bouncycastle.asn1.x509.GeneralName;
  */
 public interface HeaderProvider {
 
-    /**
-     * @return GeneralInfo (ImplicitConfirm, ConfirmWaitTime) to be used in CMP
-     *         header.
+    /** get GeneralInfo (ImplicitConfirm, ConfirmWaitTime) to be used in CMP header
+     * @return GeneralInfo
      */
     InfoTypeAndValue[] getGeneralInfo();
 
     /**
-     * @return MessageTime to be used in CMP header.
+     * get MessageTime to be used in CMP header.
+     * @return MessageTime
      */
     default ASN1GeneralizedTime getMessageTime() {
         return new DERGeneralizedTime(new Date());
     }
 
     /**
-     * @return CMP version to be used in CMP header.
+     * get CMP version to be used in CMP header.
+     * @return CMP version
      */
     int getPvno();
 
     /**
-     * @return Recipient to be used in CMP header.
+     * get Recipient to be used in CMP header.
+     * @return Recipient
      */
     GeneralName getRecipient();
 
     /**
-     * @return RecipNonce to be used in CMP header.
+     * get RecipNonce to be used in CMP header.
+     * @return RecipNonce
      */
     ASN1OctetString getRecipNonce();
 
     /**
-     * @return Sender to be used in CMP header.
+     * get Sender to be used in CMP header.
+     * @return Sender
      */
     GeneralName getSender();
 
     /**
-     * @return SenderNonce to be used in CMP header.
+     * get SenderNonce to be used in CMP header.
+     * @return SenderNonce
      */
     ASN1OctetString getSenderNonce();
 
     /**
-     * @return TransactionID to be used in CMP header.
+     * get TransactionID to be used in CMP header.
+     * @return TransactionID
      */
     ASN1OctetString getTransactionID();
 }

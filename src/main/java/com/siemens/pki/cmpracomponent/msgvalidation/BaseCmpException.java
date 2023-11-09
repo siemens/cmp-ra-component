@@ -31,7 +31,13 @@ public class BaseCmpException extends Exception {
     private static final Logger LOGGER = LoggerFactory.getLogger(BaseCmpException.class);
 
     private static final long serialVersionUID = 1;
+    /**
+     * failInfo
+     */
     protected final int failInfo;
+    /**
+     * errorDetails
+     */
     protected final String errorDetails;
 
     protected BaseCmpException(final String interfaceName, final Exception ex) {
@@ -49,6 +55,7 @@ public class BaseCmpException extends Exception {
     }
 
     /**
+     * ctor
      * @param interfaceName interface name used as prefix message text
      * @param failInfo      CMP failInfo proposed for CMP error message
      * @param errorDetails  description of some details related to the error
@@ -74,6 +81,10 @@ public class BaseCmpException extends Exception {
         }
     }
 
+    /**
+     * get as error {@link PKIBody}
+     * @return an error body
+     */
     public PKIBody asErrorBody() {
         return PkiMessageGenerator.generateErrorBody(failInfo, errorDetails);
     }

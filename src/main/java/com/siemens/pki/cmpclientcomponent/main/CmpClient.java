@@ -137,6 +137,7 @@ public class CmpClient
     private final ClientContext clientContext;
 
     /**
+     * ctor
      * @param certProfile           certificate profile to be used for enrollment.
      *                              <code>null</code> if no certificate profile
      *                              should be used.

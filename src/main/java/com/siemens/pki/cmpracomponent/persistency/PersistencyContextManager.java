@@ -49,6 +49,11 @@ import org.slf4j.LoggerFactory;
  */
 public class PersistencyContextManager {
 
+    /**
+     * Deserializer for {@link ASN1Object}
+     *
+     * @param <T> specific type to deserialize
+     */
     public static class Asn1ObjectDeserializer<T extends ASN1Object> extends JsonDeserializer<T> {
 
         private final Class<T> clazz;
@@ -81,7 +86,14 @@ public class PersistencyContextManager {
         }
     }
 
+    /**
+     * Serializer for {@link ASN1Object}
+     */
     public static class Asn1ObjectSerializer extends JsonSerializer<ASN1Object> {
+        /**
+         * ctor
+         */
+        public Asn1ObjectSerializer() {}
 
         @Override
         public Class<ASN1Object> handledType() {
@@ -100,6 +112,9 @@ public class PersistencyContextManager {
         }
     }
 
+    /**
+     * Serializer for {@link PrivateKey}s
+     */
     public static class KeySerializer extends JsonSerializer<PrivateKey> {
 
         private final SecretKeySpec secretKey;
@@ -135,6 +150,9 @@ public class PersistencyContextManager {
         }
     }
 
+    /**
+     * Deserializer for {@link PrivateKey}s
+     */
     public static class PrivateKeyDeserializer extends JsonDeserializer<PrivateKey> {
         private final SecretKeySpec secretKey;
 
@@ -181,6 +199,12 @@ public class PersistencyContextManager {
 
     private final PersistencyInterface wrappedInterface;
 
+    /**
+     * ctor
+     *
+     * @param wrappedInterface external {@link PersistencyInterface} to use for
+     *                         store and load
+     */
     public PersistencyContextManager(final PersistencyInterface wrappedInterface) {
         this.wrappedInterface = wrappedInterface;
         final SecretKeySpec secretKey = new SecretKeySpec(wrappedInterface.getAesKeyForKeyWrapping(), "AES");
@@ -192,10 +216,36 @@ public class PersistencyContextManager {
         objectMapper.registerModule(simpleModule);
     }
 
+    /**
+     * forget a {@link PersistencyContext}
+     *
+     * @param transactionId transactionId of PersistencyContext to forget
+     */
     public void clearPersistencyContext(final byte[] transactionId) {
         wrappedInterface.clearLastSavedMessage(transactionId);
     }
 
+    /**
+     * write PersistencyContext to external {@link PersistencyInterface}
+     *
+     * @param context context to write
+     * @throws IOException in case of eror
+     */
+    void flushPersistencyContext(final PersistencyContext context) throws IOException {
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(context));
+        }
+        wrappedInterface.saveLastMessage(
+                context.getTransactionId(), objectMapper.writeValueAsBytes(context), context.getExpirationTime());
+    }
+
+    /**
+     * load or create {@link PersistencyContext} related to a transactionId
+     *
+     * @param transactionId the transactionId addressing the persistency context
+     * @return PersistencyContext
+     * @throws IOException in case of error
+     */
     public PersistencyContext loadCreatePersistencyContext(final byte[] transactionId) throws IOException {
         final PersistencyContext ret = loadPersistencyContext(transactionId);
         if (ret != null) {
@@ -205,6 +255,13 @@ public class PersistencyContextManager {
         return new PersistencyContext(this, transactionId);
     }
 
+    /**
+     * load existing {@link PersistencyContext} related to a transactionId
+     *
+     * @param transactionId the transactionId addressing the persistency context
+     * @return PersistencyContext
+     * @throws IOException in case of error
+     */
     public PersistencyContext loadPersistencyContext(final byte[] transactionId) throws IOException {
         final byte[] serializedPersistency = wrappedInterface.getLastSavedMessage(transactionId);
         if (serializedPersistency == null) {
@@ -215,13 +272,5 @@ public class PersistencyContextManager {
         final PersistencyContext ret = objectMapper.readValue(serializedPersistency, PersistencyContext.class);
         ret.setContextManager(this);
         return ret;
-    }
-
-    void flushPersistencyContext(final PersistencyContext context) throws IOException {
-        if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(context));
-        }
-        wrappedInterface.saveLastMessage(
-                context.getTransactionId(), objectMapper.writeValueAsBytes(context), context.getExpirationTime());
     }
 }

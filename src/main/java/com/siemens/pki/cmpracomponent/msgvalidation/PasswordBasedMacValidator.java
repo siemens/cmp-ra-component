@@ -24,7 +24,11 @@ import java.util.Arrays;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.bouncycastle.asn1.ASN1Encoding;
-import org.bouncycastle.asn1.cmp.*;
+import org.bouncycastle.asn1.cmp.PBMParameter;
+import org.bouncycastle.asn1.cmp.PKIFailureInfo;
+import org.bouncycastle.asn1.cmp.PKIHeader;
+import org.bouncycastle.asn1.cmp.PKIMessage;
+import org.bouncycastle.asn1.cmp.ProtectedPart;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 
 /**
@@ -34,6 +38,11 @@ import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
  */
 public class PasswordBasedMacValidator extends MacValidator {
 
+    /**
+     * ctor
+     * @param interfaceName name of related interface used for logging
+     * @param config related configuration
+     */
     public PasswordBasedMacValidator(final String interfaceName, final VerificationContext config) {
         super(interfaceName, config);
     }

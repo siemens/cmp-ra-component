@@ -21,6 +21,8 @@ import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
 
 /**
  * a CMP related request/response function throwing {@link BaseCmpException}s
+ * @param <T> type of  the first function argument
+ * @param <R> function result type
  */
 public interface CmpFuncEx<T, R> {
 

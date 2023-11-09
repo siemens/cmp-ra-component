@@ -26,15 +26,8 @@ import java.security.cert.X509Certificate;
 public interface GetRootCaCertificateUpdateHandler extends SupportMessageHandlerInterface {
 
     /**
-     * handle an Get root CA certificate update GENM and return certificates to
-     * build the related GENP response
-     *
-     * @param oldRootCaCertificate the old root CA certificate
-     * @return certificates to be returned or <code>null</code> if the returned
-     *         infoValue should be absent
+     * response type for getRootCaCertificateUpdate
      */
-    RootCaCertificateUpdateResponse getRootCaCertificateUpdate(X509Certificate oldRootCaCertificate);
-
     interface RootCaCertificateUpdateResponse {
         /**
          * return the new root CA certificate
@@ -62,4 +55,13 @@ public interface GetRootCaCertificateUpdateHandler extends SupportMessageHandler
          */
         X509Certificate getOldWithNew();
     }
+    /**
+     * handle an Get root CA certificate update GENM and return certificates to
+     * build the related GENP response
+     *
+     * @param oldRootCaCertificate the old root CA certificate
+     * @return certificates to be returned or <code>null</code> if the returned
+     *         infoValue should be absent
+     */
+    RootCaCertificateUpdateResponse getRootCaCertificateUpdate(X509Certificate oldRootCaCertificate);
 }

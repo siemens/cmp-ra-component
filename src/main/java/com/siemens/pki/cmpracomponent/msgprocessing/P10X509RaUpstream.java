@@ -33,6 +33,9 @@ import org.bouncycastle.asn1.pkcs.CertificationRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * upstream for PKCS#10/X.509 CAs
+ */
 public class P10X509RaUpstream implements RaUpstream {
 
     private static final String INTERFACE_NAME = "P10X509 upstream";
@@ -41,6 +44,10 @@ public class P10X509RaUpstream implements RaUpstream {
 
     private final CmpFuncEx<CertificationRequest, CMPCertificate> upstreamMsgHandler;
 
+    /**
+     * ctor
+     * @param upstreamExchange CA upstream
+     */
     P10X509RaUpstream(final CmpFuncEx<CertificationRequest, CMPCertificate> upstreamExchange) {
         this.upstreamMsgHandler = upstreamExchange;
     }

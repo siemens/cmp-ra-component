@@ -457,6 +457,10 @@ public class PkiMessageGenerator {
         return new PKIBody(PKIBody.TYPE_POLL_REP, new PollRepContent(CERT_REQ_ID_0, new ASN1Integer(checkAfterTime)));
     }
 
+    /**
+     * generate a PollReq body
+     * @return a PollReq body
+     */
     public static PKIBody generatePollReq() {
         return new PKIBody(PKIBody.TYPE_POLL_REQ, new PollReqContent(CERT_REQ_ID_0));
     }

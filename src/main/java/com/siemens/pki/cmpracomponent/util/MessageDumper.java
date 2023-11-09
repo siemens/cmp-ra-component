@@ -24,13 +24,28 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.text.ParseException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import org.bouncycastle.asn1.*;
+import org.bouncycastle.asn1.ASN1Enumerated;
+import org.bouncycastle.asn1.ASN1GeneralizedTime;
+import org.bouncycastle.asn1.ASN1Object;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.anssi.ANSSIObjectIdentifiers;
 import org.bouncycastle.asn1.bc.BCObjectIdentifiers;
 import org.bouncycastle.asn1.bsi.BSIObjectIdentifiers;
-import org.bouncycastle.asn1.cmp.*;
+import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
+import org.bouncycastle.asn1.cmp.PKIBody;
+import org.bouncycastle.asn1.cmp.PKIFreeText;
+import org.bouncycastle.asn1.cmp.PKIMessage;
+import org.bouncycastle.asn1.cmp.PKIStatus;
+import org.bouncycastle.asn1.cmp.PKIStatusInfo;
+import org.bouncycastle.asn1.cmp.PollRepContent;
 import org.bouncycastle.asn1.cms.CMSObjectIdentifiers;
 import org.bouncycastle.asn1.crmf.CRMFObjectIdentifiers;
 import org.bouncycastle.asn1.cryptopro.CryptoProObjectIdentifiers;
@@ -73,6 +88,71 @@ import org.slf4j.LoggerFactory;
  */
 public class MessageDumper {
 
+    /**
+     * OID Descriptor class
+     */
+    public static class OidDescription {
+        private final String id;
+        private final String declaringPackage;
+        private final ASN1ObjectIdentifier oid;
+        private final Class<?> declaringClass;
+
+        /**
+         * Constructor for OID Descriptor class
+         *
+         * @param declaringClass declaring class of the OID
+         * @param id             ID
+         * @param oid            ASN.1 representation of the OID
+         */
+        public OidDescription(final Class<?> declaringClass, final String id, final ASN1ObjectIdentifier oid) {
+            this.declaringPackage =
+                    ifNotNull(declaringClass, x -> x.getSimpleName().replace("ObjectIdentifiers", ""));
+            this.declaringClass = declaringClass;
+            this.id = id;
+            this.oid = oid;
+        }
+
+        /**
+         * get declaring class
+         * @return declaring class
+         */
+        public String getBcDeclaration() {
+            return ifNotNull(declaringClass, Class::getCanonicalName) + "." + id;
+        }
+
+        /**
+         * Get declaring package of the OID
+         *
+         * @return declaring package of the OID
+         */
+        public String getDeclaringPackage() {
+            return declaringPackage;
+        }
+
+        /**
+         * Get ID
+         *
+         * @return ID
+         */
+        public String getId() {
+            return id;
+        }
+
+        /**
+         * Get ASN.1 representation of the OID
+         *
+         * @return ASN.1 representation of the OID
+         */
+        public ASN1ObjectIdentifier getOid() {
+            return oid;
+        }
+
+        @Override
+        public String toString() {
+            return declaringPackage + "." + id + " (" + oid + ")";
+        }
+    }
+
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageDumper.class);
     private static final Map<Integer, String> TYPE_MAP = new ConcurrentHashMap<>();
     private static Map<ASN1ObjectIdentifier, OidDescription> oidToKeyMap;
@@ -89,180 +169,6 @@ public class MessageDumper {
                     LOGGER.error("error filling typemap", e);
                 }
             }
-        }
-    }
-
-    /**
-     * Dump an ASN1Object as string
-     *
-     * @param object the object to be dumped
-     * @return string representation of the object
-     */
-    public static String dumpAsn1Object(final ASN1Object object) {
-        if (object == null) {
-            return "<null>";
-        }
-        final StringBuilder ret = new StringBuilder();
-        try {
-            dump("", object, ret);
-        } catch (final Exception e) {
-            LOGGER.error("dump error", e);
-        }
-        return ret.toString();
-    }
-
-    /**
-     * Dump PKI message to a string.
-     *
-     * @param msg PKI message to be dumped
-     * @return string representation of the PKI message
-     */
-    public static final String dumpPkiMessage(final PKIMessage msg) {
-        if (msg == null) {
-            return "<null>";
-        }
-        final StringBuilder ret = new StringBuilder(10000);
-        ret.append("\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ");
-        ret.append(msgTypeAsString(msg));
-        ret.append(" message:\n");
-        try {
-            dumpSingleValue("Header", msg.getHeader(), ret);
-            dumpSingleValue("Body", msg.getBody(), ret);
-            dumpSingleValue("Protection", msg.getProtection(), ret);
-            dumpSingleValue("ExtraCerts", msg.getExtraCerts(), ret);
-        } catch (final Exception e) {
-            LOGGER.error("dump error", e);
-        }
-        ret.append("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
-        return ret.toString();
-    }
-
-    /**
-     * Dump PKI message to a string.
-     *
-     * @param msg PKI message to be dumped
-     *
-     * @return string representation of the PKI message
-     */
-
-    /**
-     * Extract Relative Distinguished Names (RDNs) of a given type from a X500 Name
-     * e.g. certificate subject.
-     *
-     * @param x500Name X.500 Name e.g. certificate subject.
-     * @param rdnType  RDN Type to be extracted e.g. CN
-     * @return RDNs of the requested type found in the X.500 name
-     */
-    public static final List<String> extractRdnAsStringArray(
-            final X500Name x500Name, final ASN1ObjectIdentifier rdnType) {
-        if (x500Name == null) {
-            return null;
-        }
-        final List<String> ret = new ArrayList<>(1);
-        for (final RDN aktRdn : x500Name.getRDNs(rdnType)) {
-            for (final AttributeTypeAndValue aktTv : aktRdn.getTypesAndValues()) {
-                ret.add(String.valueOf(aktTv.getValue()));
-            }
-        }
-        return ret;
-    }
-
-    /**
-     * Get OID Description for a given OID (ASN.1 representation)
-     *
-     * @param oid OID (ASN.1 representation)
-     * @return OID Description for a given OID (ASN.1 representation)
-     */
-    public static OidDescription getOidDescriptionForOid(final ASN1ObjectIdentifier oid) {
-        initNameOidMaps();
-        final OidDescription ret = oidToKeyMap.get(oid);
-        if (ret == null) {
-            return new OidDescription(null, "<unknown>", oid);
-        }
-        return ret;
-    }
-
-    /**
-     * Dumping PKI message to a string in a short form.
-     *
-     * @param msg PKI message to be dumped
-     * @return string short representation of the PKI message
-     */
-    public static String msgAsShortString(final PKIMessage msg) {
-        if (msg == null) {
-            return "<null>";
-        }
-        return msgTypeAsString(msg.getBody()) + " [" + msg.getHeader().getSender() + " => "
-                + msg.getHeader().getRecipient() + "]";
-    }
-
-    /**
-     * Get message type from a PKI message body as string
-     *
-     * @param msgType PKI message type
-     * @return message type as string
-     */
-    public static String msgTypeAsString(final int msgType) {
-        return TYPE_MAP.get(msgType);
-    }
-
-    /**
-     * Get message type from a PKI message body as string
-     *
-     * @param body PKI message body
-     * @return message type as string
-     */
-    public static String msgTypeAsString(final PKIBody body) {
-        return TYPE_MAP.get(body.getType());
-    }
-
-    /**
-     * Get message type from a PKI message as string
-     *
-     * @param msg PKI message
-     * @return message type as string
-     */
-    public static String msgTypeAsString(final PKIMessage msg) {
-        if (msg == null) {
-            return null;
-        }
-        return msgTypeAsString(msg.getBody());
-    }
-
-    public static String pkiStatus2String(final PKIStatusInfo status) {
-        if (status == null) {
-            return "<null>";
-        }
-        final StringBuilder statStringBuf = new StringBuilder();
-        final PKIFreeText statusString = status.getStatusString();
-        if (statusString != null) {
-            final int size = statusString.size();
-            if (size > 0) {
-                statStringBuf.append('(');
-                for (int i = 0; i < size; i++) {
-                    statStringBuf.append(statusString.getStringAtUTF8(i));
-                    statStringBuf.append(' ');
-                }
-                statStringBuf.append(')');
-            }
-        }
-        switch (status.getStatus().intValue()) {
-            case PKIStatus.GRANTED:
-                return "GRANTED" + statStringBuf;
-            case PKIStatus.GRANTED_WITH_MODS:
-                return "GRANTED_WITH_MODS" + statStringBuf;
-            case PKIStatus.REJECTION:
-                return "REJECTION" + statStringBuf;
-            case PKIStatus.WAITING:
-                return "WAITING" + statStringBuf;
-            case PKIStatus.REVOCATION_WARNING:
-                return "REVOCATION_WARNING" + statStringBuf;
-            case PKIStatus.REVOCATION_NOTIFICATION:
-                return "REVOCATION_NOTIFICATION" + statStringBuf;
-            case PKIStatus.KEY_UPDATE_WARNING:
-                return "KEY_UPDATE_WARNING" + statStringBuf;
-            default:
-                return "<INVALID>" + statStringBuf;
         }
     }
 
@@ -313,6 +219,59 @@ public class MessageDumper {
             ret.deleteCharAt(ret.length() - 1);
             ret.append("):<null>\n");
         }
+    }
+
+    /**
+     * Dump an ASN1Object as string
+     *
+     * @param object the object to be dumped
+     * @return string representation of the object
+     */
+    public static String dumpAsn1Object(final ASN1Object object) {
+        if (object == null) {
+            return "<null>";
+        }
+        final StringBuilder ret = new StringBuilder();
+        try {
+            dump("", object, ret);
+        } catch (final Exception e) {
+            LOGGER.error("dump error", e);
+        }
+        return ret.toString();
+    }
+
+    /**
+     * Dump PKI message to a string.
+     *
+     * @param msg PKI message to be dumped
+     *
+     * @return string representation of the PKI message
+     */
+
+    /**
+     * Dump PKI message to a string.
+     *
+     * @param msg PKI message to be dumped
+     * @return string representation of the PKI message
+     */
+    public static final String dumpPkiMessage(final PKIMessage msg) {
+        if (msg == null) {
+            return "<null>";
+        }
+        final StringBuilder ret = new StringBuilder(10000);
+        ret.append("\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ");
+        ret.append(msgTypeAsString(msg));
+        ret.append(" message:\n");
+        try {
+            dumpSingleValue("Header", msg.getHeader(), ret);
+            dumpSingleValue("Body", msg.getBody(), ret);
+            dumpSingleValue("Protection", msg.getProtection(), ret);
+            dumpSingleValue("ExtraCerts", msg.getExtraCerts(), ret);
+        } catch (final Exception e) {
+            LOGGER.error("dump error", e);
+        }
+        ret.append("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
+        return ret.toString();
     }
 
     private static void dumpSingleValue(final String indent, final Object callRet, final StringBuilder ret)
@@ -425,6 +384,43 @@ public class MessageDumper {
     }
 
     /**
+     * Extract Relative Distinguished Names (RDNs) of a given type from a X500 Name
+     * e.g. certificate subject.
+     *
+     * @param x500Name X.500 Name e.g. certificate subject.
+     * @param rdnType  RDN Type to be extracted e.g. CN
+     * @return RDNs of the requested type found in the X.500 name
+     */
+    public static final List<String> extractRdnAsStringArray(
+            final X500Name x500Name, final ASN1ObjectIdentifier rdnType) {
+        if (x500Name == null) {
+            return null;
+        }
+        final List<String> ret = new ArrayList<>(1);
+        for (final RDN aktRdn : x500Name.getRDNs(rdnType)) {
+            for (final AttributeTypeAndValue aktTv : aktRdn.getTypesAndValues()) {
+                ret.add(String.valueOf(aktTv.getValue()));
+            }
+        }
+        return ret;
+    }
+
+    /**
+     * Get OID Description for a given OID (ASN.1 representation)
+     *
+     * @param oid OID (ASN.1 representation)
+     * @return OID Description for a given OID (ASN.1 representation)
+     */
+    public static OidDescription getOidDescriptionForOid(final ASN1ObjectIdentifier oid) {
+        initNameOidMaps();
+        final OidDescription ret = oidToKeyMap.get(oid);
+        if (ret == null) {
+            return new OidDescription(null, "<unknown>", oid);
+        }
+        return ret;
+    }
+
+    /**
      * // load ObjectIdentifiers defined somewhere in BouncyCastle
      */
     private static synchronized void initNameOidMaps() {
@@ -486,63 +482,94 @@ public class MessageDumper {
     }
 
     /**
-     * OID Descriptor class
+     * Dumping PKI message to a string in a short form.
+     *
+     * @param msg PKI message to be dumped
+     * @return string short representation of the PKI message
      */
-    public static class OidDescription {
-        private final String id;
-        private final String declaringPackage;
-        private final ASN1ObjectIdentifier oid;
-        private final Class<?> declaringClass;
-
-        /**
-         * Constructor for OID Descriptor class
-         *
-         * @param declaringClass declaring class of the OID
-         * @param id             ID
-         * @param oid            ASN.1 representation of the OID
-         */
-        public OidDescription(final Class<?> declaringClass, final String id, final ASN1ObjectIdentifier oid) {
-            this.declaringPackage =
-                    ifNotNull(declaringClass, x -> x.getSimpleName().replace("ObjectIdentifiers", ""));
-            this.declaringClass = declaringClass;
-            this.id = id;
-            this.oid = oid;
+    public static String msgAsShortString(final PKIMessage msg) {
+        if (msg == null) {
+            return "<null>";
         }
+        return msgTypeAsString(msg.getBody()) + " [" + msg.getHeader().getSender() + " => "
+                + msg.getHeader().getRecipient() + "]";
+    }
 
-        public String getBcDeclaration() {
-            return ifNotNull(declaringClass, Class::getCanonicalName) + "." + id;
+    /**
+     * Get message type from a PKI message body as string
+     *
+     * @param msgType PKI message type
+     * @return message type as string
+     */
+    public static String msgTypeAsString(final int msgType) {
+        return TYPE_MAP.get(msgType);
+    }
+
+    /**
+     * Get message type from a PKI message body as string
+     *
+     * @param body PKI message body
+     * @return message type as string
+     */
+    public static String msgTypeAsString(final PKIBody body) {
+        return TYPE_MAP.get(body.getType());
+    }
+
+    /**
+     * Get message type from a PKI message as string
+     *
+     * @param msg PKI message
+     * @return message type as string
+     */
+    public static String msgTypeAsString(final PKIMessage msg) {
+        if (msg == null) {
+            return null;
         }
+        return msgTypeAsString(msg.getBody());
+    }
 
-        /**
-         * Get declaring package of the OID
-         *
-         * @return declaring package of the OID
-         */
-        public String getDeclaringPackage() {
-            return declaringPackage;
+    /**
+     * convert {@link PKIStatusInfo} to logging string
+     * @param status the PKIStatusInfo
+     * @return logging string
+     */
+    public static String pkiStatus2String(final PKIStatusInfo status) {
+        if (status == null) {
+            return "<null>";
         }
-
-        /**
-         * Get ID
-         *
-         * @return ID
-         */
-        public String getId() {
-            return id;
+        final StringBuilder statStringBuf = new StringBuilder();
+        final PKIFreeText statusString = status.getStatusString();
+        if (statusString != null) {
+            final int size = statusString.size();
+            if (size > 0) {
+                statStringBuf.append('(');
+                for (int i = 0; i < size; i++) {
+                    statStringBuf.append(statusString.getStringAtUTF8(i));
+                    statStringBuf.append(' ');
+                }
+                statStringBuf.append(')');
+            }
         }
-
-        /**
-         * Get ASN.1 representation of the OID
-         *
-         * @return ASN.1 representation of the OID
-         */
-        public ASN1ObjectIdentifier getOid() {
-            return oid;
-        }
-
-        @Override
-        public String toString() {
-            return declaringPackage + "." + id + " (" + oid + ")";
+        switch (status.getStatus().intValue()) {
+            case PKIStatus.GRANTED:
+                return "GRANTED" + statStringBuf;
+            case PKIStatus.GRANTED_WITH_MODS:
+                return "GRANTED_WITH_MODS" + statStringBuf;
+            case PKIStatus.REJECTION:
+                return "REJECTION" + statStringBuf;
+            case PKIStatus.WAITING:
+                return "WAITING" + statStringBuf;
+            case PKIStatus.REVOCATION_WARNING:
+                return "REVOCATION_WARNING" + statStringBuf;
+            case PKIStatus.REVOCATION_NOTIFICATION:
+                return "REVOCATION_NOTIFICATION" + statStringBuf;
+            case PKIStatus.KEY_UPDATE_WARNING:
+                return "KEY_UPDATE_WARNING" + statStringBuf;
+            default:
+                return "<INVALID>" + statStringBuf;
         }
     }
+
+    // utility class
+    private MessageDumper() {}
 }

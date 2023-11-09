@@ -53,6 +53,14 @@ public class DataSignVerifier extends TrustCredentialAdapter {
     private static final JcaSimpleSignerInfoVerifierBuilder builder =
             new JcaSimpleSignerInfoVerifierBuilder().setProvider(CertUtility.getBouncyCastleProvider());
 
+    /**
+     * verify and strip off a signature
+     * @param encodedSignedData date to verify
+     * @return date without signature
+     * @throws CertificateException in case of error
+     * @throws CMSException in case of error
+     * @throws IOException in case of error
+     */
     public static byte[] verifySignature(final byte[] encodedSignedData)
             throws CertificateException, CMSException, IOException {
         return verifySignature(encodedSignedData, (cert, additionalCerts) -> true);
@@ -89,6 +97,10 @@ public class DataSignVerifier extends TrustCredentialAdapter {
         return null;
     }
 
+    /**
+     * ctor
+     * @param config context used for verification
+     */
     public DataSignVerifier(final VerificationContext config) {
         super(config);
     }
@@ -118,6 +130,14 @@ public class DataSignVerifier extends TrustCredentialAdapter {
         });
     }
 
+    /**
+     * strip off a private key from signed date
+     * @param encodedSignedData the BER encoding of the SignedData
+     * @return found private key
+     * @throws CertificateException in case of error
+     * @throws IOException in case of error
+     * @throws CMSException in case of error
+     */
     public PrivateKey verifySignedKey(final byte[] encodedSignedData)
             throws CertificateException, IOException, CMSException {
         final byte[] verifiedContent = verifySignatureAndTrust(encodedSignedData);

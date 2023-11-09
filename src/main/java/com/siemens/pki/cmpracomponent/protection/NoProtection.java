@@ -30,6 +30,11 @@ import org.bouncycastle.asn1.x509.GeneralName;
  */
 public class NoProtection implements ProtectionProvider {
 
+    /**
+     * ctor
+     */
+    public NoProtection() {}
+
     @Override
     public List<CMPCertificate> getProtectingExtraCerts() {
         return null;

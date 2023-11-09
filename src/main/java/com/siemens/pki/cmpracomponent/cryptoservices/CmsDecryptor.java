@@ -23,8 +23,21 @@ import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import org.bouncycastle.asn1.cms.ContentInfo;
 import org.bouncycastle.asn1.cms.EnvelopedData;
-import org.bouncycastle.cms.*;
-import org.bouncycastle.cms.jcajce.*;
+import org.bouncycastle.cms.CMSEnvelopedData;
+import org.bouncycastle.cms.CMSException;
+import org.bouncycastle.cms.PasswordRecipient;
+import org.bouncycastle.cms.PasswordRecipientId;
+import org.bouncycastle.cms.RecipientId;
+import org.bouncycastle.cms.RecipientInformation;
+import org.bouncycastle.cms.RecipientInformationStore;
+import org.bouncycastle.cms.jcajce.JceKeyAgreeEnvelopedRecipient;
+import org.bouncycastle.cms.jcajce.JceKeyAgreeRecipient;
+import org.bouncycastle.cms.jcajce.JceKeyAgreeRecipientId;
+import org.bouncycastle.cms.jcajce.JceKeyTransEnvelopedRecipient;
+import org.bouncycastle.cms.jcajce.JceKeyTransRecipient;
+import org.bouncycastle.cms.jcajce.JceKeyTransRecipientId;
+import org.bouncycastle.cms.jcajce.JcePasswordEnvelopedRecipient;
+import org.bouncycastle.cms.jcajce.JcePasswordRecipient;
 
 /**
  * CMS data decryption
@@ -41,7 +54,12 @@ public class CmsDecryptor {
 
     private final JceKeyAgreeRecipient agreeRecipient;
     private final JcePasswordRecipient passwordRecipient;
-
+    /**
+     * ctor
+     * @param recipientCert cert used to decrypt
+     * @param recipientKey private key used to decrypt
+     * @param passwd password used to decrypt
+     */
     public CmsDecryptor(final X509Certificate recipientCert, final PrivateKey recipientKey, final char[] passwd) {
         if (recipientCert != null && recipientKey != null) {
             transRecipientId = new JceKeyTransRecipientId(recipientCert);

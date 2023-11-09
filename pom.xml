@@ -103,7 +103,9 @@
 						</goals>
 					</execution>
 				</executions>
-				<configuration />
+				<configuration>
+					<show>public</show>
+				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>com.diffplug.spotless</groupId>

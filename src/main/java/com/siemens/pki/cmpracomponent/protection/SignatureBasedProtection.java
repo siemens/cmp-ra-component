@@ -42,6 +42,7 @@ import org.bouncycastle.asn1.x509.GeneralName;
 public class SignatureBasedProtection extends BaseCredentialService implements ProtectionProvider {
 
     /**
+     * ctor
      * @param config specific configuration
      */
     public SignatureBasedProtection(final SignatureCredentialContext config) {

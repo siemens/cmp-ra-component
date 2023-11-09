@@ -38,6 +38,7 @@ import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 public class PBMAC1Protection extends MacProtection {
 
     /**
+     * ctor
      * @param config specific configuration
      * @throws InvalidKeySpecException  in case of internal error
      * @throws NoSuchAlgorithmException in case of unsupported algorithm

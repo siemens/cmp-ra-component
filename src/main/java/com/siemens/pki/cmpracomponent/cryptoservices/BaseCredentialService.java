@@ -30,20 +30,32 @@ public class BaseCredentialService {
 
     private final SignatureCredentialContext config;
 
+    /**
+     * ctor
+     * @param config related config
+     */
     public BaseCredentialService(final SignatureCredentialContext config) {
         this.config = config;
     }
 
+    protected List<X509Certificate> getCertChain() {
+        return config.getCertificateChain();
+    }
+
+    /**
+     * get end certificate
+     * @return end certificate
+     */
     public X509Certificate getEndCertificate() {
         return config.getCertificateChain().get(0);
     }
 
+    /**
+     * get private key related to end certificate
+     * @return private key related to end certificate
+     */
     public PrivateKey getPrivateKey() {
         return config.getPrivateKey();
-    }
-
-    protected List<X509Certificate> getCertChain() {
-        return config.getCertificateChain();
     }
 
     protected AlgorithmIdentifier getSignatureAlgorithm() {

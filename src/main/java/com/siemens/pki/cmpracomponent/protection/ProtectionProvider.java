@@ -31,15 +31,20 @@ import org.bouncycastle.asn1.x509.GeneralName;
  */
 public interface ProtectionProvider {
 
+    /**
+     * no protection
+     */
     ProtectionProvider NO_PROTECTION = new NoProtection();
 
     /**
+     * get extra certs used for protection
      * @return extra certs used for protection
      * @throws Exception in case of error
      */
     List<CMPCertificate> getProtectingExtraCerts() throws Exception;
 
     /**
+     * get protection algorithm
      * @return protection algorithm
      */
     AlgorithmIdentifier getProtectionAlg();
@@ -54,11 +59,13 @@ public interface ProtectionProvider {
     DERBitString getProtectionFor(ProtectedPart protectedPart) throws Exception;
 
     /**
+     * get  sender to use for protected message
      * @return sender to use for protected message
      */
     GeneralName getSender();
 
     /**
+     * get sender KID to use for protected message
      * @return sender KID to use for protected message
      */
     DEROctetString getSenderKID();

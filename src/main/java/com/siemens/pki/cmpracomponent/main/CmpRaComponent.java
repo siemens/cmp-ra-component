@@ -23,9 +23,68 @@ import com.siemens.pki.cmpracomponent.msgprocessing.P10X509RaImplementation;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+/**
+ * top level RA class
+ */
 public class CmpRaComponent {
 
-    private CmpRaComponent() {}
+    /**
+     * interface to access the RA instance with synchronous and/or asynchronous
+     * upstream transfer providing support for delayed delivery of responses (with polling)
+     */
+    public interface CmpRaInterface {
+        /**
+         * application provides response received asynchronously from upstream. Must be
+         * called after returning null via {@link UpstreamExchange#sendReceiveMessage(byte[], String, int)} when later receiving a
+         * delayed response from upstream.
+         *
+         * @param response ASN.1 DER-encoded response received from upstream
+         * @throws Exception on error not handled at CMP level
+         */
+        void gotResponseAtUpstream(byte[] response) throws Exception;
+
+        /**
+         * used by application to provide CMP request from downstream to RA (which may
+         * be a poll request) and obtain the corresponding response.
+         *
+         * @param request ASN.1 DER-encoded request
+         * @return the corresponding ASN.1 DER-encoded response (which may be a waiting
+         *         indication or error) in due time: before timeout on downstream
+         * @throws Exception on error not handled at CMP level
+         */
+        byte[] processRequest(byte[] request) throws Exception;
+    }
+
+    /**
+     * this interface defines a function to send a ASN.1 DER-encoded CMP request
+     * upstream and potentially receive the related ASN.1 DER-encoded response.
+     */
+    public interface UpstreamExchange {
+        /**
+         * a function to send a ASN.1 DER-encoded CMP request upstream and potentially
+         * receive the related ASN.1 DER-encoded response from upstream.
+         *
+         * @param request                the ASN.1 DER-encoded CMP request to send
+         * @param certProfile            certificate profile extracted from the CMP
+         *                               request header generalInfo field or
+         *                               <code>null</code> if no certificate profile was
+         *                               found in the header.
+         * @param bodyTypeOfFirstRequest PKIBody type of the first request in this
+         *                               transaction. e.g. 0 for ir, 2 for cr, 7 for
+         *                               kur, 11 for rr, 21 for genm.
+         * @return the ASN.1 DER-encoded CMP response or <code>null</code> if
+         *         synchronous transfer is not supported or did not receive a response
+         *         after relatively short timeout. If <code>null</code> was returned,
+         *         delayed delivery (polling) according to the CMP profile is initiated.
+         *         Poll responses will include the retryAfter value provided by
+         *         {@link Configuration#getRetryAfterTimeInSeconds(String, int)}.
+         * @throws Exception in case of (non-recoverable) error.
+         *         Must throw an exception with a suitable message text in case
+         *         the application-level request processing results in an error
+         *         or the upstream server responded with an error.
+         */
+        byte[] sendReceiveMessage(byte[] request, String certProfile, int bodyTypeOfFirstRequest) throws Exception;
+    }
 
     /**
      * create an RA instance that can handle all CMP message types and use cases
@@ -88,61 +147,5 @@ public class CmpRaComponent {
         return new P10X509RaImplementation(configuration, upstreamP10X509Exchange);
     }
 
-    /**
-     * interface to access the RA instance with synchronous and/or asynchronous
-     * upstream transfer providing support for delayed delivery of responses (with polling)
-     */
-    public interface CmpRaInterface {
-        /**
-         * application provides response received asynchronously from upstream. Must be
-         * called after returning null via {@link UpstreamExchange#sendReceiveMessage(byte[], String, int)} when later receiving a
-         * delayed response from upstream.
-         *
-         * @param response ASN.1 DER-encoded response received from upstream
-         * @throws Exception on error not handled at CMP level
-         */
-        void gotResponseAtUpstream(byte[] response) throws Exception;
-
-        /**
-         * used by application to provide CMP request from downstream to RA (which may
-         * be a poll request) and obtain the corresponding response.
-         *
-         * @param request ASN.1 DER-encoded request
-         * @return the corresponding ASN.1 DER-encoded response (which may be a waiting
-         *         indication or error) in due time: before timeout on downstream
-         * @throws Exception on error not handled at CMP level
-         */
-        byte[] processRequest(byte[] request) throws Exception;
-    }
-
-    /**
-     * this interface defines a function to send a ASN.1 DER-encoded CMP request
-     * upstream and potentially receive the related ASN.1 DER-encoded response.
-     */
-    public interface UpstreamExchange {
-        /**
-         * a function to send a ASN.1 DER-encoded CMP request upstream and potentially
-         * receive the related ASN.1 DER-encoded response from upstream.
-         *
-         * @param request                the ASN.1 DER-encoded CMP request to send
-         * @param certProfile            certificate profile extracted from the CMP
-         *                               request header generalInfo field or
-         *                               <code>null</code> if no certificate profile was
-         *                               found in the header.
-         * @param bodyTypeOfFirstRequest PKIBody type of the first request in this
-         *                               transaction. e.g. 0 for ir, 2 for cr, 7 for
-         *                               kur, 11 for rr, 21 for genm.
-         * @return the ASN.1 DER-encoded CMP response or <code>null</code> if
-         *         synchronous transfer is not supported or did not receive a response
-         *         after relatively short timeout. If <code>null</code> was returned,
-         *         delayed delivery (polling) according to the CMP profile is initiated.
-         *         Poll responses will include the retryAfter value provided by
-         *         {@link Configuration#getRetryAfterTimeInSeconds(String, int)}.
-         * @throws Exception in case of (non-recoverable) error.
-         *         Must throw an exception with a suitable message text in case
-         *         the application-level request processing results in an error
-         *         or the upstream server responded with an error.
-         */
-        byte[] sendReceiveMessage(byte[] request, String certProfile, int bodyTypeOfFirstRequest) throws Exception;
-    }
+    private CmpRaComponent() {}
 }

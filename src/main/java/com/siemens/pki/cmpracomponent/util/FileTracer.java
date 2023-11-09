@@ -76,7 +76,11 @@ public class FileTracer {
     }
 
     private static final AtomicLong messagecounter = new AtomicLong(0);
-
+    /**
+     * dump a message to the dumpdir
+     * @param msg message to dump
+     * @param interfaceName file name prefix to use
+     */
     public static void logMessage(final PKIMessage msg, final String interfaceName) {
         if (msgDumpDirectory == null
                 || msg == null

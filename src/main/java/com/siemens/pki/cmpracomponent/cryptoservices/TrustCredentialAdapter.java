@@ -63,6 +63,7 @@ public class TrustCredentialAdapter {
     private final VerificationContext config;
 
     /**
+     * ctor
      * @param config specific configuration
      */
     public TrustCredentialAdapter(final VerificationContext config) {

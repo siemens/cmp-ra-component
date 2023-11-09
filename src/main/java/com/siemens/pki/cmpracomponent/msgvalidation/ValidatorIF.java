@@ -21,10 +21,12 @@ import org.bouncycastle.asn1.cmp.PKIMessage;
 
 /**
  * this interface must be implemented by all {@link PKIMessage} validators
+ * @param <ResultType> validation result type
  */
 public interface ValidatorIF<ResultType> {
     /**
-     * @param messageToValidate a message given ot the validator
+     * validate a {@link PKIMessage}
+     * @param messageToValidate a message given to the validator
      * @return additional validation result
      * @throws CmpProcessingException if the message is invalid
      * @throws CmpValidationException in case of validation error

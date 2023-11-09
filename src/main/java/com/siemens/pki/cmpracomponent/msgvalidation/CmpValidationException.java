@@ -25,6 +25,7 @@ public class CmpValidationException extends BaseCmpException {
     private static final long serialVersionUID = 1L;
 
     /**
+     * ctor
      * @param interfaceName interface name used as prefix message text
      * @param failInfo      CMP failInfo proposed for CMP error message
      * @param errorDetails  description of some details related to the error

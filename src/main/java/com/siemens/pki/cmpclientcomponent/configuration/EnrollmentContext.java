@@ -29,6 +29,9 @@ import org.bouncycastle.asn1.cmp.PKIBody;
  */
 public interface EnrollmentContext {
 
+    /**
+     * extension used for template
+     */
     interface TemplateExtension {
         /**
          * Gets the extensions's object identifier.

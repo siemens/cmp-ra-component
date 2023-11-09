@@ -56,6 +56,10 @@ public class DefaultPersistencyImplementation implements PersistencyInterface {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultPersistencyImplementation.class);
 
+    /**
+     * get a default singleton instance
+     * @return the singleton instance
+     */
     public static synchronized PersistencyInterface getInstance() {
         if (instance == null) {
             instance = new DefaultPersistencyImplementation(HOUSEKEEPING_PERIOD);
@@ -71,7 +75,7 @@ public class DefaultPersistencyImplementation implements PersistencyInterface {
             Collections.synchronizedSortedMap(new TreeMap<>(Arrays::compare));
 
     /**
-     *
+     * ctor
      * @param housekeepingPeriod time in seconds between two checks for expired transactions
      */
     public DefaultPersistencyImplementation(final long housekeepingPeriod) {
@@ -92,21 +96,6 @@ public class DefaultPersistencyImplementation implements PersistencyInterface {
         persistencyMap.remove(transactionId);
     }
 
-    @Override
-    public byte[] getAesKeyForKeyWrapping() {
-        return aesKey;
-    }
-
-    @Override
-    public byte[] getLastSavedMessage(final byte[] transactionId) {
-        return ifNotNull(persistencyMap.get(transactionId), x -> x.message);
-    }
-
-    @Override
-    public void saveLastMessage(final byte[] transactionId, final byte[] message, final Date expirationTime) {
-        persistencyMap.put(transactionId, new ValueType(message, expirationTime));
-    }
-
     private void doHousekeeping() {
         final Date now = new Date();
         for (final Iterator<Entry<byte[], ValueType>> it =
@@ -120,5 +109,20 @@ public class DefaultPersistencyImplementation implements PersistencyInterface {
                 it.remove();
             }
         }
+    }
+
+    @Override
+    public byte[] getAesKeyForKeyWrapping() {
+        return aesKey;
+    }
+
+    @Override
+    public byte[] getLastSavedMessage(final byte[] transactionId) {
+        return ifNotNull(persistencyMap.get(transactionId), x -> x.message);
+    }
+
+    @Override
+    public void saveLastMessage(final byte[] transactionId, final byte[] message, final Date expirationTime) {
+        persistencyMap.put(transactionId, new ValueType(message, expirationTime));
     }
 }
