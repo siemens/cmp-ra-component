@@ -17,6 +17,9 @@
  */
 package com.siemens.pki.cmpracomponent.util;
 
+import static com.siemens.pki.cmpracomponent.util.NullUtil.defaultIfNull;
+import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
@@ -76,9 +79,11 @@ public class FileTracer {
     }
 
     private static final AtomicLong messagecounter = new AtomicLong(0);
+
     /**
      * dump a message to the dumpdir
-     * @param msg message to dump
+     *
+     * @param msg           message to dump
      * @param interfaceName file name prefix to use
      */
     public static void logMessage(final PKIMessage msg, final String interfaceName) {
@@ -88,9 +93,12 @@ public class FileTracer {
             return;
         }
         try {
-            final String subDirName = "trans_"
-                    + B64_ENCODER_WITHOUT_PADDING.encodeToString(
-                            msg.getHeader().getTransactionID().getOctets());
+            final String tidAsString = defaultIfNull(
+                    ifNotNull(
+                            msg.getHeader().getTransactionID(),
+                            tid -> B64_ENCODER_WITHOUT_PADDING.encodeToString(tid.getOctets())),
+                    "null");
+            final String subDirName = "trans_" + tidAsString;
             final File subDir = new File(msgDumpDirectory, subDirName);
             if (!subDir.isDirectory()) {
                 subDir.mkdirs();

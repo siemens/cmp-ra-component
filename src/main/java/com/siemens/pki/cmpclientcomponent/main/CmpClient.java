@@ -17,6 +17,7 @@
  */
 package com.siemens.pki.cmpclientcomponent.main;
 
+import static com.siemens.pki.cmpracomponent.util.NullUtil.defaultIfNull;
 import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
 import com.siemens.pki.cmpclientcomponent.configuration.ClientContext;
@@ -38,7 +39,6 @@ import com.siemens.pki.cmpracomponent.protection.MacProtection;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
 import com.siemens.pki.cmpracomponent.protection.SignatureBasedProtection;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
-import com.siemens.pki.cmpracomponent.util.NullUtil;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -179,10 +179,10 @@ public class CmpClient
 
     private Extension fetchSubjectAlternativeName(final X509Certificate cert) {
         final Stream<Extension> criticalOids =
-                NullUtil.defaultIfNull(cert.getCriticalExtensionOIDs(), Collections.<String>emptySet()).stream()
+                defaultIfNull(cert.getCriticalExtensionOIDs(), Collections.<String>emptySet()).stream()
                         .map(oid -> new Extension(new ASN1ObjectIdentifier(oid), true, cert.getExtensionValue(oid)));
         final Stream<Extension> nonCriticalOids =
-                NullUtil.defaultIfNull(cert.getNonCriticalExtensionOIDs(), Collections.<String>emptySet()).stream()
+                defaultIfNull(cert.getNonCriticalExtensionOIDs(), Collections.<String>emptySet()).stream()
                         .map(oid -> new Extension(new ASN1ObjectIdentifier(oid), false, cert.getExtensionValue(oid)));
         final Extension[] ret = Stream.concat(criticalOids, nonCriticalOids)
                 .filter(x -> x.getExtnId().equals(Extension.subjectAlternativeName))
@@ -431,7 +431,8 @@ public class CmpClient
                         return null;
                     }
                     final CertTemplateBuilder ctb = new CertTemplateBuilder()
-                            .setSubject(new X500Name(oldCert.getSubjectDN().getName()))
+                            .setSubject(new X500Name(
+                                    oldCert.getSubjectX500Principal().getName()))
                             .setPublicKey(enrolledPublicKeyInfo);
                     final Extension sanExtension = fetchSubjectAlternativeName(oldCert);
                     if (sanExtension != null) {

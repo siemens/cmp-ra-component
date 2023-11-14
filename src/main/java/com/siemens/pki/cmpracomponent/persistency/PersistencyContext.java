@@ -26,6 +26,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.PKIFailureInfo;
 import org.bouncycastle.asn1.cmp.PKIMessage;
@@ -46,7 +47,7 @@ public class PersistencyContext {
     private PKIMessage initialRequest;
     private PKIMessage pendingDelayedResponse;
     private LastTransactionState lastTransactionState;
-    private byte[] lastSenderNonce;
+    private ASN1OctetString lastSenderNonce;
     private byte[] digestToConfirm;
     private boolean implicitConfirmGranted;
     private byte[] requestedPublicKey;
@@ -152,7 +153,7 @@ public class PersistencyContext {
      * get last used sender nonce
      * @return last used sender nonce
      */
-    public byte[] getLastSenderNonce() {
+    public ASN1OctetString getLastSenderNonce() {
         return lastSenderNonce;
     }
 
@@ -288,10 +289,10 @@ public class PersistencyContext {
 
     /**
      * set lastSenderNonce
-     * @param lastSenderNonce the lastSenderNonce
+     * @param asn1OctetString the lastSenderNonce
      */
-    public void setLastSenderNonce(final byte[] lastSenderNonce) {
-        this.lastSenderNonce = lastSenderNonce;
+    public void setLastSenderNonce(final ASN1OctetString asn1OctetString) {
+        this.lastSenderNonce = asn1OctetString;
     }
 
     /**

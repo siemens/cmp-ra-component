@@ -39,6 +39,7 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import org.bouncycastle.asn1.ASN1Object;
+import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.PKIMessage;
 import org.slf4j.Logger;
@@ -210,6 +211,7 @@ public class PersistencyContextManager {
         final SecretKeySpec secretKey = new SecretKeySpec(wrappedInterface.getAesKeyForKeyWrapping(), "AES");
         simpleModule.addSerializer(new Asn1ObjectSerializer());
         simpleModule.addSerializer(new KeySerializer(secretKey));
+        simpleModule.addDeserializer(ASN1OctetString.class, new Asn1ObjectDeserializer<>(ASN1OctetString.class));
         simpleModule.addDeserializer(CMPCertificate.class, new Asn1ObjectDeserializer<>(CMPCertificate.class));
         simpleModule.addDeserializer(PKIMessage.class, new Asn1ObjectDeserializer<>(PKIMessage.class));
         simpleModule.addDeserializer(PrivateKey.class, new PrivateKeyDeserializer(secretKey));
