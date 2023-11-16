@@ -19,6 +19,7 @@ package com.siemens.pki.cmpracomponent.util;
 
 import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
+import com.siemens.pki.cmpracomponent.remoteattestation.EvidenceObjectIdentifiers;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -464,7 +465,8 @@ public class MessageDumper {
                 PQCObjectIdentifiers.class,
                 org.bouncycastle.asn1.x509.Extension.class,
                 EdECObjectIdentifiers.class,
-                CMPObjectIdentifiers.class)) {
+                CMPObjectIdentifiers.class,
+                EvidenceObjectIdentifiers.class)) {
             for (final Field aktField : aktClass.getFields()) {
                 if (aktField.getType().equals(ASN1ObjectIdentifier.class)
                         && (aktField.getModifiers() & Modifier.STATIC) != 0) {

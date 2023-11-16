@@ -20,8 +20,10 @@ package com.siemens.pki.cmpclientcomponent.main;
 import static com.siemens.pki.cmpracomponent.util.NullUtil.defaultIfNull;
 import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
+import com.siemens.pki.cmpclientcomponent.configuration.ClientAttestationContext;
 import com.siemens.pki.cmpclientcomponent.configuration.ClientContext;
 import com.siemens.pki.cmpclientcomponent.configuration.EnrollmentContext;
+import com.siemens.pki.cmpclientcomponent.configuration.EnrollmentContext.TemplateExtension;
 import com.siemens.pki.cmpclientcomponent.configuration.RevocationContext;
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
 import com.siemens.pki.cmpracomponent.configuration.CrlUpdateRetrievalHandler;
@@ -39,6 +41,7 @@ import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
 import com.siemens.pki.cmpracomponent.protection.MacProtection;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
 import com.siemens.pki.cmpracomponent.protection.SignatureBasedProtection;
+import com.siemens.pki.cmpracomponent.remoteattestation.EvidenceObjectIdentifiers;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -57,7 +60,9 @@ import java.util.stream.Stream;
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.ASN1Sequence;
+import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.DERSequence;
 import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
@@ -90,6 +95,7 @@ import org.bouncycastle.asn1.x509.GeneralNames;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.asn1.x509.Time;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -140,6 +146,7 @@ public class CmpClient
 
     /**
      * ctor
+     *
      * @param certProfile           certificate profile to be used for enrollment.
      *                              <code>null</code> if no certificate profile
      *                              should be used.
@@ -161,6 +168,12 @@ public class CmpClient
             throws Exception {
         requestHandler = new ClientRequestHandler(certProfile, upstreamExchange, upstreamConfiguration, clientContext);
         this.clientContext = clientContext;
+    }
+
+    private byte[] callAttester(byte[] ratNonce) {
+        final String nonceAsHexstring = Hex.toHexString(ratNonce);
+        LOGGER.debug("call attester with nonce " + nonceAsHexstring);
+        return ("this would be the attestation for nonce " + nonceAsHexstring).getBytes();
     }
 
     private ArrayList<X509Certificate> fetchCaCertificatesFromValue(final ASN1Encodable infoValue) {
@@ -404,6 +417,37 @@ public class CmpClient
     public EnrollmentResult invokeEnrollment() {
 
         try {
+            PKIMessage ratNonceResponse = null;
+            byte[] attestationResult = null;
+            final ClientAttestationContext attestationContext = clientContext.getAttestationContext();
+            if (attestationContext != null) {
+                ratNonceResponse = requestHandler.sendReceiveInitialMessage(new PKIBody(
+                        PKIBody.TYPE_GEN_MSG,
+                        new GenMsgContent(new InfoTypeAndValue(EvidenceObjectIdentifiers.aa_nonce))));
+                final PKIBody ratNonceResponseBody = ratNonceResponse.getBody();
+                if (ratNonceResponseBody.getType() != PKIBody.TYPE_GEN_REP) {
+                    logUnexpectedResponse(ratNonceResponseBody);
+                    return null;
+                }
+
+                final GenRepContent content = (GenRepContent) ratNonceResponseBody.getContent();
+                final InfoTypeAndValue[] itav = content.toInfoTypeAndValueArray();
+                if (itav != null) {
+                    for (final InfoTypeAndValue aktitav : itav) {
+                        if (EvidenceObjectIdentifiers.aa_nonce.equals(aktitav.getInfoType())) {
+                            final ASN1Encodable infoValue = aktitav.getInfoValue();
+                            if (infoValue == null) {
+                                LOGGER.error("no RAT nonce received");
+                                return null;
+                            }
+                            final byte[] ratNonce =
+                                    ASN1OctetString.getInstance(infoValue).getOctets();
+                            attestationResult = attestationContext.getEvidenceStatement(ratNonce);
+                            break;
+                        }
+                    }
+                }
+            }
             final EnrollmentContext enrollmentContext = clientContext.getEnrollmentContext();
             final KeyPair certificateKeypair = enrollmentContext.getCertificateKeypair();
 
@@ -454,16 +498,27 @@ public class CmpClient
                 case PKIBody.TYPE_CERT_REQ:
                 case PKIBody.TYPE_INIT_REQ: {
                     final String subject = enrollmentContext.getSubject();
-                    final Extension[] arrayOfExtensions =
-                            ifNotNull(enrollmentContext.getExtensions(), exts -> exts.stream()
-                                    .map(ext -> new Extension(
-                                            new ASN1ObjectIdentifier(ext.getId()), ext.isCritical(), ext.getValue()))
-                                    .toArray(Extension[]::new));
-                    final Extensions extensions = ifNotNull(arrayOfExtensions, Extensions::new);
+                    final List<Extension> extensions = new ArrayList<>();
+
+                    final List<TemplateExtension> extensionsFromConfig = enrollmentContext.getExtensions();
+                    if (extensionsFromConfig != null) {
+                        extensionsFromConfig.stream()
+                                .map(ext -> new Extension(
+                                        new ASN1ObjectIdentifier(ext.getId()), ext.isCritical(), ext.getValue()))
+                                .forEach(extensions::add);
+                    }
+                    if (attestationResult != null) {
+                        extensions.add(new Extension(
+                                EvidenceObjectIdentifiers.aa_evidenceStatement,
+                                false,
+                                new DEROctetString(attestationResult).getEncoded()));
+                    }
                     final CertTemplateBuilder ctb = new CertTemplateBuilder()
                             .setSubject(ifNotNull(subject, X500Name::new))
-                            .setPublicKey(enrolledPublicKeyInfo)
-                            .setExtensions(extensions);
+                            .setPublicKey(enrolledPublicKeyInfo);
+                    if (!extensions.isEmpty()) {
+                        ctb.setExtensions(new Extensions(extensions.toArray(new Extension[extensions.size()])));
+                    }
                     requestBody = PkiMessageGenerator.generateIrCrKurBody(
                             enrollmentType, ctb.build(), null, enrolledPrivateKey);
                     pvno = enrolledPrivateKey == null ? PKIHeader.CMP_2021 : PKIHeader.CMP_2000;
@@ -473,9 +528,13 @@ public class CmpClient
                     LOGGER.error("EnrollmentType must be 0(ir), 2(cr), 7(kur) or 4(p10cr)");
                     return null;
             }
-            final PKIMessage responseMessage = requestHandler.sendReceiveValidateMessage(
-                    requestHandler.buildInitialRequest(requestBody, enrollmentContext.getRequestImplictConfirm(), pvno),
-                    enrollmentType);
+            final PKIMessage enrollmentRequestMessage = ratNonceResponse == null
+                    ? requestHandler.buildInitialRequest(
+                            requestBody, enrollmentContext.getRequestImplictConfirm(), pvno)
+                    : requestHandler.buildFurtherRequest(
+                            ratNonceResponse, requestBody, enrollmentContext.getRequestImplictConfirm(), pvno);
+            final PKIMessage responseMessage =
+                    requestHandler.sendReceiveValidateMessage(enrollmentRequestMessage, enrollmentType);
             final PKIBody responseBody = responseMessage.getBody();
             final int responseMessageType = responseBody.getType();
             if (enrollmentType == PKIBody.TYPE_P10_CERT_REQ) {

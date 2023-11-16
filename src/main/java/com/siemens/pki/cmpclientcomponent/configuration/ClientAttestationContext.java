@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2024 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -16,32 +16,16 @@
  *  SPDX-License-Identifier: Apache-2.0
  */
 package com.siemens.pki.cmpclientcomponent.configuration;
-
 /**
+ * attestation specific configuration
  *
- * generic client configuration
  */
-public interface ClientContext {
+public interface ClientAttestationContext {
 
     /**
-     * get remote attestation specific configuration
-     * @return remote attestation specific configuration
+     * obtain evidence statement from attestation
+     * @param attestationNonce remote attestation nonce
+     * @return remote attestation evidence statement
      */
-    default ClientAttestationContext getAttestationContext() {
-        return null;
-    }
-
-    /**
-     * get enrollment specific configuration
-     *
-     * @return enrollment specific configuration
-     */
-    EnrollmentContext getEnrollmentContext();
-
-    /**
-     * get revocation specific configuration
-     *
-     * @return revocation specific configuration
-     */
-    RevocationContext getRevocationContext();
+    byte[] getEvidenceStatement(byte[] attestationNonce);
 }

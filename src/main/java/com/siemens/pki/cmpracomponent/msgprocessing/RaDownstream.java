@@ -48,6 +48,8 @@ import com.siemens.pki.cmpracomponent.msgvalidation.ProtectionValidator;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContextManager;
 import com.siemens.pki.cmpracomponent.protection.SignatureBasedProtection;
+import com.siemens.pki.cmpracomponent.remoteattestation.EvidenceObjectIdentifiers;
+import com.siemens.pki.cmpracomponent.remoteattestation.rest.RestApiFactory;
 import com.siemens.pki.cmpracomponent.util.ConfigLogger;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import com.siemens.pki.cmpracomponent.util.NullUtil.ExFunction;
@@ -62,14 +64,17 @@ import java.security.Signature;
 import java.security.cert.X509Certificate;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.bouncycastle.asn1.ASN1Encoding;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.DERUTF8String;
 import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
 import org.bouncycastle.asn1.cmp.CertRepMessage;
@@ -95,6 +100,8 @@ import org.bouncycastle.asn1.edec.EdECObjectIdentifiers;
 import org.bouncycastle.asn1.pkcs.CertificationRequest;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.Extensions;
 import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.asn1.x9.X9ObjectIdentifiers;
@@ -102,6 +109,11 @@ import org.bouncycastle.cert.jcajce.JcaX509ContentVerifierProviderBuilder;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCSException;
+import org.openapitools.client.ApiException;
+import org.openapitools.client.ApiResponse;
+import org.openapitools.client.api.DefaultApi;
+import org.openapitools.client.model.ChallengeResponseSession;
+import org.openapitools.client.model.ChallengeResponseSession.StatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -192,7 +204,7 @@ class RaDownstream {
     // special handling for CR, IR, KUR
     private PKIMessage handleCrmfCertificateRequest(
             final PKIMessage incomingCertificateRequest, final PersistencyContext persistencyContext)
-            throws BaseCmpException, GeneralSecurityException, IOException {
+            throws BaseCmpException, GeneralSecurityException, IOException, ApiException, InterruptedException {
 
         final PKIBody requestBody = incomingCertificateRequest.getBody();
         final PKIBody body = requestBody;
@@ -201,6 +213,28 @@ class RaDownstream {
         final CertReqMsg certReqMsg = ((CertReqMessages) body.getContent()).toCertReqMsgArray()[0];
         CertRequest certRequest = certReqMsg.getCertReq();
         CertTemplate certTemplate = certRequest.getCertTemplate();
+
+        final Extensions extensions = certTemplate.getExtensions();
+        final Extension ratExtension = processRatVerification(persistencyContext, extensions);
+        if (ratExtension != null) {
+            final Extensions newExtensions = new Extensions(Stream.concat(
+                            Arrays.stream(extensions.getExtensionOIDs())
+                                    .filter(oid -> !oid.equals(EvidenceObjectIdentifiers.aa_evidenceStatement))
+                                    .map(oid -> extensions.getExtension(oid)),
+                            Arrays.asList(ratExtension).stream())
+                    .toArray(Extension[]::new));
+            certTemplate = new CertTemplateBuilder()
+                    .setVersion(certTemplate.getVersion())
+                    .setSerialNumber(certTemplate.getSerialNumber())
+                    .setSigningAlg(certTemplate.getSigningAlg())
+                    .setIssuer(certTemplate.getIssuer())
+                    .setValidity(certTemplate.getValidity())
+                    .setSubject(certTemplate.getSubject())
+                    .setPublicKey(certTemplate.getPublicKey())
+                    .setExtensions(newExtensions)
+                    .build();
+            certRequest = new CertRequest(0, certTemplate, certRequest.getControls());
+        }
 
         // check request against inventory
         final InventoryInterface inventory = ConfigLogger.logOptional(
@@ -306,9 +340,10 @@ class RaDownstream {
             }
             final KeyPair keyPair = kpgen.genKeyPair();
             // regenerate template but with newly generated public key
+            final Extensions extensions2 = certTemplate.getExtensions();
             final CertTemplate certTemplateWithPublicKey = new CertTemplateBuilder()
                     .setSubject(certTemplate.getSubject())
-                    .setExtensions(certTemplate.getExtensions())
+                    .setExtensions(extensions2)
                     .setPublicKey(
                             SubjectPublicKeyInfo.getInstance(keyPair.getPublic().getEncoded()))
                     .build();
@@ -687,8 +722,8 @@ class RaDownstream {
             case PKIBody.TYPE_GEN_MSG:
                 // try to handle locally
                 persistencyContext.setRequestType(incomingRequest.getBody().getType());
-                final PKIMessage genmResponse =
-                        new ServiceImplementation(config).handleValidatedInputMessage(incomingRequest, messageContext);
+                final PKIMessage genmResponse = new ServiceImplementation(config, persistencyContext)
+                        .handleValidatedInputMessage(incomingRequest, messageContext);
                 if (genmResponse != null) {
                     return genmResponse;
                 }
@@ -874,6 +909,74 @@ class RaDownstream {
                     INTERFACE_NAME,
                     PKIFailureInfo.wrongAuthority,
                     "could not properly process certificate response: " + ex);
+        }
+    }
+
+    private Extension processRatVerification(final PersistencyContext persistencyContext, Extensions extensions)
+            throws ApiException, CmpProcessingException, InterruptedException, IOException {
+        if (extensions == null) {
+            return null;
+        }
+        final String ratSessionId = persistencyContext.getRatSessionId();
+        if (ratSessionId == null) {
+            return null;
+        }
+        final Extension evidenceItav = extensions.getExtension(EvidenceObjectIdentifiers.aa_evidenceStatement);
+        if (evidenceItav == null) {
+            return null;
+        }
+        final String ratVerifierBasePath = persistencyContext.getRatVerifierBasePath();
+        final DefaultApi apiClient = RestApiFactory.getCreateApiClient(ratVerifierBasePath);
+        ApiResponse<ChallengeResponseSession> apiResponse = apiClient.sessionSessionIdGetWithHttpInfo(ratSessionId);
+        int statusCode = apiResponse.getStatusCode();
+        if (statusCode != 200) {
+            throw new CmpProcessingException(
+                    "RAT verifier at " + ratVerifierBasePath,
+                    PKIFailureInfo.systemFailure,
+                    " returned HTTP status " + statusCode);
+        }
+        ChallengeResponseSession responseData = apiResponse.getData();
+        final ChallengeResponseSession data = responseData;
+        StatusEnum status = data.getStatus();
+        if (status != StatusEnum.WAITING) {
+            throw new CmpProcessingException(
+                    "RAT verifier at " + ratVerifierBasePath,
+                    PKIFailureInfo.systemFailure,
+                    "not in status WAITING: " + status);
+        }
+        apiResponse = apiClient.sessionSessionIdPostWithHttpInfo(
+                ratSessionId,
+                Base64.getEncoder().encodeToString(evidenceItav.getExtnValue().getOctets()));
+        for (; ; ) {
+            statusCode = apiResponse.getStatusCode();
+            switch (statusCode) {
+                case 200: // The submission was successful and has been synchronously processed
+                {
+                    responseData = apiResponse.getData();
+                    status = responseData.getStatus();
+                    if (status != StatusEnum.COMPLETE) {
+                        throw new CmpProcessingException(
+                                "RAT verifier at " + ratVerifierBasePath,
+                                PKIFailureInfo.systemFailure,
+                                "not in status COMPLETE: " + status);
+                    }
+                    final String resultJwt = responseData.getResult();
+                    LOGGER.info("got attestation JWT:\n" + resultJwt);
+                    return Extension.create(
+                            EvidenceObjectIdentifiers.attestation_result, false, new DERUTF8String(resultJwt));
+                }
+                case 202: // The client is supposed to poll the resource
+                {
+                    Thread.sleep(5000L);
+                    apiResponse = apiClient.sessionSessionIdGetWithHttpInfo(ratSessionId);
+                    continue;
+                }
+                default:
+                    throw new CmpProcessingException(
+                            "RAT verifier at " + ratVerifierBasePath,
+                            PKIFailureInfo.systemFailure,
+                            " returned HTTP status " + statusCode);
+            }
         }
     }
 }

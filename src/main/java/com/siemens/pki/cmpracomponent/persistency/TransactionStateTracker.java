@@ -72,6 +72,8 @@ class TransactionStateTracker {
 
     private final PersistencyContext persistencyContext;
 
+    private boolean markedAsPreparingGenm = false;
+
     TransactionStateTracker(final PersistencyContext persistencyContext) {
         this.persistencyContext = persistencyContext;
     }
@@ -291,6 +293,13 @@ class TransactionStateTracker {
     }
 
     /**
+     * mark the currently processed GENM as preliminary for a remaining transaction
+     */
+    public void markAsPreparingGenm() {
+        this.markedAsPreparingGenm = true;
+    }
+
+    /**
      * the main state machine
      *
      * @param message message to process
@@ -468,7 +477,11 @@ class TransactionStateTracker {
                             PKIFailureInfo.transactionIdInUse,
                             "transaction in wrong state for " + MessageDumper.msgAsShortString(message));
                 }
-                persistencyContext.setLastTransactionState(LastTransactionState.GENREP_RETURNED);
+                if (markedAsPreparingGenm) {
+                    persistencyContext.setLastTransactionState(LastTransactionState.INITIAL_STATE);
+                } else {
+                    persistencyContext.setLastTransactionState(LastTransactionState.GENREP_RETURNED);
+                }
                 return;
             case GEN_POLLING:
                 if (isPollRequest(message) || isPollResponse(message)) {
