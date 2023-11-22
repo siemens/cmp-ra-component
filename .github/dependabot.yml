@@ -10,7 +10,7 @@ updates:
     schedule:
       interval: "weekly"
     groups:
-      all:
+      dependabot-dependency-updates:
         update-types:
         - "minor"
         - "patch"
