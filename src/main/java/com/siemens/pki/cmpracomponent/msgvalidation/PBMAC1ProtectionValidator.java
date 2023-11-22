@@ -40,7 +40,11 @@ import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
  * messages and generates proper error responses on failed validation.
  */
 public class PBMAC1ProtectionValidator extends MacValidator {
-
+    /**
+     * ctor
+     * @param interfaceName name of related interface used for logging
+     * @param config related configuration
+     */
     public PBMAC1ProtectionValidator(final String interfaceName, final VerificationContext config) {
         super(interfaceName, config);
     }

@@ -31,7 +31,11 @@ import org.bouncycastle.asn1.cms.ContentInfo;
 import org.bouncycastle.asn1.cms.SignedData;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cms.*;
+import org.bouncycastle.cms.CMSException;
+import org.bouncycastle.cms.CMSProcessableByteArray;
+import org.bouncycastle.cms.CMSSignedData;
+import org.bouncycastle.cms.CMSSignedDataGenerator;
+import org.bouncycastle.cms.SignerInfoGenerator;
 import org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoGeneratorBuilder;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.util.CollectionStore;
@@ -45,6 +49,14 @@ public class DataSigner {
 
     private final CMSSignedDataGenerator gen = new CMSSignedDataGenerator();
 
+    /**
+     * ctor
+     * @param credentialService credentials used for signing
+     * @throws OperatorCreationException in case of error
+     * @throws CertificateEncodingException in case of error
+     * @throws IOException in case of error
+     * @throws CMSException in case of error
+     */
     public DataSigner(final BaseCredentialService credentialService)
             throws OperatorCreationException, CertificateEncodingException, IOException, CMSException {
         final SignerInfoGenerator signerInfoGenerator = new JcaSimpleSignerInfoGeneratorBuilder()
@@ -65,6 +77,15 @@ public class DataSigner {
         gen.addCertificates(new CollectionStore<>(certChain));
     }
 
+    /**
+     * ctor
+     * @param privateKey private key used for signing
+     * @param endCertificate certificate used for signing
+     * @throws CertificateEncodingException in case of error
+     * @throws OperatorCreationException in case of error
+     * @throws IOException in case of error
+     * @throws CMSException in case of error
+     */
     public DataSigner(final PrivateKey privateKey, final X509Certificate endCertificate)
             throws CertificateEncodingException, OperatorCreationException, IOException, CMSException {
         this(new BaseCredentialService(new SignatureCredentialContext() {

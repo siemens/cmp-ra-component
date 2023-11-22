@@ -24,16 +24,54 @@ import java.util.function.Supplier;
  */
 public class NullUtil {
 
-    private NullUtil() {}
+    /**
+     * function with one argument throwing an exception
+     * @param <T> argument type
+     * @param <R> result type
+     * @param <E> exception type
+     */
+    public interface ExFunction<T, R, E extends Exception> {
+        /**
+         * execute function
+         * @param arg function argument
+         * @return result
+         * @throws E in case of error
+         */
+        R apply(T arg) throws E;
+    }
 
+    /**
+     * compute a default value if value is <code>null</code>
+     * @param <T> value type
+     * @param value value to check for <code>null</code>
+     * @param defaultSupplier funtion to call if value is <code>null</code>
+     * @return value or result of defaultSupplier
+     */
     public static <T> T computeDefaultIfNull(final T value, final Supplier<T> defaultSupplier) {
         return value != null ? value : defaultSupplier.get();
     }
 
+    /**
+     * provide a default value if if value is <code>null</code>
+     * @param <T> value type
+     * @param value value to check for <code>null</code>
+     * @param defaultValue value to use if provided value is <code>null</code>
+     * @return value or defaultValue
+     */
     public static <T> T defaultIfNull(final T value, final T defaultValue) {
         return value != null ? value : defaultValue;
     }
 
+    /**
+     * evaluate a function if a parameter is not <code>null</code>
+     * @param <T> funtion result type
+     * @param <R> value type
+     * @param <E> exception thrown by function
+     * @param value value to evaluate for <code>null</code>, function parameter
+     * @param function function to evaluate
+     * @return null or function result
+     * @throws E if function throws an exception
+     */
     public static <T, R, E extends Exception> T ifNotNull(final R value, final ExFunction<R, T, E> function) throws E {
         try {
             return value == null ? null : function.apply(value);
@@ -42,7 +80,6 @@ public class NullUtil {
         }
     }
 
-    public interface ExFunction<T, R, E extends Exception> {
-        R apply(T arg) throws E;
-    }
+    // utility function
+    private NullUtil() {}
 }

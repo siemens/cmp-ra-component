@@ -99,6 +99,7 @@ public class MessageBodyValidator implements ValidatorIF<String> {
     private final String certProfile;
 
     /**
+     * ctor
      * @param interfaceName          name used in error messages and logging
      * @param isRaVerifiedAcceptable should RaVerified accepted in POPO?
      * @param cmpInterfaceConfig     specific interface (downstream/upstream)

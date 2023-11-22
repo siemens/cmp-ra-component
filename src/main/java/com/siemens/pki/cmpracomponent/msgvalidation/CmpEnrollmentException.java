@@ -28,9 +28,14 @@ public class CmpEnrollmentException extends CmpValidationException {
 
     private static final long serialVersionUID = 1L;
 
+    /**
+     * triggering enrollmentType
+     *
+     */
     private final int enrollmentType;
 
     /**
+     * ctor
      * @param enrollmentType PKI message type of enrollment request
      * @param interfaceName  interface name used as prefix message text
      * @param failInfo       CMP failInfo proposed for CMP error message

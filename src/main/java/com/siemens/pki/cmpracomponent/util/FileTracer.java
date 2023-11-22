@@ -17,10 +17,12 @@
  */
 package com.siemens.pki.cmpracomponent.util;
 
+import static com.siemens.pki.cmpracomponent.util.NullUtil.defaultIfNull;
+import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.util.Base64;
 import java.util.Base64.Encoder;
 import java.util.concurrent.atomic.AtomicLong;
@@ -78,16 +80,25 @@ public class FileTracer {
 
     private static final AtomicLong messagecounter = new AtomicLong(0);
 
+    /**
+     * dump a message to the dumpdir
+     *
+     * @param msg           message to dump
+     * @param interfaceName file name prefix to use
+     */
     public static void logMessage(final PKIMessage msg, final String interfaceName) {
         if (msgDumpDirectory == null
                 || msg == null
                 || !enablePemDump && !enableTxtDump && !enableDerDump && !enableAsn1Dump) {
             return;
         }
-        final String subDirName = "trans_"
-                + B64_ENCODER_WITHOUT_PADDING.encodeToString(
-                        msg.getHeader().getTransactionID().getOctets());
         try {
+            final String tidAsString = defaultIfNull(
+                    ifNotNull(
+                            msg.getHeader().getTransactionID(),
+                            tid -> B64_ENCODER_WITHOUT_PADDING.encodeToString(tid.getOctets())),
+                    "null");
+            final String subDirName = "trans_" + tidAsString;
             final File subDir = new File(msgDumpDirectory, subDirName);
             if (!subDir.isDirectory()) {
                 subDir.mkdirs();
@@ -115,7 +126,7 @@ public class FileTracer {
                     }
                 }
             }
-        } catch (final IOException e) {
+        } catch (final Exception e) {
             LOGGER.error("error writing dump", e);
         }
     }

@@ -23,6 +23,7 @@ import com.siemens.pki.cmpracomponent.msgvalidation.CmpValidationException;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Objects;
 import org.bouncycastle.asn1.ASN1Encoding;
 import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
 import org.bouncycastle.asn1.cmp.CertConfirmContent;
@@ -73,209 +74,6 @@ class TransactionStateTracker {
 
     TransactionStateTracker(final PersistencyContext persistencyContext) {
         this.persistencyContext = persistencyContext;
-    }
-
-    /**
-     * the main state machine
-     *
-     * @param message message to process
-     * @throws BaseCmpException in case of failed CMP processing
-     * @throws IOException      in case of broken ASN.1
-     */
-    public void trackMessage(final PKIMessage message) throws BaseCmpException, IOException {
-        if (isResponse(message)) {
-            persistencyContext.setLastSenderNonce(
-                    message.getHeader().getSenderNonce().getOctets());
-        }
-        if (isError(message)) {
-            persistencyContext.setLastTransactionState(LastTransactionState.IN_ERROR_STATE);
-            return;
-        }
-        if (isSecondRequest(message)) {
-            if (persistencyContext.getLastTransactionState() == LastTransactionState.INITIAL_STATE) {
-                throw new CmpValidationException(
-                        INTERFACE_NAME,
-                        PKIFailureInfo.transactionIdInUse,
-                        "unexpected transcation ID for " + MessageDumper.msgAsShortString(message));
-            }
-            if (!Arrays.equals(
-                    persistencyContext.getLastSenderNonce(),
-                    message.getHeader().getRecipNonce().getOctets())) {
-                throw new CmpValidationException(
-                        INTERFACE_NAME,
-                        PKIFailureInfo.badRecipientNonce,
-                        "sender/recipient nonce mismatch for " + MessageDumper.msgAsShortString(message));
-            }
-        }
-        switch (persistencyContext.getLastTransactionState()) {
-            case IN_ERROR_STATE:
-                if (!isConfirmConfirm(message)) {
-                    throw new CmpValidationException(
-                            INTERFACE_NAME,
-                            PKIFailureInfo.transactionIdInUse,
-                            "got " + MessageDumper.msgTypeAsString(message)
-                                    + ", but transaction already in error state");
-                }
-                return;
-            case INITIAL_STATE:
-                if (isGenMessage(message)) {
-                    persistencyContext.setLastTransactionState(LastTransactionState.GENM_RECEIVED);
-                    return;
-                }
-                if (isRevocationRequest(message)) {
-                    persistencyContext.setLastTransactionState(LastTransactionState.REVOCATION_SENT);
-                    return;
-                }
-                if (!isCertRequest(message)) {
-                    persistencyContext.setLastTransactionState(LastTransactionState.IN_ERROR_STATE);
-                    throw new CmpValidationException(
-                            INTERFACE_NAME,
-                            PKIFailureInfo.transactionIdInUse,
-                            "transaction does not start with a request for " + MessageDumper.msgAsShortString(message));
-                }
-                if (isP10CertRequest(message)) {
-                    persistencyContext.setRequestedPublicKey(
-                            ((CertificationRequest) message.getBody().getContent())
-                                    .getCertificationRequestInfo()
-                                    .getSubjectPublicKeyInfo()
-                                    .getEncoded());
-                } else {
-                    persistencyContext.setRequestedPublicKey(
-                            ((CertReqMessages) message.getBody().getContent())
-                                    .toCertReqMsgArray()[0]
-                                    .getCertReq()
-                                    .getCertTemplate()
-                                    .getPublicKey()
-                                    .getEncoded());
-                }
-                persistencyContext.setImplicitConfirmGranted(
-                        persistencyContext.isImplicitConfirmGranted() && grantsImplicitConfirm(message));
-                persistencyContext.setLastTransactionState(LastTransactionState.CERTIFICATE_REQUEST_SENT);
-                return;
-            case CERTIFICATE_REQUEST_SENT:
-                if (isCertRequest(message)) {
-                    throw new CmpValidationException(
-                            INTERFACE_NAME,
-                            PKIFailureInfo.transactionIdInUse,
-                            "second request seen in transaction for " + MessageDumper.msgAsShortString(message));
-                }
-                if (!isCertResponse(message)) {
-                    persistencyContext.setLastTransactionState(LastTransactionState.IN_ERROR_STATE);
-                    throw new CmpValidationException(
-                            INTERFACE_NAME,
-                            PKIFailureInfo.badMessageCheck,
-                            "request was not answered by cert response for " + MessageDumper.msgAsShortString(message));
-                }
-                if (isCertResponseWithWaitingIndication(message)) {
-                    persistencyContext.setLastTransactionState(LastTransactionState.CERTIFICATE_POLLING);
-                    return;
-                }
-                handleCertResponse(message);
-                return;
-            case CERTIFICATE_POLLING:
-                if (isPollRequest(message) || isPollResponse(message)) {
-                    return;
-                }
-                if (!isCertResponse(message)) {
-                    persistencyContext.setLastTransactionState(LastTransactionState.IN_ERROR_STATE);
-                    throw new CmpValidationException(
-                            INTERFACE_NAME,
-                            PKIFailureInfo.badMessageCheck,
-                            "request was not answered by cert response for " + MessageDumper.msgAsShortString(message));
-                }
-                handleCertResponse(message);
-                return;
-            case CERTIFICATE_RECEIVED:
-                if (!isCertConfirm(message)) {
-                    persistencyContext.setLastTransactionState(LastTransactionState.IN_ERROR_STATE);
-                    throw new CmpValidationException(
-                            INTERFACE_NAME,
-                            PKIFailureInfo.badMessageCheck,
-                            "response was not answered with confirmation for "
-                                    + MessageDumper.msgAsShortString(message));
-                }
-                if (!Arrays.equals(
-                        persistencyContext.getDigestToConfirm(),
-                        ((CertConfirmContent) message.getBody().getContent())
-                                .toCertStatusArray()[0]
-                                .getCertHash()
-                                .getOctets())) {
-                    persistencyContext.setLastTransactionState(LastTransactionState.IN_ERROR_STATE);
-                    throw new CmpValidationException(
-                            INTERFACE_NAME,
-                            PKIFailureInfo.badCertId,
-                            "wrong hash in cert confirmation for " + MessageDumper.msgAsShortString(message));
-                }
-                persistencyContext.setLastTransactionState(LastTransactionState.CERTIFICATE_CONFIRMEND);
-                return;
-            case CERTIFICATE_CONFIRMEND:
-                if (!isConfirmConfirm(message)) {
-                    persistencyContext.setLastTransactionState(LastTransactionState.IN_ERROR_STATE);
-                    throw new CmpValidationException(
-                            INTERFACE_NAME,
-                            PKIFailureInfo.badMessageCheck,
-                            "cert confirm was not answered with pki confirm for "
-                                    + MessageDumper.msgAsShortString(message));
-                }
-                persistencyContext.setLastTransactionState(LastTransactionState.CONFIRM_CONFIRMED);
-                return;
-            case REVOCATION_SENT:
-                if (isWaitingIndication(message)) {
-                    persistencyContext.setLastTransactionState(LastTransactionState.REVOCATION_POLLING);
-                    return;
-                }
-                if (!isRevocationResponse(message)) {
-                    throw new CmpValidationException(
-                            INTERFACE_NAME,
-                            PKIFailureInfo.transactionIdInUse,
-                            "transaction in wrong state for " + MessageDumper.msgAsShortString(message));
-                }
-                persistencyContext.setLastTransactionState(LastTransactionState.REVOCATION_CONFIRMED);
-                return;
-            case REVOCATION_POLLING:
-                if (isPollRequest(message) || isPollResponse(message)) {
-                    return;
-                }
-                if (!isRevocationResponse(message)) {
-                    throw new CmpValidationException(
-                            INTERFACE_NAME,
-                            PKIFailureInfo.transactionIdInUse,
-                            "transaction in wrong state for " + MessageDumper.msgAsShortString(message));
-                }
-                persistencyContext.setLastTransactionState(LastTransactionState.REVOCATION_CONFIRMED);
-                return;
-            case GENM_RECEIVED:
-                if (isWaitingIndication(message)) {
-                    persistencyContext.setLastTransactionState(LastTransactionState.GEN_POLLING);
-                    return;
-                }
-                if (!isGenRep(message)) {
-                    throw new CmpValidationException(
-                            INTERFACE_NAME,
-                            PKIFailureInfo.transactionIdInUse,
-                            "transaction in wrong state for " + MessageDumper.msgAsShortString(message));
-                }
-                persistencyContext.setLastTransactionState(LastTransactionState.GENREP_RETURNED);
-                return;
-            case GEN_POLLING:
-                if (isPollRequest(message) || isPollResponse(message)) {
-                    return;
-                }
-                if (!isGenRep(message)) {
-                    throw new CmpValidationException(
-                            INTERFACE_NAME,
-                            PKIFailureInfo.transactionIdInUse,
-                            "transaction in wrong state for " + MessageDumper.msgAsShortString(message));
-                }
-                persistencyContext.setLastTransactionState(LastTransactionState.GENREP_RETURNED);
-                return;
-            default:
-                throw new CmpValidationException(
-                        INTERFACE_NAME,
-                        PKIFailureInfo.transactionIdInUse,
-                        "transaction in wrong state (" + persistencyContext.getLastTransactionState() + ") for "
-                                + MessageDumper.msgAsShortString(message));
-        }
     }
 
     private boolean grantsImplicitConfirm(final PKIMessage msg) {
@@ -457,6 +255,20 @@ class TransactionStateTracker {
         }
     }
 
+    boolean isTransactionTerminated() {
+        switch (persistencyContext.getLastTransactionState()) {
+            case CONFIRM_CONFIRMED:
+            case GENREP_RETURNED:
+            case IN_ERROR_STATE:
+            case REVOCATION_CONFIRMED:
+                return true;
+            case CERTIFICATE_RECEIVED:
+                return persistencyContext.isImplicitConfirmGranted();
+            default:
+                return false;
+        }
+    }
+
     private boolean isWaitingIndication(final PKIMessage msg) {
         final PKIBody body = msg.getBody();
         switch (body.getType()) {
@@ -478,17 +290,204 @@ class TransactionStateTracker {
         }
     }
 
-    boolean isTransactionTerminated() {
+    /**
+     * the main state machine
+     *
+     * @param message message to process
+     * @throws BaseCmpException in case of failed CMP processing
+     * @throws IOException      in case of broken ASN.1
+     */
+    public void trackMessage(final PKIMessage message) throws BaseCmpException, IOException {
+        if (isResponse(message)) {
+            persistencyContext.setLastSenderNonce(message.getHeader().getSenderNonce());
+        }
+        if (isError(message)) {
+            persistencyContext.setLastTransactionState(LastTransactionState.IN_ERROR_STATE);
+            return;
+        }
+        if (isSecondRequest(message)) {
+            if (persistencyContext.getLastTransactionState() == LastTransactionState.INITIAL_STATE) {
+                throw new CmpValidationException(
+                        INTERFACE_NAME,
+                        PKIFailureInfo.transactionIdInUse,
+                        "unexpected transcation ID for " + MessageDumper.msgAsShortString(message));
+            }
+            if (!Objects.equals(
+                    persistencyContext.getLastSenderNonce(), message.getHeader().getRecipNonce())) {
+                throw new CmpValidationException(
+                        INTERFACE_NAME,
+                        PKIFailureInfo.badRecipientNonce,
+                        "sender/recipient nonce mismatch for " + MessageDumper.msgAsShortString(message));
+            }
+        }
         switch (persistencyContext.getLastTransactionState()) {
-            case CONFIRM_CONFIRMED:
-            case GENREP_RETURNED:
             case IN_ERROR_STATE:
-            case REVOCATION_CONFIRMED:
-                return true;
+                if (!isConfirmConfirm(message)) {
+                    throw new CmpValidationException(
+                            INTERFACE_NAME,
+                            PKIFailureInfo.transactionIdInUse,
+                            "got " + MessageDumper.msgTypeAsString(message)
+                                    + ", but transaction already in error state");
+                }
+                return;
+            case INITIAL_STATE:
+                if (isGenMessage(message)) {
+                    persistencyContext.setLastTransactionState(LastTransactionState.GENM_RECEIVED);
+                    return;
+                }
+                if (isRevocationRequest(message)) {
+                    persistencyContext.setLastTransactionState(LastTransactionState.REVOCATION_SENT);
+                    return;
+                }
+                if (!isCertRequest(message)) {
+                    persistencyContext.setLastTransactionState(LastTransactionState.IN_ERROR_STATE);
+                    throw new CmpValidationException(
+                            INTERFACE_NAME,
+                            PKIFailureInfo.transactionIdInUse,
+                            "transaction does not start with a request for " + MessageDumper.msgAsShortString(message));
+                }
+                if (isP10CertRequest(message)) {
+                    persistencyContext.setRequestedPublicKey(
+                            ((CertificationRequest) message.getBody().getContent())
+                                    .getCertificationRequestInfo()
+                                    .getSubjectPublicKeyInfo()
+                                    .getEncoded());
+                } else {
+                    persistencyContext.setRequestedPublicKey(
+                            ((CertReqMessages) message.getBody().getContent())
+                                    .toCertReqMsgArray()[0]
+                                    .getCertReq()
+                                    .getCertTemplate()
+                                    .getPublicKey()
+                                    .getEncoded());
+                }
+                persistencyContext.setImplicitConfirmGranted(
+                        persistencyContext.isImplicitConfirmGranted() && grantsImplicitConfirm(message));
+                persistencyContext.setLastTransactionState(LastTransactionState.CERTIFICATE_REQUEST_SENT);
+                return;
+            case CERTIFICATE_REQUEST_SENT:
+                if (isCertRequest(message)) {
+                    throw new CmpValidationException(
+                            INTERFACE_NAME,
+                            PKIFailureInfo.transactionIdInUse,
+                            "second request seen in transaction for " + MessageDumper.msgAsShortString(message));
+                }
+                if (!isCertResponse(message)) {
+                    persistencyContext.setLastTransactionState(LastTransactionState.IN_ERROR_STATE);
+                    throw new CmpValidationException(
+                            INTERFACE_NAME,
+                            PKIFailureInfo.badMessageCheck,
+                            "request was not answered by cert response for " + MessageDumper.msgAsShortString(message));
+                }
+                if (isCertResponseWithWaitingIndication(message)) {
+                    persistencyContext.setLastTransactionState(LastTransactionState.CERTIFICATE_POLLING);
+                    return;
+                }
+                handleCertResponse(message);
+                return;
+            case CERTIFICATE_POLLING:
+                if (isPollRequest(message) || isPollResponse(message)) {
+                    return;
+                }
+                if (!isCertResponse(message)) {
+                    persistencyContext.setLastTransactionState(LastTransactionState.IN_ERROR_STATE);
+                    throw new CmpValidationException(
+                            INTERFACE_NAME,
+                            PKIFailureInfo.badMessageCheck,
+                            "request was not answered by cert response for " + MessageDumper.msgAsShortString(message));
+                }
+                handleCertResponse(message);
+                return;
             case CERTIFICATE_RECEIVED:
-                return persistencyContext.isImplicitConfirmGranted();
+                if (!isCertConfirm(message)) {
+                    persistencyContext.setLastTransactionState(LastTransactionState.IN_ERROR_STATE);
+                    throw new CmpValidationException(
+                            INTERFACE_NAME,
+                            PKIFailureInfo.badMessageCheck,
+                            "response was not answered with confirmation for "
+                                    + MessageDumper.msgAsShortString(message));
+                }
+                if (!Arrays.equals(
+                        persistencyContext.getDigestToConfirm(),
+                        ((CertConfirmContent) message.getBody().getContent())
+                                .toCertStatusArray()[0]
+                                .getCertHash()
+                                .getOctets())) {
+                    persistencyContext.setLastTransactionState(LastTransactionState.IN_ERROR_STATE);
+                    throw new CmpValidationException(
+                            INTERFACE_NAME,
+                            PKIFailureInfo.badCertId,
+                            "wrong hash in cert confirmation for " + MessageDumper.msgAsShortString(message));
+                }
+                persistencyContext.setLastTransactionState(LastTransactionState.CERTIFICATE_CONFIRMEND);
+                return;
+            case CERTIFICATE_CONFIRMEND:
+                if (!isConfirmConfirm(message)) {
+                    persistencyContext.setLastTransactionState(LastTransactionState.IN_ERROR_STATE);
+                    throw new CmpValidationException(
+                            INTERFACE_NAME,
+                            PKIFailureInfo.badMessageCheck,
+                            "cert confirm was not answered with pki confirm for "
+                                    + MessageDumper.msgAsShortString(message));
+                }
+                persistencyContext.setLastTransactionState(LastTransactionState.CONFIRM_CONFIRMED);
+                return;
+            case REVOCATION_SENT:
+                if (isWaitingIndication(message)) {
+                    persistencyContext.setLastTransactionState(LastTransactionState.REVOCATION_POLLING);
+                    return;
+                }
+                if (!isRevocationResponse(message)) {
+                    throw new CmpValidationException(
+                            INTERFACE_NAME,
+                            PKIFailureInfo.transactionIdInUse,
+                            "transaction in wrong state for " + MessageDumper.msgAsShortString(message));
+                }
+                persistencyContext.setLastTransactionState(LastTransactionState.REVOCATION_CONFIRMED);
+                return;
+            case REVOCATION_POLLING:
+                if (isPollRequest(message) || isPollResponse(message)) {
+                    return;
+                }
+                if (!isRevocationResponse(message)) {
+                    throw new CmpValidationException(
+                            INTERFACE_NAME,
+                            PKIFailureInfo.transactionIdInUse,
+                            "transaction in wrong state for " + MessageDumper.msgAsShortString(message));
+                }
+                persistencyContext.setLastTransactionState(LastTransactionState.REVOCATION_CONFIRMED);
+                return;
+            case GENM_RECEIVED:
+                if (isWaitingIndication(message)) {
+                    persistencyContext.setLastTransactionState(LastTransactionState.GEN_POLLING);
+                    return;
+                }
+                if (!isGenRep(message)) {
+                    throw new CmpValidationException(
+                            INTERFACE_NAME,
+                            PKIFailureInfo.transactionIdInUse,
+                            "transaction in wrong state for " + MessageDumper.msgAsShortString(message));
+                }
+                persistencyContext.setLastTransactionState(LastTransactionState.GENREP_RETURNED);
+                return;
+            case GEN_POLLING:
+                if (isPollRequest(message) || isPollResponse(message)) {
+                    return;
+                }
+                if (!isGenRep(message)) {
+                    throw new CmpValidationException(
+                            INTERFACE_NAME,
+                            PKIFailureInfo.transactionIdInUse,
+                            "transaction in wrong state for " + MessageDumper.msgAsShortString(message));
+                }
+                persistencyContext.setLastTransactionState(LastTransactionState.GENREP_RETURNED);
+                return;
             default:
-                return false;
+                throw new CmpValidationException(
+                        INTERFACE_NAME,
+                        PKIFailureInfo.transactionIdInUse,
+                        "transaction in wrong state (" + persistencyContext.getLastTransactionState() + ") for "
+                                + MessageDumper.msgAsShortString(message));
         }
     }
 }

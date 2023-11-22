@@ -33,6 +33,7 @@ import org.bouncycastle.cms.jcajce.JceKeyTransRecipientInfoGenerator;
  */
 public class KeyTransportEncryptor extends CmsEncryptorBase {
     /**
+     * ctor
      * @param config             specific configuration
      * @param protectingCert     the public key certificate for the targeted
      *                           recipients.

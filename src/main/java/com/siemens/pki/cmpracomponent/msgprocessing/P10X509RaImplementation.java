@@ -57,6 +57,7 @@ public class P10X509RaImplementation implements Function<byte[], byte[]> {
     private final RaDownstream downstream;
 
     /**
+     * ctor
      * @param config              specific configuration
      * @param rawUpstreamExchange upstream interface function
      * @throws Exception in case of error

@@ -18,45 +18,30 @@
 package com.siemens.pki.cmpracomponent.msgvalidation;
 
 import java.util.Objects;
-import org.bouncycastle.asn1.*;
-import org.bouncycastle.asn1.cmp.*;
+import org.bouncycastle.asn1.ASN1Encodable;
+import org.bouncycastle.asn1.ASN1Integer;
+import org.bouncycastle.asn1.ASN1OctetString;
+import org.bouncycastle.asn1.ASN1Sequence;
+import org.bouncycastle.asn1.ASN1UTF8String;
+import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
+import org.bouncycastle.asn1.cmp.InfoTypeAndValue;
+import org.bouncycastle.asn1.cmp.PKIFailureInfo;
+import org.bouncycastle.asn1.cmp.PKIHeader;
+import org.bouncycastle.asn1.cmp.PKIMessage;
 
+/**
+ * validator for {@link PKIMessage} header
+ */
 public class MessageHeaderValidator implements ValidatorIF<String> {
 
     private final String interfaceName;
 
+    /**
+     * ctor
+     * @param interfaceName related interface name used for logging
+     */
     public MessageHeaderValidator(final String interfaceName) {
         this.interfaceName = interfaceName;
-    }
-
-    /**
-     * Validates the {@link PKIHeader header} of the given {@link PKIMessage
-     * message}.<br>
-     * <strong>Note:</strong><br>
-     * See RFC4210 Section 5.1.1. PKI Message Header for further details.
-     *
-     * @param message the message to validate
-     * @return certProfile or <code>null</code> if certProfile was not found in
-     *         header
-     * @throws BaseCmpException in case of failed validation
-     */
-    @Override
-    public String validate(final PKIMessage message) throws BaseCmpException {
-        assertValueNotNull(message, PKIFailureInfo.badDataFormat, "PKIMessage");
-        final PKIHeader header = message.getHeader();
-        assertValueNotNull(header, PKIFailureInfo.badDataFormat, "header");
-        final ASN1Integer pvno = header.getPvno();
-        assertValueNotNull(pvno, PKIFailureInfo.unsupportedVersion, "pvno is null");
-        final long versionNumber = pvno.longValueExact();
-        if (versionNumber != PKIHeader.CMP_2000 && versionNumber != PKIHeader.CMP_2021) {
-            throw new CmpValidationException(
-                    interfaceName, PKIFailureInfo.unsupportedVersion, "version " + versionNumber + " not supported");
-        }
-        assertValueNotNull(header.getSender(), PKIFailureInfo.badDataFormat, "Sender");
-        assertValueNotNull(header.getRecipient(), PKIFailureInfo.badDataFormat, "Recipient");
-        assertMinimalLengtOfOctetString(header.getTransactionID(), 16, "transactionID");
-        assertMinimalLengtOfOctetString(header.getSenderNonce(), 16, "senderNonce");
-        return extractCertProfile(header);
     }
 
     private void assertMinimalLengtOfOctetString(
@@ -105,5 +90,35 @@ public class MessageHeaderValidator implements ValidatorIF<String> {
             return ASN1UTF8String.getInstance(sequence.getObjectAt(0)).getString();
         }
         return null;
+    }
+
+    /**
+     * Validates the {@link PKIHeader header} of the given {@link PKIMessage
+     * message}.<br>
+     * <strong>Note:</strong><br>
+     * See RFC4210 Section 5.1.1. PKI Message Header for further details.
+     *
+     * @param message the message to validate
+     * @return certProfile or <code>null</code> if certProfile was not found in
+     *         header
+     * @throws BaseCmpException in case of failed validation
+     */
+    @Override
+    public String validate(final PKIMessage message) throws BaseCmpException {
+        assertValueNotNull(message, PKIFailureInfo.badDataFormat, "PKIMessage");
+        final PKIHeader header = message.getHeader();
+        assertValueNotNull(header, PKIFailureInfo.badDataFormat, "header");
+        final ASN1Integer pvno = header.getPvno();
+        assertValueNotNull(pvno, PKIFailureInfo.unsupportedVersion, "pvno is null");
+        final long versionNumber = pvno.longValueExact();
+        if (versionNumber != PKIHeader.CMP_2000 && versionNumber != PKIHeader.CMP_2021) {
+            throw new CmpValidationException(
+                    interfaceName, PKIFailureInfo.unsupportedVersion, "version " + versionNumber + " not supported");
+        }
+        assertValueNotNull(header.getSender(), PKIFailureInfo.badDataFormat, "Sender");
+        assertValueNotNull(header.getRecipient(), PKIFailureInfo.badDataFormat, "Recipient");
+        assertMinimalLengtOfOctetString(header.getTransactionID(), 16, "transactionID");
+        assertMinimalLengtOfOctetString(header.getSenderNonce(), 16, "senderNonce");
+        return extractCertProfile(header);
     }
 }

@@ -31,8 +31,16 @@ import org.bouncycastle.crypto.params.KeyParameter;
  * factory for {@link WrappedMac}
  */
 public class WrappedMacFactory {
-    private static final byte[] EMPTY_STRING = new byte[0];
+    private static final byte[] EMPTY_STRING = {};
 
+    /**
+     * create an WrappedMac instance
+     * @param macid MAC alg to use
+     * @param key initalizing key
+     * @return the created WrappedMac instance
+     * @throws NoSuchAlgorithmException if MAC alg is unknown
+     * @throws InvalidKeyException if key is invalid
+     */
     public static WrappedMac createWrappedMac(final AlgorithmIdentifier macid, final byte[] key)
             throws NoSuchAlgorithmException, InvalidKeyException {
         final ASN1ObjectIdentifier algorithm = macid.getAlgorithm();
@@ -68,4 +76,6 @@ public class WrappedMacFactory {
             return ret;
         };
     }
+    // utility class
+    private WrappedMacFactory() {}
 }

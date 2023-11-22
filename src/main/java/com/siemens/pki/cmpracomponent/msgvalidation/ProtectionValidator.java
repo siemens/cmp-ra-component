@@ -42,6 +42,7 @@ public class ProtectionValidator implements ValidatorIF<Void> {
     private final VerificationContext config;
 
     /**
+     * ctor
      * @param interfaceName interface name used in error messages
      * @param config        specific configuration
      */

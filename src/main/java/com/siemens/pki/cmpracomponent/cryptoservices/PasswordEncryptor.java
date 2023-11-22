@@ -33,6 +33,7 @@ import org.bouncycastle.cms.jcajce.JcePasswordRecipientInfoGenerator;
 public class PasswordEncryptor extends CmsEncryptorBase {
 
     /**
+     * ctor
      * @param config             specific configuration
      * @param interfaceName      CMP interface name for logging
      * @param initialRequestType type of initial request (cr, ir, kur)

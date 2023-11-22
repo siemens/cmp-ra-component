@@ -39,6 +39,7 @@ public class InputValidator implements ValidatorIF<PersistencyContext> {
     private final ExFunction<byte[], PersistencyContext, Exception> persistencyContextCreator;
 
     /**
+     * ctor
      * @param interfaceName             name of the attached interface used for
      *                                  logging
      * @param config                    specific configuration

@@ -38,11 +38,8 @@ public abstract class MacProtection implements ProtectionProvider {
 
     private final SharedSecretCredentialContext config;
 
-    public byte[] getSharedSecret() {
-        return config.getSharedSecret();
-    }
-
     private AlgorithmIdentifier protectionAlg;
+
     private WrappedMac protectingMac;
 
     protected MacProtection(final SharedSecretCredentialContext config) {
@@ -72,6 +69,14 @@ public abstract class MacProtection implements ProtectionProvider {
     @Override
     public DEROctetString getSenderKID() {
         return ifNotNull(config.getSenderKID(), DEROctetString::new);
+    }
+
+    /**
+     * get shared secret used for protection
+     * @return  shared secret
+     */
+    public byte[] getSharedSecret() {
+        return config.getSharedSecret();
     }
 
     protected void init(final AlgorithmIdentifier protectionAlg, final WrappedMac protectingMac) {

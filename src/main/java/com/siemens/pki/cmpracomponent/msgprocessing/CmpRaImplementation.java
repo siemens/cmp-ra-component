@@ -65,6 +65,7 @@ public class CmpRaImplementation implements CmpRaInterface {
     private final RaDownstream downstream;
 
     /**
+     * ctor
      * @param config              specific configuration
      * @param rawUpstreamExchange upstream interface function
      * @throws Exception in case of error
