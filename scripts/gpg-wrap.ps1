@@ -19,8 +19,8 @@ $accumulatedPaths = Get-Content path_accumulator_ps.tmp
 
 # Check if we've accumulated 4 files (the jar, javadoc, source and pom). If yes, then it is time to sign them all,
 # if not, we do nothing and wait for this program to be invoked again with new input data.
-if ($accumulatedPaths.Count -eq 4) {
-    Write-Output "Time to sign these 4 files: $accumulatedPaths"
+if ($accumulatedPaths.Count -eq 6) {
+    Write-Output "Time to sign these 6 files: $accumulatedPaths"
 
     if (-not [Environment]::GetEnvironmentVariable('SignSettingsPath')) {throw "You must set the SignSettingsPath environment variable first"}
 

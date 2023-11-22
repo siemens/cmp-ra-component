@@ -284,6 +284,31 @@ $SignForm.Controls.AddRange(@(
     $KeyAliasLabel, $KeyAliasValue
 ))
 
+
+
+# Show a Messagebox with the contents $message and the given $title. Optionally, provide $raw to dump a complex
+# object as a string and include it in the message.
+# This will be shown only if an environment variable called SIGNGUI_DEBUG is present.  Example of use
+# Debug -title "Just testing a function" -message "This is a debug message"
+# Debug -title "Just testing a function" -message "This is a debug message" -raw @(1, 2, 3)
+function Debug($title="Debug", $message, $raw) {
+    if (-not (Test-Path env:SIGNGUI_DEBUG)) {
+        return
+    }
+
+    # if there is any raw data to print, append it to message
+    $formattedRaw = $raw | Out-String
+    if (-not [string]::IsNullOrWhiteSpace($formattedRaw)) {
+        $message += "`n`n$formattedRaw"
+    }
+
+    # if we got this far, do some printf-style debugging, with a MessageBox and an OK button.
+    # NOTE the `|Out-Null` part, it is there for a reason! https://stackoverflow.com/q/38463304/27342
+    #      PowerShell will prepend the output of MessageBox to the return value of subsequent function calls,
+    #      unless you assign it to something or pipe it elsewhere!
+    [System.Windows.Forms.MessageBox]::Show($message, $title, 0, "Information") | Out-Null
+}
+
 function InvokeSignClient($srcPath, $dstPath, $logPath) {
     $urlParts = $($CONFIG.signServerUrl).split(':')
     $hostName = $urlParts[0]
@@ -293,20 +318,23 @@ function InvokeSignClient($srcPath, $dstPath, $logPath) {
     $command = 'signclient.cmd'
     $arguments = "signdocument -signrequest -workername $($CONFIG.signServerWorker) -infile $srcPath -outfile $dstPath -host $hostName -port $port -truststore $($CONFIG.trustStorePathServer) -truststorepwd $($CONFIG.trustStorePathServerPassword) -keystoretype PKCS11_CONFIG -keystore $($CONFIG.pkcs11settings) -keystorepwd $($PasswordValue.Text) -keyalias `"$($CONFIG.pkcs11KeyAlias)`" -clientside -digestalgorithm SHA512 -filetype PGP -extraoption DETACHED_SIGNATURE=TRUE -extraoption KEY_ALGORITHM=ECDSA -extraoption KEY_ID=$($CONFIG.signServerKeyId)"
 
+    Debug -title "Debug InvokeSignClient 1" -message "Will run: Start-Process $command -ArgumentList $arguments -NoNewWindow -Wait -PassThru `n-RedirectStandardOutput $logPath `n-WorkingDirectory $($CONFIG.signClientPath)"
+
     # uncomment the two lines below to simulate a successful signature
     #    $command = 'ping'
-    #    $arguments = '8.8.8.8'
+    #    $arguments = '127.0.0.1 -n 1'
     # WATCH OUT: here we change the directory to the place where signclient is located, because it does not work
     #            otherwise. We set it back later, so the calling logic doesn't need to know about it.
     $process = Start-Process $command -ArgumentList $arguments -NoNewWindow -Wait -PassThru -RedirectStandardOutput $logPath -WorkingDirectory $($CONFIG.signClientPath)
 
 
+    $startedPid = $process.Id
+    Debug -title "Debug InvokesignClient 2" -message  "Started PID $startedPid"
+
     # log complete command to the log file, to ease troubleshooting
-    "`n`n`nThe executed command was: $command $arguments" | Out-File -FilePath $logPath -Append -encoding UTF8
+    "`n`nStarted PID=$startedPid`nThe executed command was: $command $arguments" | Out-File -FilePath $logPath -Append -encoding UTF8
 
     return $process.ExitCode
-
-
 }
 
 function PlayTone() {
@@ -344,6 +372,8 @@ This is a highly-sensitive operation, ensure you know what you are doing!
     $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm"
     $tempLogFile = "$env:TEMP\signgui_$timestamp.log"
 
+    Debug -title "Debug SignFiles 1" -message "Will log to $tempLogFile"
+
     $originalWorkingDir = Get-Location
     # if a path is relative, then we turn it into an absolute path, because SignClient doesn't work if launched
     # from a directory other than its own.
@@ -353,7 +383,9 @@ This is a highly-sensitive operation, ensure you know what you are doing!
     $exitCodes = @()
     ForEach ( $srcPath in $srcPaths ) {
         $srcFileName = Split-Path $srcPath -leaf
+
         $exitCode = InvokeSignClient $srcPath "$dstPath\$srcFileName.asc" $tempLogFile
+        Debug -title "Debug SignFiles 2" -message "Got exitCode $exitCode"
 
         # add a dot to the end of the button title to turn it into a mini progress indicator
         $signBtn.text += "."
@@ -391,10 +423,13 @@ This is a highly-sensitive operation, ensure you know what you are doing!
 
     }
 
+    Debug -title "Debug SignFiles 3" -message "Overall exitCodes $exitCodes"
+
 
     # go back to the original working directory, such that whatever logic invokes this script doesn't have to be
     # aware of the working directory changes.
     Set-Location $originalWorkingDir
+    Debug -title "Debug SignFiles 4" -message "Restored current dir to $originalWorkingDir"
 
     $errorsOccurred = $false
     ForEach ( $item in $exitCodes ) {
@@ -424,7 +459,15 @@ Press OK to close this window and resume the pipeline.
 
 
 
-$signBtn.Add_Click({ SignFiles $filesToSign $SignaturePath 45})  # timeout is unused for now
+# timeout is unused for now, the 45 is reserved for future use
+$signBtn.Add_Click({ SignFiles $filesToSign $SignaturePath 45})
+
+# Do the same as above, but when pressing Enter in the Confirmation textbox, this is what we often do in practice
+$ConfirmationValue.Add_KeyDown({
+    if ($_.KeyCode -eq [System.Windows.Forms.Keys]::Enter) {
+        SignFiles $filesToSign $SignaturePath 45
+    }
+})
 
 
 PlayTone
