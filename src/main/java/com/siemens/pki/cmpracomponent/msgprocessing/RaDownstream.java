@@ -34,6 +34,7 @@ import com.siemens.pki.cmpracomponent.cryptoservices.KeyPairGeneratorFactory;
 import com.siemens.pki.cmpracomponent.cryptoservices.KeyTransportEncryptor;
 import com.siemens.pki.cmpracomponent.cryptoservices.PasswordEncryptor;
 import com.siemens.pki.cmpracomponent.cryptoservices.TrustCredentialAdapter;
+import com.siemens.pki.cmpracomponent.msggeneration.MsgOutputProtector;
 import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
 import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpEnrollmentException;
@@ -385,9 +386,8 @@ class RaDownstream {
                                 .map(this::handleInputMessage)
                                 .toArray(PKIMessage[]::new);
                         return getOutputProtector(persistencyContext, PKIBody.TYPE_NESTED)
-                                .generateAndProtectMessage(
-                                        PkiMessageGenerator.buildRespondingHeaderProvider(in),
-                                        new PKIBody(PKIBody.TYPE_NESTED, new PKIMessages(responses)));
+                                .generateAndProtectResponseTo(
+                                        in, new PKIBody(PKIBody.TYPE_NESTED, new PKIMessages(responses)));
                     }
                 }
                 final InputValidator inputValidator = new InputValidator(
@@ -418,7 +418,7 @@ class RaDownstream {
                         issuingChain = null;
                 }
                 return getOutputProtector(persistencyContext, responseBodyType)
-                        .protectAndForwardMessage(
+                        .protectOutgoingMessage(
                                 new PKIMessage(
                                         responseFromUpstream.getHeader(),
                                         responseFromUpstream.getBody(),
@@ -429,12 +429,12 @@ class RaDownstream {
                 final PKIBody errorBody = e.asErrorBody();
                 responseBodyType = errorBody.getType();
                 return getOutputProtector(persistencyContext, responseBodyType)
-                        .generateAndProtectMessage(PkiMessageGenerator.buildRespondingHeaderProvider(in), errorBody);
+                        .generateAndProtectResponseTo(in, errorBody);
             } catch (final RuntimeException ex) {
                 final PKIBody errorBody = new CmpProcessingException(INTERFACE_NAME, ex).asErrorBody();
                 responseBodyType = errorBody.getType();
                 return getOutputProtector(persistencyContext, responseBodyType)
-                        .generateAndProtectMessage(PkiMessageGenerator.buildRespondingHeaderProvider(in), errorBody);
+                        .generateAndProtectResponseTo(in, errorBody);
             } finally {
                 if (persistencyContext != null) {
                     int offset = config.getDownstreamTimeout(
