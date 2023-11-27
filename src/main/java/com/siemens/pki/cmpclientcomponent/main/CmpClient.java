@@ -41,7 +41,6 @@ import com.siemens.pki.cmpracomponent.protection.SignatureBasedProtection;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
@@ -149,14 +148,14 @@ public class CmpClient
      *                              towards the CA
      *
      * @param clientContext         client specific configuration
-     * @throws GeneralSecurityException in case of error
+     * @throws Exception in case of error
      */
     public CmpClient(
             String certProfile,
             final UpstreamExchange upstreamExchange,
             final CmpMessageInterface upstreamConfiguration,
             final ClientContext clientContext)
-            throws GeneralSecurityException {
+            throws Exception {
         requestHandler = new ClientRequestHandler(certProfile, upstreamExchange, upstreamConfiguration, clientContext);
         this.clientContext = clientContext;
     }
@@ -498,7 +497,8 @@ public class CmpClient
             if (enrollmentType != PKIBody.TYPE_P10_CERT_REQ && enrolledPrivateKey == null) {
                 // central key generation in place, decrypt private key
                 CmsDecryptor decryptor = null;
-                final ProtectionProvider outputProtection = requestHandler.getOutputProtection();
+                final ProtectionProvider outputProtection =
+                        requestHandler.getOutputProtection().getProtector();
                 if (outputProtection instanceof SignatureBasedProtection) {
                     final SignatureBasedProtection sigProtector = (SignatureBasedProtection) outputProtection;
                     decryptor = new CmsDecryptor(sigProtector.getEndCertificate(), sigProtector.getPrivateKey(), null);

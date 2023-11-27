@@ -35,11 +35,18 @@ public interface NestedEndpointContext {
     /**
      * configure protection for outgoing messages
      *
-     * @return a protection configuration, if outgoing message should be wrapped in
-     *         nested messages or <code>null</code> if outgoing messaged shouldn't
-     *         be wrapped.
+     * @return a protection configuration for the wrapping message or <code>null</code> if the wrapping message shouldn't
+     *         be protected.
      */
     CredentialContext getOutputCredentials();
+
+    /**
+     * allow to set new recipient for outgoing nested messages.
+     * @return new recipient in RDN notation or <code>null</code> if the recipient of the wrapped message should be used.
+     */
+    default String getRecipient() {
+        return null;
+    }
 
     /**
      * configure handling of incoming nested messages per recipient.

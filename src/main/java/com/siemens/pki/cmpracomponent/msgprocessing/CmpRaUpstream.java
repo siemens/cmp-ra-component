@@ -18,8 +18,8 @@
 package com.siemens.pki.cmpracomponent.msgprocessing;
 
 import com.siemens.pki.cmpracomponent.configuration.Configuration;
-import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
+import com.siemens.pki.cmpracomponent.msggeneration.MsgOutputProtector;
 import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
 import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
@@ -27,8 +27,6 @@ import com.siemens.pki.cmpracomponent.msgvalidation.CmpValidationException;
 import com.siemens.pki.cmpracomponent.msgvalidation.InputValidator;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContextManager;
-import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
-import com.siemens.pki.cmpracomponent.protection.ProtectionProviderFactory;
 import com.siemens.pki.cmpracomponent.util.CmpFuncEx;
 import java.util.Arrays;
 import java.util.Collection;
@@ -81,6 +79,16 @@ class CmpRaUpstream implements RaUpstream {
         this.persistencyContextManager = persistencyContextManager;
         this.config = config;
         this.upstreamMsgHandler = upstreamExchange;
+    }
+
+    void gotResponseAtUpstream(final PKIMessage responseMessage) throws Exception {
+        final PersistencyContext persistencyContext = persistencyContextManager.loadPersistencyContext(
+                responseMessage.getHeader().getTransactionID().getOctets());
+        if (persistencyContext == null) {
+            throw new IllegalStateException("no related request known for provided response");
+        }
+        persistencyContext.setPendingDelayedResponse(responseMessage);
+        persistencyContext.flush();
     }
 
     @Override
@@ -145,20 +153,21 @@ class CmpRaUpstream implements RaUpstream {
                                 certProfile, in.getBody().getType()),
                         INTERFACE_NAME,
                         pesistencyContext);
-                sentMessage = outputProtector.protectAndForwardMessage(in, null);
+                sentMessage = outputProtector.protectOutgoingMessage(in, null);
             }
             final NestedEndpointContext nestedEndpointContext = config.getUpstreamConfiguration(
                             certProfile, in.getBody().getType())
                     .getNestedEndpointContext();
             if (nestedEndpointContext != null) {
+                final MsgOutputProtector nestedProtector =
+                        new MsgOutputProtector(nestedEndpointContext, "NESTED CMP upstream");
                 // wrap into nested message
-                final CredentialContext nestedOutputCredentials = nestedEndpointContext.getOutputCredentials();
-                final ProtectionProvider nestedProtector =
-                        ProtectionProviderFactory.createProtectionProvider(nestedOutputCredentials);
-                sentMessage = PkiMessageGenerator.generateAndProtectMessage(
-                        PkiMessageGenerator.buildForwardingHeaderProvider(sentMessage),
-                        nestedProtector,
-                        new PKIBody(PKIBody.TYPE_NESTED, new PKIMessages(sentMessage)));
+                sentMessage = nestedProtector.protectOutgoingMessage(
+                        new PKIMessage(
+                                sentMessage.getHeader(),
+                                new PKIBody(PKIBody.TYPE_NESTED, new PKIMessages(sentMessage)),
+                                null),
+                        null);
             }
             final PKIMessage receivedMessage =
                     upstreamMsgHandler.apply(sentMessage, certProfile, pesistencyContext.getRequestType());
@@ -196,15 +205,5 @@ class CmpRaUpstream implements RaUpstream {
             LOGGER.error("exception at upstream interface", ex);
             throw new CmpProcessingException(INTERFACE_NAME, PKIFailureInfo.systemFailure, ex);
         }
-    }
-
-    void gotResponseAtUpstream(final PKIMessage responseMessage) throws Exception {
-        final PersistencyContext persistencyContext = persistencyContextManager.loadPersistencyContext(
-                responseMessage.getHeader().getTransactionID().getOctets());
-        if (persistencyContext == null) {
-            throw new IllegalStateException("no related request known for provided response");
-        }
-        persistencyContext.setPendingDelayedResponse(responseMessage);
-        persistencyContext.flush();
     }
 }

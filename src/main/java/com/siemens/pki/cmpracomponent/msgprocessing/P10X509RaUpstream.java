@@ -22,7 +22,6 @@ import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpValidationException;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
-import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
 import com.siemens.pki.cmpracomponent.util.CmpFuncEx;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import org.bouncycastle.asn1.cmp.CMPCertificate;
@@ -80,9 +79,8 @@ public class P10X509RaUpstream implements RaUpstream {
                                 INTERFACE_NAME, PKIFailureInfo.systemUnavail, "got no response from upstream");
                     }
 
-                    return PkiMessageGenerator.generateAndProtectMessage(
+                    return PkiMessageGenerator.generateUnprotectMessage(
                             PkiMessageGenerator.buildRespondingHeaderProvider(in),
-                            ProtectionProvider.NO_PROTECTION,
                             PkiMessageGenerator.generateIpCpKupBody(PKIBody.TYPE_CERT_REP, responseFromUpstream));
                 default:
                     throw new CmpValidationException(

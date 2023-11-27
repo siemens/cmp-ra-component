@@ -19,14 +19,18 @@ package com.siemens.pki.cmpracomponent.msgprocessing;
 
 import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
-import com.siemens.pki.cmpracomponent.configuration.*;
+import com.siemens.pki.cmpracomponent.configuration.Configuration;
+import com.siemens.pki.cmpracomponent.configuration.CrlUpdateRetrievalHandler;
+import com.siemens.pki.cmpracomponent.configuration.GetCaCertificatesHandler;
+import com.siemens.pki.cmpracomponent.configuration.GetCertificateRequestTemplateHandler;
+import com.siemens.pki.cmpracomponent.configuration.GetRootCaCertificateUpdateHandler;
 import com.siemens.pki.cmpracomponent.configuration.GetRootCaCertificateUpdateHandler.RootCaCertificateUpdateResponse;
+import com.siemens.pki.cmpracomponent.configuration.SupportMessageHandlerInterface;
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
-import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
+import com.siemens.pki.cmpracomponent.msggeneration.MsgOutputProtector;
 import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
-import com.siemens.pki.cmpracomponent.protection.ProtectionProviderFactory;
 import java.io.IOException;
 import java.security.cert.CRLException;
 import java.security.cert.CertificateException;
@@ -34,11 +38,30 @@ import java.security.cert.X509CRL;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
-import org.bouncycastle.asn1.*;
-import org.bouncycastle.asn1.cmp.*;
+import org.bouncycastle.asn1.ASN1Encodable;
+import org.bouncycastle.asn1.ASN1EncodableVector;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.ASN1Primitive;
+import org.bouncycastle.asn1.ASN1Sequence;
+import org.bouncycastle.asn1.DERSequence;
+import org.bouncycastle.asn1.cmp.CMPCertificate;
+import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
+import org.bouncycastle.asn1.cmp.CRLSource;
+import org.bouncycastle.asn1.cmp.CRLStatus;
+import org.bouncycastle.asn1.cmp.GenMsgContent;
+import org.bouncycastle.asn1.cmp.GenRepContent;
+import org.bouncycastle.asn1.cmp.InfoTypeAndValue;
+import org.bouncycastle.asn1.cmp.PKIBody;
+import org.bouncycastle.asn1.cmp.PKIFailureInfo;
+import org.bouncycastle.asn1.cmp.PKIMessage;
+import org.bouncycastle.asn1.cmp.RootCaKeyUpdateContent;
 import org.bouncycastle.asn1.x500.RDN;
 import org.bouncycastle.asn1.x500.X500Name;
-import org.bouncycastle.asn1.x509.*;
+import org.bouncycastle.asn1.x509.CertificateList;
+import org.bouncycastle.asn1.x509.DistributionPointName;
+import org.bouncycastle.asn1.x509.GeneralName;
+import org.bouncycastle.asn1.x509.GeneralNames;
+import org.bouncycastle.asn1.x509.Time;
 
 /**
  * implementation of a GENM service handler
@@ -61,30 +84,6 @@ class ServiceImplementation {
                 .map(GeneralName::getName)
                 .map(ASN1Encodable::toString)
                 .toArray(String[]::new);
-    }
-
-    private PKIBody handleGetRootCaCertificateUpdate(
-            final InfoTypeAndValue itav, final GetRootCaCertificateUpdateHandler messageHandler)
-            throws CertificateException {
-        final CMPCertificate oldRoot = ifNotNull(itav.getInfoValue(), CMPCertificate::getInstance);
-        final RootCaCertificateUpdateResponse response =
-                messageHandler.getRootCaCertificateUpdate(ifNotNull(oldRoot, CertUtility::asX509Certificate));
-        if (response != null && response.getNewWithNew() != null) {
-            final X509Certificate newWithNew = response.getNewWithNew();
-            final X509Certificate newWithOld = response.getNewWithOld();
-            final X509Certificate oldWithNew = response.getOldWithNew();
-            return new PKIBody(
-                    PKIBody.TYPE_GEN_REP,
-                    new GenRepContent(new InfoTypeAndValue(
-                            CMPObjectIdentifiers.id_it_rootCaKeyUpdate,
-                            new RootCaKeyUpdateContent(
-                                    ifNotNull(newWithNew, CertUtility::asCmpCertificate),
-                                    ifNotNull(newWithOld, CertUtility::asCmpCertificate),
-                                    ifNotNull(oldWithNew, CertUtility::asCmpCertificate)))));
-        }
-        return new PKIBody(
-                PKIBody.TYPE_GEN_REP,
-                new GenRepContent(new InfoTypeAndValue(CMPObjectIdentifiers.id_it_rootCaKeyUpdate)));
     }
 
     private PKIBody handleCrlUpdateRetrieval(
@@ -175,6 +174,30 @@ class ServiceImplementation {
         return new PKIBody(PKIBody.TYPE_GEN_REP, new GenRepContent(new InfoTypeAndValue(infoType)));
     }
 
+    private PKIBody handleGetRootCaCertificateUpdate(
+            final InfoTypeAndValue itav, final GetRootCaCertificateUpdateHandler messageHandler)
+            throws CertificateException {
+        final CMPCertificate oldRoot = ifNotNull(itav.getInfoValue(), CMPCertificate::getInstance);
+        final RootCaCertificateUpdateResponse response =
+                messageHandler.getRootCaCertificateUpdate(ifNotNull(oldRoot, CertUtility::asX509Certificate));
+        if (response != null && response.getNewWithNew() != null) {
+            final X509Certificate newWithNew = response.getNewWithNew();
+            final X509Certificate newWithOld = response.getNewWithOld();
+            final X509Certificate oldWithNew = response.getOldWithNew();
+            return new PKIBody(
+                    PKIBody.TYPE_GEN_REP,
+                    new GenRepContent(new InfoTypeAndValue(
+                            CMPObjectIdentifiers.id_it_rootCaKeyUpdate,
+                            new RootCaKeyUpdateContent(
+                                    ifNotNull(newWithNew, CertUtility::asCmpCertificate),
+                                    ifNotNull(newWithOld, CertUtility::asCmpCertificate),
+                                    ifNotNull(oldWithNew, CertUtility::asCmpCertificate)))));
+        }
+        return new PKIBody(
+                PKIBody.TYPE_GEN_REP,
+                new GenRepContent(new InfoTypeAndValue(CMPObjectIdentifiers.id_it_rootCaKeyUpdate)));
+    }
+
     protected PKIMessage handleValidatedInputMessage(final PKIMessage msg, final PersistencyContext persistencyContext)
             throws BaseCmpException {
         try {
@@ -203,12 +226,12 @@ class ServiceImplementation {
                 // no specific processing found, return empty response
                 body = new PKIBody(PKIBody.TYPE_GEN_REP, new GenRepContent(new InfoTypeAndValue(infoType)));
             }
-            return PkiMessageGenerator.generateAndProtectMessage(
-                    PkiMessageGenerator.buildRespondingHeaderProvider(msg),
-                    ProtectionProviderFactory.createProtectionProvider(config.getDownstreamConfiguration(
-                                    ifNotNull(persistencyContext, PersistencyContext::getCertProfile), body.getType())
-                            .getOutputCredentials()),
-                    body);
+            final MsgOutputProtector protector = new MsgOutputProtector(
+                    config.getDownstreamConfiguration(
+                            ifNotNull(persistencyContext, PersistencyContext::getCertProfile), body.getType()),
+                    INTERFACE_NAME,
+                    persistencyContext);
+            return protector.generateAndProtectResponseTo(msg, body);
         } catch (final BaseCmpException ex) {
             throw ex;
         } catch (final Exception e) {
