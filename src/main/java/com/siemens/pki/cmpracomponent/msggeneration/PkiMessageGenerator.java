@@ -251,7 +251,7 @@ public class PkiMessageGenerator {
      *
      * @param headerProvider     PKI header
      * @param protectionProvider PKI protection
-     * @param newRecipient       outgoing recipient or <code>null</code> recipient
+     * @param newRecipient       outgoing recipient or <code>null</code> if recipient
      *                           from headerProvider should be used
      * @param body               message body
      * @param issuingChain       chain of enrolled certificate to append at the
