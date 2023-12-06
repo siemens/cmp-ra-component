@@ -451,13 +451,14 @@ public class CmpClient
                 case PKIBody.TYPE_CERT_REQ:
                 case PKIBody.TYPE_INIT_REQ: {
                     final String subject = enrollmentContext.getSubject();
-                    ifNotNull(enrollmentContext.getExtensions(), exts -> exts.stream()
+                    final Extension[] extensions = ifNotNull(enrollmentContext.getExtensions(), exts -> exts.stream()
                             .map(ext -> new Extension(
                                     new ASN1ObjectIdentifier(ext.getId()), ext.isCritical(), ext.getValue()))
                             .toArray(Extension[]::new));
                     final CertTemplateBuilder ctb = new CertTemplateBuilder()
                             .setSubject(ifNotNull(subject, X500Name::new))
-                            .setPublicKey(enrolledPublicKeyInfo);
+                            .setPublicKey(enrolledPublicKeyInfo)
+                            .setExtensions((Extensions) ifNotNull(extensions, Extensions::new));
                     requestBody = PkiMessageGenerator.generateIrCrKurBody(
                             enrollmentType, ctb.build(), null, enrolledPrivateKey);
                     pvno = enrolledPrivateKey == null ? PKIHeader.CMP_2021 : PKIHeader.CMP_2000;

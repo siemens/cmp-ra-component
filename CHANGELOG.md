@@ -123,3 +123,8 @@ fix: update some dependencies
 ### 4.0.0 (Nov 8 2023)
 
 feat: implement configurable recipient
+
+### 4.0.1 (Dec 6 2024)
+
+fix: extension processing in CMP client
+
