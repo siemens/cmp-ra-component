@@ -24,6 +24,22 @@ package com.siemens.pki.cmpracomponent.configuration;
 public interface InventoryInterface {
 
     /**
+     * default positive return value
+     */
+    CheckAndModifyResult POSITIVE_CHECK_RESULT = new CheckAndModifyResult() {
+
+        @Override
+        public byte[] getUpdatedCertTemplate() {
+            return null;
+        }
+
+        @Override
+        public boolean isGranted() {
+            return true;
+        }
+    };
+
+    /**
      * check and optionally modify a CRMF certificate request that was received in a
      * CMP ir, cr or kur message.
      *
@@ -52,12 +68,14 @@ public interface InventoryInterface {
      * @param pkiMessage         the ASN.1 DER-encoded CMP ir, cr or kur message
      * @return result of validation check
      */
-    CheckAndModifyResult checkAndModifyCertRequest(
+    default CheckAndModifyResult checkAndModifyCertRequest(
             byte[] transactionID,
             String requesterDn,
             byte[] certTemplate,
             String requestedSubjectDn,
-            byte[] pkiMessage);
+            byte[] pkiMessage) {
+        return POSITIVE_CHECK_RESULT;
+    }
 
     /**
      * check PKCS#10 certificate request that was received in CMP p10cr message. Note
@@ -85,17 +103,36 @@ public interface InventoryInterface {
      *                           according to the BouncyCastle library defaults.
      *                           This parameter is provided for convenience.
      * @param pkiMessage         the ASN.1 DER-encoded CMP p10cr message
-     * @return <code>true</code> if the request is granted.
+     * @return <code>true</code> if the called component agrees to accepting the request.
      */
-    boolean checkP10CertRequest(
+    default boolean checkP10CertRequest(
             byte[] transactionID,
             String requesterDn,
             byte[] pkcs10CertRequest,
             String requestedSubjectDn,
-            byte[] pkiMessage);
+            byte[] pkiMessage) {
+        return true;
+    }
 
     /**
-     * learn the enrollment status including any new certificate. May respond false
+     * check a revocation request that was received in a CMP rr message.
+     *
+     * @param transactionID the transactionID of the CMP request message.
+     * @param senderDN the sender of the CMP rr message, or <code>null</code>
+     * if not available in the request.
+     * @param serialNumber string representation of the serial number of the certificate to revoke,
+     * or <code>null</code> if not available in the request.
+     * @param issuerDN the issuer Distinguished Name of the certificate to revoke,
+     * or <code>null</code> if not available in the request.
+     * @param pkiMessage  the ASN.1 DER-encoded CMP rr message
+     * @return <code>true</code> if the called component agrees to accepting the request.
+     */
+    default boolean checkRevocationRequest(
+            byte[] transactionID, String senderDN, String serialNumber, String issuerDN, byte[] pkiMessage) {
+        return true;
+    }
+    /**
+     * learn the enrollment of a new certificate. May respond <code>false</code>
      * in case of internal processing error.
      *
      * @param transactionID the transactionID of the CMP request/response message.
@@ -106,8 +143,7 @@ public interface InventoryInterface {
      *                      and
      *                      {@link #learnEnrollmentResult(byte[], byte[], String, String, String)}.
      * @param certificate   the new certificate, which is assumed to be ASN.1 DER
-     *                      encoded, as returned by the CA. On enrollment failure,
-     *                      <code>null</code> is given.
+     *                      encoded, as returned by the CA.
      * @param serialNumber  string representation of the certificate serial number.
      *                      In case of enrollment failure, <code>null</code> is
      *                      given. This parameter is provided for convenience.
@@ -119,8 +155,10 @@ public interface InventoryInterface {
      *                      certificate. In case of enrollment failure,
      *                      <code>null</code> is given. This parameter is provided
      *                      for convenience.
-     * @return true on success
+     * @return <code>true</code> on success, <code>false</code> triggers an error response message.
      */
-    boolean learnEnrollmentResult(
-            byte[] transactionID, byte[] certificate, String serialNumber, String subjectDN, String issuerDN);
+    default boolean learnEnrollmentResult(
+            byte[] transactionID, byte[] certificate, String serialNumber, String subjectDN, String issuerDN) {
+        return true;
+    }
 }
