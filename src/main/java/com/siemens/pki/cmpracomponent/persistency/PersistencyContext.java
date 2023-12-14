@@ -60,6 +60,8 @@ public class PersistencyContext {
 
     private int certificateRequestType;
 
+    private boolean respondedCertMustBeEncrypted;
+
     /**
      * ctor used by jackson
      */
@@ -75,6 +77,7 @@ public class PersistencyContext {
         this.contextManager = contextManager;
         lastTransactionState = LastTransactionState.INITIAL_STATE;
         this.certificateRequestType = -1;
+        this.respondedCertMustBeEncrypted = false;
     }
 
     /**
@@ -353,5 +356,20 @@ public class PersistencyContext {
     public void updateTransactionExpirationTime(final Date expirationTime) {
         // only downstream can expire
         this.expirationTime = expirationTime;
+    }
+
+    /**
+     * in case of indirect KEM POP the cert responded by RA must be encryptet. Enable it.
+     *
+     */
+    public void setRespondedCertMustBeEncrypted() {
+        respondedCertMustBeEncrypted = true;
+    }
+    /**
+     * in case of indirect KEM POP the cert responded by RA must be encryptet
+     * @return <code>true</code> if indirect KEM POP is used for enrollment
+     */
+    public boolean isRespondedCertMustBeEncrypted() {
+        return respondedCertMustBeEncrypted;
     }
 }

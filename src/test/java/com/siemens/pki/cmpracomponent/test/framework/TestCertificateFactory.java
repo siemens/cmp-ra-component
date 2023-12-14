@@ -17,7 +17,10 @@
  */
 package com.siemens.pki.cmpracomponent.test.framework;
 
+import static com.siemens.pki.cmpracomponent.cryptoservices.ProviderWrapper.tryWithAllProviders;
+
 import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
+import com.siemens.pki.cmpracomponent.cryptoservices.ProviderWrapper;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.net.URL;
@@ -53,6 +56,7 @@ import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
+import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.slf4j.Logger;
@@ -133,11 +137,12 @@ public class TestCertificateFactory {
                 }
             }
         }
-        final JcaContentSignerBuilder signerBuilder = new JcaContentSignerBuilder(params.getSignatureAlgorithm())
-                .setProvider(TestCertUtility.BOUNCY_CASTLE_PROVIDER);
-        return new JcaX509CertificateConverter()
-                .setProvider(TestCertUtility.BOUNCY_CASTLE_PROVIDER)
-                .getCertificate(v3CertBldr.build(signerBuilder.build(params.getSigningPrivateKey())));
+        ContentSigner signer =
+                ProviderWrapper.tryWithAllProviders(p -> new JcaContentSignerBuilder(params.getSignatureAlgorithm())
+                        .setProvider(p)
+                        .build(params.getSigningPrivateKey()));
+        return tryWithAllProviders(
+                p -> new JcaX509CertificateConverter().setProvider(p).getCertificate(v3CertBldr.build(signer)));
     }
 
     private static Extension createAiaOcspExtension(final String url) throws IOException {

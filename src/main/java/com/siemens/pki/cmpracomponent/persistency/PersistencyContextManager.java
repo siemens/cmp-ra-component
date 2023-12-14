@@ -17,6 +17,8 @@
  */
 package com.siemens.pki.cmpracomponent.persistency;
 
+import static com.siemens.pki.cmpracomponent.cryptoservices.ProviderWrapper.tryWithAllProviders;
+
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.Version;
@@ -29,13 +31,9 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.siemens.pki.cmpracomponent.configuration.PersistencyInterface;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
+import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import org.bouncycastle.asn1.ASN1Object;
@@ -138,14 +136,10 @@ public class PersistencyContextManager {
             }
             try {
                 // private key obfuscation
-                final Cipher c = Cipher.getInstance(KEY_WRAP_CIPHER);
+                final Cipher c = tryWithAllProviders(p -> Cipher.getInstance(KEY_WRAP_CIPHER, p));
                 c.init(Cipher.WRAP_MODE, secretKey, iv);
                 jsonGenerator.writeBinary(c.wrap(key));
-            } catch (NoSuchAlgorithmException
-                    | NoSuchPaddingException
-                    | InvalidKeyException
-                    | IllegalBlockSizeException
-                    | InvalidAlgorithmParameterException e) {
+            } catch (GeneralSecurityException e) {
                 throw new IOException(e);
             }
         }
@@ -168,7 +162,7 @@ public class PersistencyContextManager {
                 return null;
             }
             try {
-                final Cipher c = Cipher.getInstance(KEY_WRAP_CIPHER);
+                final Cipher c = tryWithAllProviders(pr -> Cipher.getInstance(KEY_WRAP_CIPHER, pr));
                 c.init(Cipher.UNWRAP_MODE, secretKey, iv);
                 for (final String keyType : new String[] {"RSA", "EC", "Ed448", "Ed25519"}) {
                     try {
@@ -179,10 +173,7 @@ public class PersistencyContextManager {
                 }
                 LOGGER.error("cold not load private key");
                 return null;
-            } catch (final InvalidKeyException
-                    | NoSuchAlgorithmException
-                    | NoSuchPaddingException
-                    | InvalidAlgorithmParameterException e1) {
+            } catch (final GeneralSecurityException e1) {
                 throw new IOException(e1);
             }
         }

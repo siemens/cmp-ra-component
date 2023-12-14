@@ -17,20 +17,29 @@
  */
 package com.siemens.pki.cmpracomponent.test.framework;
 
-import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
-import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
-import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.security.GeneralSecurityException;
 import java.security.Key;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.Signature;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+
+import javax.security.auth.x500.X500Principal;
+
 import org.bouncycastle.asn1.ASN1Encoding;
 import org.bouncycastle.asn1.DERBitString;
 import org.bouncycastle.asn1.DEROctetString;
@@ -38,21 +47,142 @@ import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.ProtectedPart;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
+import org.bouncycastle.asn1.x509.BasicConstraints;
+import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.GeneralName;
+import org.bouncycastle.cert.X509v3CertificateBuilder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
+import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
-public class TrustChainAndPrivateKey implements SignatureCredentialContext {
+import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
+import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
+import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
+import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
+
+import static com.siemens.pki.cmpracomponent.cryptoservices.ProviderWrapper.tryWithAllProviders;
+
+public class TrustChainAndPrivateKey implements SignatureCredentialContext, VerificationContext {
 
     // chain starting with end certificate ending with root certificate
-    private final ArrayList<X509Certificate> trustChain = new ArrayList<>();
+    private final LinkedList<X509Certificate> trustChain = new LinkedList<>();
+
+    private final Set<X509Certificate> trustAnchors = new HashSet<>();
 
     private PrivateKey privateKeyOfEndCertififcate = null;
 
-    public TrustChainAndPrivateKey(final String keyStoreFileName, final char[] password) throws Exception {
+    /**
+     * create a new cert chain
+     *
+     * @param subjectPrefix prefix fur all common names
+     * @param kpg           generator to use for key generation
+     * @param chainLength   length from root to end to generate
+     *
+     * @throws Exception in case of error
+     */
+    public TrustChainAndPrivateKey(String subjectPrefix, KeyPairGenerator... kpg) throws Exception {
+        int chainLength = kpg.length;
+        final long now = System.currentTimeMillis();
+        // generate trusted root
+        KeyPair rootKeypair = kpg[0].generateKeyPair();
+        X500Principal lastIssuer = new X500Principal("CN=" + subjectPrefix + "_ROOT");
+        PublicKey privateRootKey = rootKeypair.getPublic();
+        final X509v3CertificateBuilder v3CertBldr = new JcaX509v3CertificateBuilder(
+                lastIssuer,
+                BigInteger.valueOf(now),
+                new Date(now - 60 * 60 * 1000L),
+                new Date(now + 100 * 60 * 60 * 1000L),
+                lastIssuer,
+                privateRootKey);
+        final JcaX509ExtensionUtils extUtils = new JcaX509ExtensionUtils();
+        v3CertBldr.addExtension(
+                Extension.subjectKeyIdentifier, false, extUtils.createSubjectKeyIdentifier(privateRootKey));
+        v3CertBldr.addExtension(Extension.basicConstraints, true, new BasicConstraints(chainLength));
+        JcaContentSignerBuilder signerBuilder = tryWithAllProviders(p -> {
+            return new JcaContentSignerBuilder(AlgorithmHelper.getSigningAlgNameFromKey(rootKeypair.getPrivate()))
+                    .setProvider(p);
+        });
+        X509Certificate lastCert = tryWithAllProviders(p -> new JcaX509CertificateConverter()
+                .setProvider(p)
+                .getCertificate(v3CertBldr.build(signerBuilder.build(rootKeypair.getPrivate()))));
+        trustAnchors.add(lastCert);
+        trustChain.addLast(lastCert);
+        privateKeyOfEndCertififcate = rootKeypair.getPrivate();
+        if (chainLength <= 1) {
+            return;
+        }
+        int certsStillToGenerate = chainLength - 1;
+        for (int i = 1; ; i++) {
+            X500Principal nextIssuer = certsStillToGenerate > 1
+                    ? new X500Principal("CN=" + subjectPrefix + "_INTERMEDIATE_" + certsStillToGenerate)
+                    : new X500Principal("CN=" + subjectPrefix + "_END");
+            KeyPair nextKeyPair = kpg[i].generateKeyPair();
+            JcaX509v3CertificateBuilder nextV3CertBldr = new JcaX509v3CertificateBuilder(
+                    lastIssuer,
+                    BigInteger.valueOf(now),
+                    new Date(now - 60 * 60 * 1000L),
+                    new Date(now + 100 * 60 * 60 * 1000L),
+                    nextIssuer,
+                    nextKeyPair.getPublic());
+            nextV3CertBldr.addExtension(
+                    Extension.subjectKeyIdentifier,
+                    false,
+                    extUtils.createSubjectKeyIdentifier(nextKeyPair.getPublic()));
+            nextV3CertBldr.addExtension(
+                    Extension.authorityKeyIdentifier, false, extUtils.createAuthorityKeyIdentifier(lastCert));
+            nextV3CertBldr.addExtension(
+                    Extension.basicConstraints,
+                    true,
+                    certsStillToGenerate > 1
+                            ? new BasicConstraints(certsStillToGenerate - 1)
+                            : new BasicConstraints(false));
+            PrivateKey signingKey = privateKeyOfEndCertififcate;
+            ContentSigner build = tryWithAllProviders(
+                    pi -> new JcaContentSignerBuilder(AlgorithmHelper.getSigningAlgNameFromKey(signingKey))
+                            .setProvider(pi)
+                            .build(signingKey));
+            lastCert = tryWithAllProviders(po -> {
+                return new JcaX509CertificateConverter().setProvider(po).getCertificate(nextV3CertBldr.build(build));
+            });
+            trustChain.addFirst(lastCert);
+            privateKeyOfEndCertififcate = nextKeyPair.getPrivate();
+            certsStillToGenerate--;
+            if (certsStillToGenerate <= 0) {
+                return;
+            }
+            lastIssuer = nextIssuer;
+        }
+    }
 
+    /**
+     * load keystore from file
+     *
+     * @param keyStoreFileName name of the key store file
+     * @param password         keystore password
+     * @throws Exception in case of error
+     */
+    public TrustChainAndPrivateKey(final String keyStoreFileName, final char[] password) throws Exception {
         this(TestCertUtility.loadKeystoreFromFile(keyStoreFileName, password), password);
     }
 
+    /**
+     * initilize from keystore
+     *
+     * @param keyStore the keystore to load from
+     * @param password keystore password
+     * @throws Exception in case of error
+     */
     TrustChainAndPrivateKey(final KeyStore keyStore, final char[] password) throws Exception {
+        for (final String aktAlias : Collections.list(keyStore.aliases())) {
+            if (keyStore.isCertificateEntry(aktAlias)) {
+                Certificate aktTrusted = keyStore.getCertificate(aktAlias);
+                if (aktTrusted instanceof X509Certificate) {
+                    trustAnchors.add((X509Certificate) aktTrusted);
+                }
+            }
+        }
         for (final String aktAlias : Collections.list(keyStore.aliases())) {
             final Key privKey = keyStore.getKey(aktAlias, password);
             if (!(privKey instanceof PrivateKey)) {
@@ -112,9 +242,9 @@ public class TrustChainAndPrivateKey implements SignatureCredentialContext {
             }
 
             @Override
-            public DERBitString getProtectionFor(final ProtectedPart protectedPart)
-                    throws GeneralSecurityException, IOException {
-                final Signature sig = Signature.getInstance(AlgorithmHelper.getSigningAlgNameFromKey(privateKey));
+            public DERBitString getProtectionFor(final ProtectedPart protectedPart) throws GeneralSecurityException, IOException {
+                final Signature sig =
+                        AlgorithmHelper.getSignature(AlgorithmHelper.getSigningAlgNameFromKey(privateKey));
                 sig.initSign(privateKey);
                 sig.update(protectedPart.getEncoded(ASN1Encoding.DER));
                 return new DERBitString(sig.sign());
@@ -130,5 +260,15 @@ public class TrustChainAndPrivateKey implements SignatureCredentialContext {
                 return senderKid;
             }
         };
+    }
+
+    @Override
+    public Collection<X509Certificate> getTrustedCertificates() {
+        return trustAnchors;
+    }
+
+    @Override
+    public Collection<X509Certificate> getAdditionalCerts() {
+        return trustChain;
     }
 }

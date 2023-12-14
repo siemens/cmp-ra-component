@@ -17,17 +17,21 @@
  */
 package com.siemens.pki.cmpracomponent.cryptoservices;
 
+import static com.siemens.pki.cmpracomponent.cryptoservices.ProviderWrapper.tryWithAllProviders;
 import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
 import java.security.Key;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.Signature;
 import java.util.HashMap;
 import java.util.Map;
 import javax.crypto.Mac;
 import javax.crypto.SecretKeyFactory;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.bc.BCObjectIdentifiers;
 import org.bouncycastle.asn1.edec.EdECObjectIdentifiers;
+import org.bouncycastle.asn1.iso.ISOIECObjectIdentifiers;
 import org.bouncycastle.asn1.nist.NISTObjectIdentifiers;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.sec.SECObjectIdentifiers;
@@ -137,6 +141,10 @@ public class AlgorithmHelper {
 
     private static final NameToOidTable KEK_OIDS = new NameToOidTable();
 
+    private static final NameToOidTable KEM_OIDS = new NameToOidTable();
+
+    private static final NameToOidTable KDF_OIDS = new NameToOidTable();
+
     private static final Logger LOGGER = LoggerFactory.getLogger(AlgorithmHelper.class);
 
     private static final DefaultSignatureAlgorithmIdentifierFinder DEFAULT_SIGNATURE_ALGORITHM_IDENTIFIER_FINDER =
@@ -241,10 +249,23 @@ public class AlgorithmHelper {
         KEY_ENCRYPTION_OIDS.addAll(CMSAlgorithm.AES128_CBC, "AES128_CBC", "AES128");
         KEY_ENCRYPTION_OIDS.addAll(CMSAlgorithm.AES192_CBC, "AES192_CBC", "AES192");
         KEY_ENCRYPTION_OIDS.addAll(CMSAlgorithm.AES256_CBC, "AES256_CBC", "AES256");
+
+        KEM_OIDS.addAll(BCObjectIdentifiers.kyber512, "kyber512");
+        KEM_OIDS.addAll(BCObjectIdentifiers.kyber1024_aes, "kyber1024_aes");
+        KEM_OIDS.addAll(BCObjectIdentifiers.kyber1024, "kyber1024");
+
+        KEM_OIDS.addAll(BCObjectIdentifiers.ntruhps2048509, "ntruhps2048509");
+        KEM_OIDS.addAll(BCObjectIdentifiers.pqc_kem_ntru, "NTRU", "KEM_NTRU");
+        KEM_OIDS.addAll(ISOIECObjectIdentifiers.id_kem_rsa, "RSA", "KEM_RSA");
+
+        KDF_OIDS.addAll(PKCSObjectIdentifiers.id_alg_hkdf_with_sha256, "id_alg_hkdf_with_sha256", "hkdf_with_sha256");
+        KDF_OIDS.addAll(PKCSObjectIdentifiers.id_alg_hkdf_with_sha384, "id_alg_hkdf_with_sha384", "hkdf_with_sha384");
+        KDF_OIDS.addAll(PKCSObjectIdentifiers.id_alg_hkdf_with_sha512, "id_alg_hkdf_with_sha512", "hkdf_with_sha512");
     }
 
     /**
      * convert shared secrets from byte[] to char[]
+     *
      * @param sharedSecret sharedSecret as byte[]
      * @return sharedSecret as char[]
      */
@@ -261,6 +282,7 @@ public class AlgorithmHelper {
 
     /**
      * get AlgorithmIdentifier for MessageDigest
+     *
      * @param dig digest
      * @return AlgorithmIdentifier
      */
@@ -294,7 +316,19 @@ public class AlgorithmHelper {
     }
 
     /**
+     * Get Algorithm OID for the given KDF algorithm.
+     *
+     * @param algorithm KDF algorithm name
+     * @return OID of the algorithm
+     * @throws NoSuchAlgorithmException if algorithm is not known
+     */
+    public static AlgorithmIdentifier getKdfOID(final String algorithm) throws NoSuchAlgorithmException {
+        return ifNotNull(KDF_OIDS.getOid(algorithm), AlgorithmIdentifier::new);
+    }
+
+    /**
      * get OID for name of KEK algorithm
+     *
      * @param id name of KEK algorithm
      * @return KEK OID
      * @throws NoSuchAlgorithmException if id is unknown
@@ -304,7 +338,20 @@ public class AlgorithmHelper {
     }
 
     /**
+     * get OID for name of KEM algorithm
+     *
+     * @param id name of KEM algorithm
+     * @return KEM OID
+     * @throws NoSuchAlgorithmException if id is unknown
+     */
+    public static AlgorithmIdentifier getKemAlgIdFromName(final String id) throws NoSuchAlgorithmException {
+
+        return ifNotNull(KEM_OIDS.getOid(id), AlgorithmIdentifier::new);
+    }
+
+    /**
      * get OID for key agreement algorithm name
+     *
      * @param id name of key agreement algorithm
      * @return key agreement OID
      * @throws NoSuchAlgorithmException if id is unknown
@@ -315,6 +362,7 @@ public class AlgorithmHelper {
 
     /**
      * get OID for key encryption algorithm name
+     *
      * @param id name of key encryption algorithm
      * @return key encryption OID
      * @throws NoSuchAlgorithmException if id is unknown
@@ -324,27 +372,41 @@ public class AlgorithmHelper {
     }
 
     /**
-     * get OID for MAC name
+     * get MAC for name or OID
+     *
      * @param macId name of MAC
      * @return mac
      * @throws NoSuchAlgorithmException if macId is unknown
      */
     public static Mac getMac(final String macId) throws NoSuchAlgorithmException {
-        return Mac.getInstance(macId, CertUtility.getBouncyCastleProvider());
+        return tryWithAllProviders(p -> Mac.getInstance(macId, p));
+    }
+
+    /**
+     * get Signature for name or OID
+     *
+     * @param signatureId name of Signature
+     * @return signature
+     * @throws NoSuchAlgorithmException if signatureId is unknown
+     */
+    public static Signature getSignature(final String signatureId) throws NoSuchAlgorithmException {
+        return tryWithAllProviders(p -> Signature.getInstance(signatureId, p));
     }
 
     /**
      * get MessageDigest for MessageDigest name
+     *
      * @param id MessageDigest name
      * @return MessageDigest instance
      * @throws NoSuchAlgorithmException if nothing found
      */
     public static MessageDigest getMessageDigest(final String id) throws NoSuchAlgorithmException {
-        return MessageDigest.getInstance(id.toUpperCase(), CertUtility.getBouncyCastleProvider());
+        return tryWithAllProviders(p -> MessageDigest.getInstance(id.toUpperCase(), p));
     }
 
     /**
      * get OID for mac algorithm name
+     *
      * @param macAlg mac algorithm
      * @return OID for mac
      */
@@ -358,6 +420,7 @@ public class AlgorithmHelper {
 
     /**
      * get PRF for id of PRF
+     *
      * @param id id of PRF
      * @return PRF
      * @throws NoSuchAlgorithmException if id is unknown
@@ -384,6 +447,7 @@ public class AlgorithmHelper {
 
     /**
      * get AlgorithmIdentifier of preferred signature algorithm for a key
+     *
      * @param key the key
      * @return AlgorithmIdentifier of preferred signature algorithm
      */
@@ -393,14 +457,17 @@ public class AlgorithmHelper {
 
     /**
      * get AlgorithmIdentifier for keyAlgorithm name
+     *
      * @param keyAlgorithm name
      * @return AlgorithmIdentifier
      */
     public static AlgorithmIdentifier getSigningAlgIdFromKeyAlg(final String keyAlgorithm) {
         return DEFAULT_SIGNATURE_ALGORITHM_IDENTIFIER_FINDER.find(getSigningAlgNameFromKeyAlg(keyAlgorithm));
     }
+
     /**
      * get AlgorithmIdentifier for signatureAlgorithmName
+     *
      * @param signatureAlgorithmName the name
      * @return AlgorithmIdentifier
      */
@@ -427,15 +494,15 @@ public class AlgorithmHelper {
      *         key uses algorithms beside RSA, EC or EdDSA
      */
     public static String getSigningAlgNameFromKeyAlg(final String keyAlgorithm) {
-        if (keyAlgorithm.startsWith("Ed")) {
-            // EdDSA key
-            return keyAlgorithm;
-        }
         if ("EC".equals(keyAlgorithm)) {
             // EC key
             return "SHA256withECDSA";
         }
-        return "SHA256with" + keyAlgorithm;
+        if (keyAlgorithm.startsWith("RSA")) {
+            return "SHA256with" + keyAlgorithm;
+        }
+
+        return keyAlgorithm;
     }
 
     /**
@@ -454,6 +521,7 @@ public class AlgorithmHelper {
 
     /**
      * get an Password-based message authentication code (MAC) algorithms
+     *
      * @param passwordBasedMacAlgorithm id of Password-Based MAC used for protection
      * @return related {@link PasswordBasedMacAlg}
      * @throws NoSuchAlgorithmException if id is unknown

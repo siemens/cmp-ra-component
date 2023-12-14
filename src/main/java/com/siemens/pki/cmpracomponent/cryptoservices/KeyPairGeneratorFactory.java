@@ -17,13 +17,18 @@
  */
 package com.siemens.pki.cmpracomponent.cryptoservices;
 
+import static com.siemens.pki.cmpracomponent.cryptoservices.ProviderWrapper.tryWithAllProviders;
+
 import java.security.GeneralSecurityException;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.security.Provider;
 import java.security.SecureRandom;
 import java.security.spec.ECGenParameterSpec;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.crypto.ec.CustomNamedCurves;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.jce.spec.ECParameterSpec;
 
 /**
@@ -31,6 +36,7 @@ import org.bouncycastle.jce.spec.ECParameterSpec;
  */
 public class KeyPairGeneratorFactory {
     private static final SecureRandom RANDOM = new SecureRandom();
+    private static final Provider BC_PROVIDER = new BouncyCastleProvider();
 
     private KeyPairGeneratorFactory() {}
 
@@ -42,7 +48,8 @@ public class KeyPairGeneratorFactory {
      * @throws GeneralSecurityException if key pair generator generation failed
      */
     public static KeyPairGenerator getEcKeyPairGenerator(final String curve) throws GeneralSecurityException {
-        final KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC", CertUtility.getBouncyCastleProvider());
+
+        final KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC", BC_PROVIDER);
         try {
             final ECGenParameterSpec ecSpec = new ECGenParameterSpec(curve);
             keyGen.initialize(ecSpec, RANDOM);
@@ -64,7 +71,30 @@ public class KeyPairGeneratorFactory {
      * @throws GeneralSecurityException if key pair generator generation failed
      */
     public static KeyPairGenerator getEdDsaKeyPairGenerator(final String keyType) throws GeneralSecurityException {
-        return KeyPairGenerator.getInstance(keyType, CertUtility.getBouncyCastleProvider());
+        return KeyPairGenerator.getInstance(keyType, BC_PROVIDER);
+    }
+
+    /**
+     * Generate key pair generator, let BC/BCPQ find the Algorithm.
+     *
+     * @param algOid Algorithm OID
+     * @return the generated key pair generator
+     * @throws GeneralSecurityException if key pair generator generation failed
+     */
+    public static KeyPairGenerator getGenericKeyPairGenerator(final ASN1ObjectIdentifier algOid)
+            throws GeneralSecurityException {
+        return tryWithAllProviders(p -> KeyPairGenerator.getInstance(algOid.getId(), p));
+    }
+
+    /**
+     * Generate key pair generator, let BC/BCPQ find the Algorithm.
+     *
+     * @param keyType type of key
+     * @return the generated key pair generator
+     * @throws GeneralSecurityException if key pair generator generation failed
+     */
+    public static KeyPairGenerator getGenericKeyPairGenerator(final String keyType) throws GeneralSecurityException {
+        return tryWithAllProviders(p -> KeyPairGenerator.getInstance(keyType, p));
     }
 
     /**

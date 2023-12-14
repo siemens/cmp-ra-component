@@ -17,28 +17,19 @@
  */
 package com.siemens.pki.cmpracomponent.test.framework;
 
-import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 import static org.junit.Assert.assertTrue;
 
-import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
-import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
-import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
-import com.siemens.pki.cmpracomponent.main.CmpRaComponent;
-import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
-import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
-import com.siemens.pki.cmpracomponent.protection.SignatureBasedProtection;
-import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.math.BigInteger;
-import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
-import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+
 import javax.security.auth.x500.X500Principal;
+
 import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.PKIBody;
 import org.bouncycastle.asn1.cmp.PKIFailureInfo;
@@ -58,27 +49,33 @@ import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.cert.CertIOException;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
-import org.bouncycastle.cert.jcajce.JcaX509ContentVerifierProviderBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
-import org.bouncycastle.openssl.PEMException;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
-import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
+import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
+import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
+import com.siemens.pki.cmpracomponent.main.CmpRaComponent;
+import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
+import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
+import com.siemens.pki.cmpracomponent.protection.SignatureBasedProtection;
+import com.siemens.pki.cmpracomponent.util.MessageDumper;
+
+import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
+
+import static com.siemens.pki.cmpracomponent.cryptoservices.ProviderWrapper.tryWithAllProviders;
 
 /**
  * a mocked Certificate Authority
  */
 public class CmpCaMock implements CmpRaComponent.UpstreamExchange {
 
-    private static final String INTERFACE_NAME = "CA Mock";
     private static final Logger LOGGER = LoggerFactory.getLogger(CmpCaMock.class);
-    private static final JcaX509ContentVerifierProviderBuilder X509_CVPB =
-            new JcaX509ContentVerifierProviderBuilder().setProvider(CertUtility.getBouncyCastleProvider());
-    private static final JcaPEMKeyConverter JCA_KEY_CONVERTER = new JcaPEMKeyConverter();
     private static final int MAX_LAST_RECEIVED = 10;
 
     private final LinkedList<PKIMessage> lastReceivedMessages = new LinkedList<>();
@@ -91,7 +88,8 @@ public class CmpCaMock implements CmpRaComponent.UpstreamExchange {
         this.enrollmentCredentials =
                 new TrustChainAndPrivateKey(enrollmentCredentials, TestUtils.PASSWORD_AS_CHAR_ARRAY);
         caProtectionProvider = new SignatureBasedProtection(
-                new TrustChainAndPrivateKey(protectionCredentials, TestUtils.PASSWORD_AS_CHAR_ARRAY), INTERFACE_NAME);
+                new TrustChainAndPrivateKey(protectionCredentials, TestUtils.PASSWORD_AS_CHAR_ARRAY),
+                "CMP TEST Client");
     }
 
     private CMPCertificate createCertificate(
@@ -99,10 +97,10 @@ public class CmpCaMock implements CmpRaComponent.UpstreamExchange {
             final SubjectPublicKeyInfo publicKey,
             final X509Certificate issuingCert,
             Extensions extensionsFromTemplate)
-            throws PEMException, NoSuchAlgorithmException, CertIOException, CertificateException,
-                    OperatorCreationException {
+            throws Exception {
         final long now = System.currentTimeMillis();
-        final PublicKey pubKey = JCA_KEY_CONVERTER.getPublicKey(publicKey);
+        final PublicKey pubKey =
+                tryWithAllProviders(p -> new JcaPEMKeyConverter().setProvider(p).getPublicKey(publicKey));
         final X509v3CertificateBuilder v3CertBldr = new JcaX509v3CertificateBuilder(
                 issuingCert.getSubjectX500Principal(),
                 BigInteger.valueOf(now),
@@ -126,13 +124,13 @@ public class CmpCaMock implements CmpRaComponent.UpstreamExchange {
                 Extension.authorityKeyIdentifier, false, extUtils.createAuthorityKeyIdentifier(issuingCert));
         v3CertBldr.addExtension(Extension.basicConstraints, true, new BasicConstraints(false));
 
-        final JcaContentSignerBuilder signerBuilder = new JcaContentSignerBuilder(
+        final JcaContentSignerBuilder signerBuilder = tryWithAllProviders(p -> new JcaContentSignerBuilder(
                         AlgorithmHelper.getSigningAlgNameFromKey(enrollmentCredentials.getPrivateKey()))
-                .setProvider(TestCertUtility.BOUNCY_CASTLE_PROVIDER);
+                .setProvider(p));
 
-        return TestCertUtility.cmpCertificateFromCertificate(new JcaX509CertificateConverter()
-                .setProvider(TestCertUtility.BOUNCY_CASTLE_PROVIDER)
-                .getCertificate(v3CertBldr.build(signerBuilder.build(enrollmentCredentials.getPrivateKey()))));
+        return tryWithAllProviders(p -> TestCertUtility.cmpCertificateFromCertificate(new JcaX509CertificateConverter()
+                .setProvider(p)
+                .getCertificate(v3CertBldr.build(signerBuilder.build(enrollmentCredentials.getPrivateKey())))));
     }
 
     private PKIMessage generateError(final PKIMessage receivedMessage, final String errorDetails) throws Exception {
@@ -237,7 +235,7 @@ public class CmpCaMock implements CmpRaComponent.UpstreamExchange {
     public byte[] processP10CerticateRequest(final byte[] csr, final String certProfile) {
         try {
             final PKCS10CertificationRequest p10Request = new PKCS10CertificationRequest(csr);
-            if (!p10Request.isSignatureValid(X509_CVPB.build(p10Request.getSubjectPublicKeyInfo()))) {
+            if (!CertUtility.validateP10Request(p10Request)) {
                 LOGGER.error("invalid P10 Request");
                 return null;
             }

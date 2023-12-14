@@ -28,7 +28,6 @@ import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
 import com.siemens.pki.cmpracomponent.configuration.SharedSecretCredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
-import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.main.CmpRaComponent;
 import com.siemens.pki.cmpracomponent.main.CmpRaComponent.CmpRaInterface;
 import com.siemens.pki.cmpracomponent.main.CmpRaComponent.UpstreamExchange;
@@ -44,7 +43,8 @@ import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import org.junit.BeforeClass;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;
 
 public class CmpClientTestcaseBase {
 
@@ -52,6 +52,8 @@ public class CmpClientTestcaseBase {
 
     static {
         ConfigFileLoader.setConfigFileBase(CONFIG_DIRECTORY);
+        Security.addProvider(new BouncyCastleProvider());
+        Security.addProvider(new BouncyCastlePQCProvider());
     }
 
     protected static CmpMessageInterface getPasswordBasedUpstreamconfiguration(
@@ -159,11 +161,6 @@ public class CmpClientTestcaseBase {
                 return deviation < 10;
             }
         };
-    }
-
-    @BeforeClass
-    public static void setUpBeforeClass() throws Exception {
-        Security.addProvider(CertUtility.getBouncyCastleProvider());
     }
 
     protected UpstreamExchange upstreamExchange;
