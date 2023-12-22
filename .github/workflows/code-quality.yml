@@ -56,8 +56,22 @@ jobs:
         with:
           java-version: 11
           distribution: 'temurin'
+      - name: Restore cached Maven dependencies
+        uses: actions/cache/restore@v3
+        with:
+          path: ~/.m2/repository
+          # Using datetime in cache key as OWASP database may change, without the pom changing
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
       - name: Analyze dependencies
         env:
           NVD_API_KEY: ${{ secrets.NVD_TOKEN }}
         # this will run the OWASP dependency checker only
-        run: mvn -B verify -DskipTests -Dgpg.skip
+        run: mvn -B verify -DskipTests -DnvdApiKey=${{ secrets.NVD_TOKEN }} -Dgpg.skip
+      - name: Cache Maven dependencies
+        uses: actions/cache/save@v3
+        if: always()
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
