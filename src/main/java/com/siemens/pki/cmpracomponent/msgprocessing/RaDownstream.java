@@ -77,6 +77,7 @@ import org.bouncycastle.asn1.cmp.PKIMessage;
 import org.bouncycastle.asn1.cmp.PKIMessages;
 import org.bouncycastle.asn1.cmp.PKIStatus;
 import org.bouncycastle.asn1.cmp.PollRepContent;
+import org.bouncycastle.asn1.cmp.RevReqContent;
 import org.bouncycastle.asn1.crmf.AttributeTypeAndValue;
 import org.bouncycastle.asn1.crmf.CertReqMessages;
 import org.bouncycastle.asn1.crmf.CertReqMsg;
@@ -498,6 +499,35 @@ class RaDownstream {
         }
     }
 
+    private PKIMessage handleRevocationRequest(PKIMessage incomingRequest, PersistencyContext persistencyContext)
+            throws BaseCmpException {
+        final PKIBody body = incomingRequest.getBody();
+        final int requestType = body.getType();
+        persistencyContext.setRequestType(requestType);
+        final InventoryInterface inventory = config.getInventory(persistencyContext.getCertProfile(), requestType);
+        if (inventory != null) {
+            final CertTemplate revTemplate =
+                    ((RevReqContent) body.getContent()).toRevDetailsArray()[0].getCertDetails();
+            try {
+                if (!inventory.checkRevocationRequest(
+                        persistencyContext.getTransactionId(),
+                        ifNotNull(
+                                incomingRequest.getHeader().getSender(),
+                                sender -> X500Name.getInstance(sender.getName()).toString()),
+                        ifNotNull(revTemplate, template -> template.getSerialNumber()
+                                .toString()),
+                        ifNotNull(revTemplate, template -> template.getIssuer().toString()),
+                        incomingRequest.getEncoded())) {
+                    throw new CmpValidationException(
+                            INTERFACE_NAME, PKIFailureInfo.badRequest, "request refused by external inventory");
+                }
+            } catch (final IOException e) {
+                throw new CmpProcessingException(INTERFACE_NAME, PKIFailureInfo.badMessageCheck, e);
+            }
+        }
+        return incomingRequest;
+    }
+
     private PKIMessage handleValidatedRequest(
             final PKIMessage incomingRequest, final PersistencyContext persistencyContext) throws Exception {
         // request pre processing
@@ -522,6 +552,9 @@ class RaDownstream {
             case PKIBody.TYPE_P10_CERT_REQ:
                 preprocessedRequest = handleP10CertificateRequest(incomingRequest, persistencyContext);
                 break;
+            case PKIBody.TYPE_REVOCATION_REQ:
+                preprocessedRequest = handleRevocationRequest(incomingRequest, persistencyContext);
+                break;
             case PKIBody.TYPE_GEN_MSG:
                 // try to handle locally
                 persistencyContext.setRequestType(incomingRequest.getBody().getType());
@@ -530,9 +563,6 @@ class RaDownstream {
                 if (genmResponse != null) {
                     return genmResponse;
                 }
-                break;
-            case PKIBody.TYPE_REVOCATION_REQ:
-                persistencyContext.setRequestType(incomingRequest.getBody().getType());
                 break;
             default:
         }
@@ -636,14 +666,21 @@ class RaDownstream {
             persistencyContext.setIssuingChain(issuingChain);
 
             // update inventory
-            ifNotNull(
-                    config.getInventory(persistencyContext.getCertProfile(), responseType),
-                    x -> x.learnEnrollmentResult(
-                            persistencyContext.getTransactionId(),
-                            enrolledCertificate.getEncoded(),
-                            enrolledCertificateAsX509.getSerialNumber().toString(),
-                            enrolledCertificateAsX509.getSubjectX500Principal().toString(),
-                            enrolledCertificateAsX509.getIssuerX500Principal().toString()));
+            final InventoryInterface inventory = config.getInventory(persistencyContext.getCertProfile(), responseType);
+            if (inventory != null) {
+                if (!inventory.learnEnrollmentResult(
+                        persistencyContext.getTransactionId(),
+                        enrolledCertificate.getEncoded(),
+                        enrolledCertificateAsX509.getSerialNumber().toString(),
+                        enrolledCertificateAsX509.getSubjectX500Principal().toString(),
+                        enrolledCertificateAsX509.getIssuerX500Principal().toString())) {
+                    throw new CmpEnrollmentException(
+                            incomingRequest.getBody().getType(),
+                            INTERFACE_NAME,
+                            PKIFailureInfo.systemFailure,
+                            "enrolled certificate improperly processed by external inventory");
+                }
+            }
 
             // check for previous central key generation
             final PrivateKey newGeneratedPrivateKey = persistencyContext.getNewGeneratedPrivateKey();

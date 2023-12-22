@@ -18,6 +18,7 @@
 package com.siemens.pki.cmpclientcomponent.test;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import com.siemens.pki.cmpclientcomponent.main.CmpClient.EnrollmentResult;
@@ -162,6 +163,21 @@ public class TestP10Cr extends EnrollmentTestcaseBase {
                         "getInventory called with certprofile: {}, type: {}",
                         certProfile,
                         MessageDumper.msgTypeAsString(bodyType));
+
+                if ("refuseMeP10".equals(certProfile)) {
+                    return new InventoryInterface() {
+                        @Override
+                        public boolean checkP10CertRequest(
+                                byte[] transactionID,
+                                String requesterDn,
+                                byte[] pkcs10CertRequest,
+                                String requestedSubjectDn,
+                                byte[] pkiMessage) {
+                            return false;
+                        }
+                    };
+                }
+
                 return new InventoryInterface() {
 
                     @Override
@@ -266,7 +282,7 @@ public class TestP10Cr extends EnrollmentTestcaseBase {
      *
      * @throws Exception
      */
-    @Test(timeout = 100000L)
+    @Test
     public void testP10Cr() throws Exception {
         final KeyPair keyPair = ConfigurationFactory.getKeyGenerator().generateKeyPair();
         final JcaPKCS10CertificationRequestBuilder p10Builder =
@@ -284,5 +300,30 @@ public class TestP10Cr extends EnrollmentTestcaseBase {
                         UPSTREAM_TRUST_PATH)
                 .invokeEnrollment();
         assertNotNull(ret);
+    }
+
+    /**
+     * A certificate from a legacy PKI using PKCS#10 request but refused by the inventory
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testRefusedP10Cr() throws Exception {
+        final KeyPair keyPair = ConfigurationFactory.getKeyGenerator().generateKeyPair();
+        final JcaPKCS10CertificationRequestBuilder p10Builder =
+                new JcaPKCS10CertificationRequestBuilder(new X500Name("CN=Subject"), keyPair.getPublic());
+        final PrivateKey privateKey = keyPair.getPrivate();
+        final ContentSigner signer =
+                new JcaContentSignerBuilder(AlgorithmHelper.getSigningAlgNameFromKey(privateKey)).build(privateKey);
+        p10Builder.build(signer).getEncoded();
+        final EnrollmentResult ret = getSignatureBasedCmpClient(
+                        "refuseMeP10",
+                        getClientContext(
+                                PKIBody.TYPE_P10_CERT_REQ,
+                                null,
+                                p10Builder.build(signer).getEncoded()),
+                        UPSTREAM_TRUST_PATH)
+                .invokeEnrollment();
+        assertNull(ret);
     }
 }

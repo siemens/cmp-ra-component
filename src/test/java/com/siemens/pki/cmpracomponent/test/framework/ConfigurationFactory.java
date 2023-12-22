@@ -76,6 +76,10 @@ public class ConfigurationFactory {
     private static KeyPairGenerator keyGenerator;
     private static ProtectionProvider eePasswordbasedProtectionProvider;
 
+    private static TrustChainAndPrivateKey eeSignaturebasedCredentials;
+
+    private static SharedSecret eeSharedSecretCredentials;
+
     public static Configuration buildPasswordbasedDownstreamConfiguration() throws Exception {
         final CredentialContext downstreamCredentials = new SharedSecret("PBMAC1", TestUtils.PASSWORD);
         final VerificationContext downstreamTrust = new PasswordValidationCredentials(TestUtils.PASSWORD);
@@ -87,14 +91,13 @@ public class ConfigurationFactory {
         final SignatureValidationCredentials enrollmentTrust =
                 new SignatureValidationCredentials("credentials/ENROLL_Root.pem", null);
 
-        final Configuration config = buildSimpleRaConfiguration(
+        return buildSimpleRaConfiguration(
                 downstreamCredentials,
                 ReprotectMode.reprotect,
                 downstreamTrust,
                 upstreamCredentials,
                 upstreamTrust,
                 enrollmentTrust);
-        return config;
     }
 
     public static Configuration buildSignatureBasedDownstreamConfiguration() throws Exception {
@@ -431,6 +434,7 @@ public class ConfigurationFactory {
                             switch (certProfile) {
                                 case "certProfileForKur":
                                 case "certProfileForRr":
+                                case "refuseMeRr":
                                     return enrollmentTrust;
                             }
                         }
@@ -502,6 +506,47 @@ public class ConfigurationFactory {
                         "getInventory called with certprofile: {}, type: {}",
                         certProfile,
                         MessageDumper.msgTypeAsString(bodyType));
+
+                if ("refuseMeCr".equals(certProfile)) {
+                    return new InventoryInterface() {
+
+                        @Override
+                        public CheckAndModifyResult checkAndModifyCertRequest(
+                                byte[] transactionID,
+                                String requesterDn,
+                                byte[] certTemplate,
+                                String requestedSubjectDn,
+                                byte[] pkiMessage) {
+                            return new CheckAndModifyResult() {
+
+                                @Override
+                                public byte[] getUpdatedCertTemplate() {
+                                    return null;
+                                }
+
+                                @Override
+                                public boolean isGranted() {
+                                    return false;
+                                }
+                            };
+                        }
+                    };
+                }
+
+                if ("refuseMeRr".equals(certProfile)) {
+                    return new InventoryInterface() {
+                        @Override
+                        public boolean checkRevocationRequest(
+                                byte[] transactionID,
+                                String senderDN,
+                                String serialNumber,
+                                String issuerDN,
+                                byte[] pkiMessage) {
+                            return false;
+                        }
+                    };
+                }
+
                 return new InventoryInterface() {
 
                     @Override
@@ -665,12 +710,6 @@ public class ConfigurationFactory {
         return eePasswordbasedProtectionProvider;
     }
 
-    private static SharedSecret getEeSharedSecretCredentials() {
-        if (eeSharedSecretCredentials == null)
-            eeSharedSecretCredentials = new SharedSecret("PASSWORDBASEDMAC", TestUtils.PASSWORD);
-        return eeSharedSecretCredentials;
-    }
-
     public static ProtectionProvider getEePbmac1ProtectionProvider()
             throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException {
         if (eePbmac1ProtectionProvider == null) {
@@ -680,24 +719,29 @@ public class ConfigurationFactory {
         return eePbmac1ProtectionProvider;
     }
 
+    private static SharedSecret getEeSharedSecretCredentials() {
+        if (eeSharedSecretCredentials == null) {
+            eeSharedSecretCredentials = new SharedSecret("PASSWORDBASEDMAC", TestUtils.PASSWORD);
+        }
+        return eeSharedSecretCredentials;
+    }
+
+    public static TrustChainAndPrivateKey getEeSignaturebasedCredentials() throws Exception {
+        if (eeSignaturebasedCredentials == null) {
+            eeSignaturebasedCredentials = new TrustChainAndPrivateKey(
+                    // "credentials/CMP_EE_Keystore_EdDSA.p12",
+                    // "credentials/CMP_EE_Keystore_RSA.p12",
+                    "credentials/CMP_EE_Keystore.p12", TestUtils.PASSWORD_AS_CHAR_ARRAY);
+        }
+        return eeSignaturebasedCredentials;
+    }
+
     public static ProtectionProvider getEeSignaturebasedProtectionProvider() throws Exception {
         if (eeSignaturebasedProtectionProvider == null) {
             eeSignaturebasedProtectionProvider =
                     ProtectionProviderFactory.createProtectionProvider(getEeSignaturebasedCredentials());
         }
         return eeSignaturebasedProtectionProvider;
-    }
-
-    private static TrustChainAndPrivateKey eeSignaturebasedCredentials;
-    private static SharedSecret eeSharedSecretCredentials;
-
-    public static TrustChainAndPrivateKey getEeSignaturebasedCredentials() throws Exception {
-        if (eeSignaturebasedCredentials == null)
-            eeSignaturebasedCredentials = new TrustChainAndPrivateKey(
-                    // "credentials/CMP_EE_Keystore_EdDSA.p12",
-                    // "credentials/CMP_EE_Keystore_RSA.p12",
-                    "credentials/CMP_EE_Keystore.p12", TestUtils.PASSWORD_AS_CHAR_ARRAY);
-        return eeSignaturebasedCredentials;
     }
 
     public static KeyPairGenerator getKeyGenerator() {
