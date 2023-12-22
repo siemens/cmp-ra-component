@@ -68,7 +68,7 @@ jobs:
         env:
           NVD_API_KEY: ${{ secrets.NVD_TOKEN }}
         # this will run the OWASP dependency checker only
-        run: mvn -B verify -DskipTests -DnvdApiKey=${{ secrets.NVD_TOKEN }} -Dgpg.skip
+        run: mvn -B verify -DskipTests -Dgpg.skip
       - name: Cache Maven dependencies
         uses: actions/cache/save@v3
         if: always()
