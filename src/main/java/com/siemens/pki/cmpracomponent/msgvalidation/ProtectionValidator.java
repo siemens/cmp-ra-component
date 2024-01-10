@@ -17,14 +17,8 @@
  */
 package com.siemens.pki.cmpracomponent.msgvalidation;
 
-import com.siemens.pki.cmpracomponent.cmpextension.NewCMPObjectIdentifiers;
-import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
-import com.siemens.pki.cmpracomponent.msggeneration.HeaderProvider;
-import com.siemens.pki.cmpracomponent.persistency.InitialKemContext;
-import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
-import com.siemens.pki.cmpracomponent.persistency.PersistencyContext.InterfaceContext;
-import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.security.PublicKey;
+
 import org.bouncycastle.asn1.ASN1BitString;
 import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
 import org.bouncycastle.asn1.cmp.InfoTypeAndValue;
@@ -35,6 +29,14 @@ import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.siemens.pki.cmpracomponent.cmpextension.NewCMPObjectIdentifiers;
+import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
+import com.siemens.pki.cmpracomponent.msggeneration.HeaderProvider;
+import com.siemens.pki.cmpracomponent.persistency.InitialKemContext;
+import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
+import com.siemens.pki.cmpracomponent.persistency.PersistencyContext.InterfaceContext;
+import com.siemens.pki.cmpracomponent.util.MessageDumper;
 
 /**
  * This class validates the signature or password based protection of all
@@ -89,6 +91,7 @@ public class ProtectionValidator implements ValidatorIF<Void> {
                 headerProvider.getSenderNonce(),
                 headerProvider.getRecipNonce(),
                 kemPubkey);
+        LOGGER.debug("initialKemContext=\n"+initialKemContext);
         persistencyContext.setInitialKemContext(initialKemContext, interfaceContext);
         return new InfoTypeAndValue(
                 NewCMPObjectIdentifiers.it_kemCiphertextInfo, initialKemContext.getCiphertextInfo());

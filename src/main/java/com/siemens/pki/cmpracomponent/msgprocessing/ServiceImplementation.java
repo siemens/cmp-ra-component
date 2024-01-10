@@ -17,26 +17,6 @@
  */
 package com.siemens.pki.cmpracomponent.msgprocessing;
 
-import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
-
-import com.siemens.pki.cmpracomponent.configuration.Configuration;
-import com.siemens.pki.cmpracomponent.configuration.CrlUpdateRetrievalHandler;
-import com.siemens.pki.cmpracomponent.configuration.GetCaCertificatesHandler;
-import com.siemens.pki.cmpracomponent.configuration.GetCertificateRequestTemplateHandler;
-import com.siemens.pki.cmpracomponent.configuration.GetKemCiphertextHandler;
-import com.siemens.pki.cmpracomponent.configuration.GetRootCaCertificateUpdateHandler;
-import com.siemens.pki.cmpracomponent.configuration.GetRootCaCertificateUpdateHandler.RootCaCertificateUpdateResponse;
-import com.siemens.pki.cmpracomponent.configuration.SupportMessageHandlerInterface;
-import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
-import com.siemens.pki.cmpracomponent.msggeneration.HeaderProvider;
-import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
-import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
-import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
-import com.siemens.pki.cmpracomponent.msgvalidation.CmpValidationException;
-import com.siemens.pki.cmpracomponent.persistency.InitialKemContext;
-import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
-import com.siemens.pki.cmpracomponent.persistency.PersistencyContext.InterfaceContext;
-import com.siemens.pki.cmpracomponent.protection.ProtectionProviderFactory;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.NoSuchProviderException;
@@ -46,6 +26,7 @@ import java.security.cert.X509CRL;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
+
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1EncodableVector;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
@@ -70,6 +51,29 @@ import org.bouncycastle.asn1.x509.DistributionPointName;
 import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.asn1.x509.GeneralNames;
 import org.bouncycastle.asn1.x509.Time;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.siemens.pki.cmpracomponent.configuration.Configuration;
+import com.siemens.pki.cmpracomponent.configuration.CrlUpdateRetrievalHandler;
+import com.siemens.pki.cmpracomponent.configuration.GetCaCertificatesHandler;
+import com.siemens.pki.cmpracomponent.configuration.GetCertificateRequestTemplateHandler;
+import com.siemens.pki.cmpracomponent.configuration.GetKemCiphertextHandler;
+import com.siemens.pki.cmpracomponent.configuration.GetRootCaCertificateUpdateHandler;
+import com.siemens.pki.cmpracomponent.configuration.GetRootCaCertificateUpdateHandler.RootCaCertificateUpdateResponse;
+import com.siemens.pki.cmpracomponent.configuration.SupportMessageHandlerInterface;
+import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
+import com.siemens.pki.cmpracomponent.msggeneration.HeaderProvider;
+import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
+import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
+import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
+import com.siemens.pki.cmpracomponent.msgvalidation.CmpValidationException;
+import com.siemens.pki.cmpracomponent.persistency.InitialKemContext;
+import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
+import com.siemens.pki.cmpracomponent.persistency.PersistencyContext.InterfaceContext;
+import com.siemens.pki.cmpracomponent.protection.ProtectionProviderFactory;
+
+import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
 /**
  * implementation of a GENM service handler
@@ -77,6 +81,8 @@ import org.bouncycastle.asn1.x509.Time;
 class ServiceImplementation {
 
     private static final String INTERFACE_NAME = "GENM service";
+    private static final Logger LOGGER = LoggerFactory.getLogger(ServiceImplementation.class);
+
     private final Configuration config;
 
     /**
@@ -195,6 +201,7 @@ class ServiceImplementation {
                 respondingHeaderProvider.getSenderNonce(),
                 respondingHeaderProvider.getRecipNonce(),
                 messageHandler.getPubKey(trustedCertificate));
+        LOGGER.debug("initialKemContext=\n"+initialKemContext);
         persistencyContext.setInitialKemContext(initialKemContext, interfaceContext);
         persistencyContext.markKemStart();
         return new PKIBody(
