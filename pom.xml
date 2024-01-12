@@ -8,7 +8,7 @@
 	<groupId>com.siemens.pki</groupId>
 	<artifactId>CmpRaComponent</artifactId>
 	<packaging>jar</packaging>
-	<version>4.1.0</version>
+	<version>4.1.1</version>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<parent.basedir>.</parent.basedir>
@@ -130,7 +130,7 @@
 			<plugin>
 				<groupId>org.owasp</groupId>
 				<artifactId>dependency-check-maven</artifactId>
-				<version>9.0.7</version>
+				<version>9.0.8</version>
 				<executions>
 					<execution>
 						<goals>
