@@ -56,6 +56,14 @@ jobs:
         with:
           java-version: 11
           distribution: 'temurin'
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
       - name: Analyze dependencies
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_TOKEN }}
         # this will run the OWASP dependency checker only
         run: mvn -B verify -DskipTests -Dgpg.skip
