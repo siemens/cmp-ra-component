@@ -8,6 +8,14 @@ import sys
 import argparse
 import pathlib
 
+# This is a set of special licenses that we treat in a unique way. They are not, and will not be featured in the SPDX,
+# because they are just an alias for another license (see referenced discussions for context). Therefore, we explicitly
+# give their names here (since they don't have IDs).
+SPECIAL_LICENSES = {
+    'Bouncy Castle Licence',  # https://github.com/spdx/license-list-XML/issues/910, MIT
+    'Eclipse Distribution License - Version 1.0',  # https://github.com/spdx/license-list-XML/issues/1683, BSD-3-clause
+}
+
 
 def discover_licenses(sbom):
     """Return a set of licenses featured in a given SBOM
@@ -21,10 +29,21 @@ def discover_licenses(sbom):
             logging.warning(f'{name} {version}: Unspecified license!')
 
         for entry in licenses:
-            # special treatment for bouncy castle
-            # https://github.com/spdx/license-list-XML/issues/910
-            if 'id' not in entry['license'] and entry['license']['name'] == 'Bouncy Castle Licence':
-                found_licenses.add('Bouncy Castle Licence')
+            if 'expression' in entry:
+                # Special case for clever licenses that are given as boolean expressions, e.g.
+                # "(CDDL-1.0 OR GPL-2.0-with-classpath-exception)". If this happens, we add the entire expression
+                # to the list without trying to parse it (because the notation can be complex). The entire expression
+                # must be added to the list of allowed licenses after a human checks it and ensures all is well.
+                # Yes, there will be different strings that have the same meaning (e.g. "X or Y", "Y or X") and they
+                # will have to be treated as different cases - that's fine. A human will have to think about it very
+                # well before updating allowed-licenses.txt.
+                found_licenses.add(entry['expression'])
+
+            elif 'id' not in entry['license'] and entry['license']['name'] in SPECIAL_LICENSES:
+                # Some licenses do not have an SPDX ID, this occurs when these licenses are nothing but renamed copies
+                # of some other license. In this case we extract the license name.
+                found_licenses.add(entry['license']['name'])
+
             else:
                 found_licenses.add(entry['license']['id'])
     return found_licenses
@@ -46,7 +65,10 @@ def generate_license_report(sbom):
             try:
                 license_id = entry['license']['id']
             except KeyError:
-                license_id = entry['license']['name']
+                try:
+                    license_id = entry['license']['name']
+                except KeyError:
+                    license_id = entry['expression']
             entries.append((name, version, license_id))
     return entries
 
@@ -80,8 +102,13 @@ def check_license_compliance(sbom, allowed):
             try:
                 license_id = license['license']['id']
             except KeyError:
-                license_id = license['license']['name']
-            if license_id not in allowed:
+                try:
+                    license_id = license['license']['name']
+                except KeyError:
+                    license_id = license['expression']
+            if license_id in allowed:
+                break
+            else:
                 errors.append((name, version, f'`{license_id}` not allowed'))
 
     if not errors:
