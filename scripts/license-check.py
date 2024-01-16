@@ -25,7 +25,6 @@ def discover_licenses(sbom):
     found_licenses = set()
     for item in sbom['components']:
         name, version, licenses = item['name'], item['version'], item['licenses']
-        # logging.debug(f'Processing {name}')
         if not item['licenses']:
             logging.warning(f'{name} {version}: Unspecified license!')
 
