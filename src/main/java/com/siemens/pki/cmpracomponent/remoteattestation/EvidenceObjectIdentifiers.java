@@ -31,7 +31,7 @@ public interface EvidenceObjectIdentifiers {
 
     ASN1ObjectIdentifier attestation_result = ata.branch("123");
 
-    ASN1ObjectIdentifier aa_evidenceStatement = new ASN1ObjectIdentifier("2.23.133.5.4.9");
+    ASN1ObjectIdentifier aa_evidenceStatement = new ASN1ObjectIdentifier("1.2.840.113549.1.9.16.2.999");
 
     ASN1ObjectIdentifier aa_nonce = PKCSObjectIdentifiers.id_aa.branch("8888");
 }
