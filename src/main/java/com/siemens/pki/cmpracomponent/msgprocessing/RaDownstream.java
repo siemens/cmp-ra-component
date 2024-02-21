@@ -74,6 +74,7 @@ import java.util.stream.Stream;
 import org.bouncycastle.asn1.ASN1Encoding;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.DERUTF8String;
 import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
@@ -944,9 +945,10 @@ class RaDownstream {
                     PKIFailureInfo.systemFailure,
                     "not in status WAITING: " + status);
         }
+        final ASN1OctetString octetString =
+                ASN1OctetString.getInstance(evidenceItav.getExtnValue().getOctets());
         apiResponse = apiClient.sessionSessionIdPostWithHttpInfo(
-                ratSessionId,
-                Base64.getEncoder().encodeToString(evidenceItav.getExtnValue().getOctets()));
+                ratSessionId, Base64.getEncoder().encodeToString(octetString.getOctets()));
         for (; ; ) {
             statusCode = apiResponse.getStatusCode();
             switch (statusCode) {

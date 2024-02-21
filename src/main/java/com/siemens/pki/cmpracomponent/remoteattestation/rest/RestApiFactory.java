@@ -34,8 +34,7 @@ public class RestApiFactory {
         final ApiClient defaultClient = org.openapitools.client.Configuration.getDefaultApiClient();
         // ugly hack to come around https://github.com/OpenAPITools/openapi-generator/issues/7059
         // by default "*/*" maps to "application/json" but veraison expects "application/psa-attestation-token" in POST
-        defaultClient.setRequestInterceptor(
-                builder -> builder.setHeader("Content-Type", "application/psa-attestation-token"));
+        defaultClient.setRequestInterceptor(builder -> builder.setHeader("Content-Type", "application/cert-mgmt.demo"));
         defaultClient.updateBaseUri(verifierBasePath);
         return new DefaultApi(defaultClient);
     }
