@@ -17,9 +17,9 @@
  */
 package com.siemens.pki.cmpracomponent.msgvalidation;
 
-import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
-
 import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
+import com.siemens.pki.cmpracomponent.util.ConfigLogger;
+import com.siemens.pki.cmpracomponent.util.NullUtil;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.cmp.PKIFailureInfo;
 import org.bouncycastle.asn1.cmp.PKIHeader;
@@ -42,9 +42,10 @@ public abstract class MacValidator implements ValidatorIF<Void> {
     }
 
     protected byte[] getSharedSecret(final PKIHeader header) throws CmpValidationException {
-        final byte[] passwordAsBytes =
-                config.getSharedSecret(ifNotNull(header.getSenderKID(), ASN1OctetString::getOctets));
-
+        final byte[] passwordAsBytes = ConfigLogger.logOptional(
+                interfaceName,
+                "VerificationContext.getSharedSecret(byte[])",
+                () -> config.getSharedSecret(NullUtil.ifNotNull(header.getSenderKID(), ASN1OctetString::getOctets)));
         if (passwordAsBytes == null) {
             throw new CmpValidationException(
                     getInterfaceName(),

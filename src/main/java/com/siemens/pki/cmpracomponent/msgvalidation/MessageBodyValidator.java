@@ -19,6 +19,7 @@ package com.siemens.pki.cmpracomponent.msgvalidation;
 
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
+import com.siemens.pki.cmpracomponent.util.ConfigLogger;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -191,7 +192,10 @@ public class MessageBodyValidator implements ValidatorIF<String> {
             final ASN1GeneralizedTime messageTime = message.getHeader().getMessageTime();
             if (messageTime != null) {
                 final long diffInMillis = messageTime.getDate().getTime() - new Date().getTime();
-                if (!cmpInterfaceConfig.isMessageTimeDeviationAllowed(diffInMillis / 1000L)) {
+                if (!ConfigLogger.log(
+                        interfaceName,
+                        "CmpMessageInterface.isMessageTimeDeviationAllowed(long)",
+                        () -> cmpInterfaceConfig.isMessageTimeDeviationAllowed(diffInMillis / 1000L))) {
                     throw new CmpValidationException(
                             interfaceName, PKIFailureInfo.badTime, "message time out of allowed range");
                 }
@@ -321,7 +325,12 @@ public class MessageBodyValidator implements ValidatorIF<String> {
         } else {
             switch (popo.getType()) {
                 case ProofOfPossession.TYPE_RA_VERIFIED:
-                    if (!isRaVerifiedAcceptable.test(certProfile, bodyType)) {
+                    if (!ConfigLogger.log(
+                            interfaceName,
+                            "Configuration.isRaVerifiedAcceptable",
+                            isRaVerifiedAcceptable::test,
+                            certProfile,
+                            bodyType)) {
                         throw new CmpEnrollmentException(
                                 enrollmentType, interfaceName, PKIFailureInfo.badPOP, "POPO RaVerified not allowed");
                     }

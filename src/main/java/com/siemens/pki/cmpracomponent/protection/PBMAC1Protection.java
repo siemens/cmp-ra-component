@@ -21,6 +21,7 @@ import com.siemens.pki.cmpracomponent.configuration.SharedSecretCredentialContex
 import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
 import com.siemens.pki.cmpracomponent.cryptoservices.WrappedMac;
 import com.siemens.pki.cmpracomponent.cryptoservices.WrappedMacFactory;
+import com.siemens.pki.cmpracomponent.util.ConfigLogger;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
@@ -40,20 +41,31 @@ public class PBMAC1Protection extends MacProtection {
     /**
      * ctor
      * @param config specific configuration
+     * @param interfaceName CMP interface name for logging
      * @throws InvalidKeySpecException  in case of internal error
      * @throws NoSuchAlgorithmException in case of unsupported algorithm
      * @throws InvalidKeyException      in case of internal error
      */
-    public PBMAC1Protection(final SharedSecretCredentialContext config)
+    public PBMAC1Protection(final SharedSecretCredentialContext config, String interfaceName)
             throws InvalidKeySpecException, InvalidKeyException, NoSuchAlgorithmException {
-        super(config);
-        final byte[] salt = config.getSalt();
-        final AlgorithmIdentifier prfAlgorithm =
-                AlgorithmHelper.getPrf(config.getPrf()).getAlgorithmID();
-        final int keyLength = config.getkeyLength();
+        super(config, interfaceName);
+        final byte[] salt =
+                ConfigLogger.log(interfaceName, "SharedSecretCredentialContext.getSalt()", () -> config.getSalt());
+        final AlgorithmIdentifier prfAlgorithm = AlgorithmHelper.getPrf(ConfigLogger.log(
+                        interfaceName, "SharedSecretCredentialContext.getPrf()", () -> config.getPrf()))
+                .getAlgorithmID();
+        final int keyLength = ConfigLogger.log(
+                interfaceName, "SharedSecretCredentialContext.getkeyLength()", () -> config.getkeyLength());
         final AlgorithmIdentifier keyDerivationFunc = new AlgorithmIdentifier(
                 PKCSObjectIdentifiers.id_PBKDF2,
-                new PBKDF2Params(salt, config.getIterationCount(), keyLength, prfAlgorithm));
+                new PBKDF2Params(
+                        salt,
+                        ConfigLogger.log(
+                                interfaceName,
+                                "SharedSecretCredentialContext.getIterationCount()",
+                                () -> config.getIterationCount()),
+                        keyLength,
+                        prfAlgorithm));
         final SecretKeyFactory keyFact =
                 AlgorithmHelper.getSecretKeyFactory(prfAlgorithm.getAlgorithm().getId());
         final SecretKey key = keyFact.generateSecret(new PBEKeySpec(
@@ -62,7 +74,10 @@ public class PBMAC1Protection extends MacProtection {
                 config.getIterationCount(),
                 keyLength));
         final AlgorithmIdentifier messageAuthScheme =
-                new AlgorithmIdentifier(AlgorithmHelper.getOidForMac(config.getMacAlgorithm()));
+                new AlgorithmIdentifier(AlgorithmHelper.getOidForMac(ConfigLogger.log(
+                        interfaceName,
+                        "SharedSecretCredentialContext.getMacAlgorithm()",
+                        () -> config.getMacAlgorithm())));
         final AlgorithmIdentifier protectionAlg = new AlgorithmIdentifier(
                 PKCSObjectIdentifiers.id_PBMAC1, new PBMAC1Params(keyDerivationFunc, messageAuthScheme));
         final WrappedMac wrappedMac = WrappedMacFactory.createWrappedMac(messageAuthScheme, key.getEncoded());

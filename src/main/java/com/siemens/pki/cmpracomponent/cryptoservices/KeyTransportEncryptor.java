@@ -20,6 +20,7 @@ package com.siemens.pki.cmpracomponent.cryptoservices;
 import com.siemens.pki.cmpracomponent.configuration.CkgContext;
 import com.siemens.pki.cmpracomponent.configuration.CkgKeyTransportContext;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpEnrollmentException;
+import com.siemens.pki.cmpracomponent.util.ConfigLogger;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.cert.X509Certificate;
@@ -49,8 +50,9 @@ public class KeyTransportEncryptor extends CmsEncryptorBase {
             final int initialRequestType,
             final String interfaceName)
             throws NoSuchAlgorithmException, CmpEnrollmentException {
-        super(config);
-        final CkgKeyTransportContext transportContext = config.getKeyTransportContext();
+        super(config, interfaceName);
+        final CkgKeyTransportContext transportContext = ConfigLogger.log(
+                interfaceName, "CkgContext.getKeyTransportContext()", () -> config.getKeyTransportContext());
         if (transportContext == null) {
             throw new CmpEnrollmentException(
                     initialRequestType,
@@ -59,7 +61,10 @@ public class KeyTransportEncryptor extends CmsEncryptorBase {
                     "support for key management technique Key Transport is not configured for central key generation");
         }
         final JcaX509ExtensionUtils jcaX509ExtensionUtils = new JcaX509ExtensionUtils();
-        final X509Certificate encryptionCert = transportContext.getRecipient(protectingCert);
+        final X509Certificate encryptionCert = ConfigLogger.log(
+                interfaceName,
+                "CkgKeyTransportContext.getRecipient(X509Certificate)",
+                () -> transportContext.getRecipient(protectingCert));
         final PublicKey publicKey = encryptionCert.getPublicKey();
         addRecipientInfoGenerator(new JceKeyTransRecipientInfoGenerator(
                         jcaX509ExtensionUtils

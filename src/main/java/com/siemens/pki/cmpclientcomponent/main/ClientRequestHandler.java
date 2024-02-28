@@ -35,6 +35,7 @@ import com.siemens.pki.cmpracomponent.msgvalidation.MessageBodyValidator;
 import com.siemens.pki.cmpracomponent.msgvalidation.MessageHeaderValidator;
 import com.siemens.pki.cmpracomponent.msgvalidation.ProtectionValidator;
 import com.siemens.pki.cmpracomponent.msgvalidation.ValidatorIF;
+import com.siemens.pki.cmpracomponent.util.ConfigLogger;
 import com.siemens.pki.cmpracomponent.util.FileTracer;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.security.GeneralSecurityException;
@@ -81,7 +82,10 @@ class ClientRequestHandler {
 
         public ValidatorAndProtector(NestedEndpointContext nestedEndpoint)
                 throws GeneralSecurityException, CmpProcessingException {
-            final VerificationContext inputVerification = nestedEndpoint.getInputVerification();
+            final VerificationContext inputVerification = ConfigLogger.logOptional(
+                    NESTED_INTERFACE_NAME,
+                    "NestedEndpointContext.getInputVerification()",
+                    () -> nestedEndpoint.getInputVerification());
             headerValidator = new MessageHeaderValidator(NESTED_INTERFACE_NAME);
             outputProtection = new MsgOutputProtector(nestedEndpoint, NESTED_INTERFACE_NAME);
             this.inputVerification = inputVerification;
@@ -91,7 +95,10 @@ class ClientRequestHandler {
 
         private ValidatorAndProtector(String certProfile, final CmpMessageInterface upstreamConfiguration)
                 throws GeneralSecurityException, CmpProcessingException {
-            this.inputVerification = upstreamConfiguration.getInputVerification();
+            this.inputVerification = ConfigLogger.logOptional(
+                    INTERFACE_NAME,
+                    "CmpMessageInterface.getInputVerification()",
+                    () -> upstreamConfiguration.getInputVerification());
             headerValidator = new MessageHeaderValidator(INTERFACE_NAME);
             outputProtection = new MsgOutputProtector(upstreamConfiguration, INTERFACE_NAME, null);
             protectionValidator = new ProtectionValidator(INTERFACE_NAME, inputVerification);
@@ -155,8 +162,12 @@ class ClientRequestHandler {
         this.upstreamExchange = upstreamExchange;
         this.certProfile = certProfile;
         validatorAndProtector = new ValidatorAndProtector(certProfile, upstreamConfiguration);
-        nestedValidatorAndProtector =
-                ifNotNull(upstreamConfiguration.getNestedEndpointContext(), ValidatorAndProtector::new);
+        nestedValidatorAndProtector = ifNotNull(
+                ConfigLogger.logOptional(
+                        INTERFACE_NAME,
+                        "CmpMessageInterface.getNestedEndpointContext()",
+                        () -> upstreamConfiguration.getNestedEndpointContext()),
+                ValidatorAndProtector::new);
     }
 
     PKIMessage buildFurtherRequest(final PKIMessage formerResponse, final PKIBody requestBody) throws Exception {

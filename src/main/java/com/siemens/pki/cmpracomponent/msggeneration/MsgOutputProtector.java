@@ -28,6 +28,7 @@ import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProviderFactory;
+import com.siemens.pki.cmpracomponent.util.ConfigLogger;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -76,17 +77,25 @@ public class MsgOutputProtector {
             final CmpMessageInterface config, final String interfaceName, final PersistencyContext persistencyContext)
             throws CmpProcessingException, GeneralSecurityException {
         this.persistencyContext = persistencyContext;
-        suppressRedundantExtraCerts = config.getSuppressRedundantExtraCerts();
-        reprotectMode = config.getReprotectMode();
-        recipient = ifNotNull(config.getRecipient(), rec -> new GeneralName(new X500Name(rec)));
-        final CredentialContext outputCredentials = config.getOutputCredentials();
+        suppressRedundantExtraCerts = ConfigLogger.log(
+                interfaceName,
+                "CmpMessageInterface.getSuppressRedundantExtraCerts()",
+                () -> config.getSuppressRedundantExtraCerts());
+        reprotectMode = ConfigLogger.log(
+                interfaceName, "CmpMessageInterface.getReprotectMode()", () -> config.getReprotectMode());
+        recipient = ifNotNull(
+                ConfigLogger.logOptional(
+                        interfaceName, "CmpMessageInterface.getRecipient()", () -> config.getRecipient()),
+                rec -> new GeneralName(new X500Name(rec)));
+        final CredentialContext outputCredentials = ConfigLogger.logOptional(
+                interfaceName, "CmpMessageInterface.getOutputCredentials()", () -> config.getOutputCredentials());
         if (reprotectMode == ReprotectMode.reprotect && outputCredentials == null) {
             throw new CmpProcessingException(
                     interfaceName,
                     PKIFailureInfo.wrongAuthority,
                     "reprotectMode is reprotect, but no output credentials are given");
         }
-        protector = ProtectionProviderFactory.createProtectionProvider(outputCredentials);
+        protector = ProtectionProviderFactory.createProtectionProvider(outputCredentials, interfaceName);
     }
 
     /**
@@ -101,8 +110,16 @@ public class MsgOutputProtector {
         this.persistencyContext = null;
         suppressRedundantExtraCerts = false;
         reprotectMode = ReprotectMode.reprotect;
-        recipient = ifNotNull(config.getRecipient(), rec -> new GeneralName(new X500Name(rec)));
-        protector = ProtectionProviderFactory.createProtectionProvider(config.getOutputCredentials());
+        recipient = ifNotNull(
+                ConfigLogger.logOptional(
+                        interfaceName, "NestedEndpointContext.getRecipient()", () -> config.getRecipient()),
+                rec -> new GeneralName(new X500Name(rec)));
+        protector = ProtectionProviderFactory.createProtectionProvider(
+                ConfigLogger.logOptional(
+                        interfaceName,
+                        "NestedEndpointContext.getOutputCredentials()",
+                        () -> config.getOutputCredentials()),
+                interfaceName);
     }
 
     /**

@@ -17,6 +17,7 @@
  */
 package com.siemens.pki.cmpracomponent.msgprocessing;
 
+import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
 import com.siemens.pki.cmpracomponent.configuration.Configuration;
 import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
 import com.siemens.pki.cmpracomponent.msggeneration.MsgOutputProtector;
@@ -28,6 +29,7 @@ import com.siemens.pki.cmpracomponent.msgvalidation.InputValidator;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContextManager;
 import com.siemens.pki.cmpracomponent.util.CmpFuncEx;
+import com.siemens.pki.cmpracomponent.util.ConfigLogger;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -131,8 +133,12 @@ class CmpRaUpstream implements RaUpstream {
                         } else {
                             return PkiMessageGenerator.generateUnprotectMessage(
                                     PkiMessageGenerator.buildRespondingHeaderProvider(in),
-                                    PkiMessageGenerator.generatePollRep(
-                                            config.getRetryAfterTimeInSeconds(certProfile, PKIBody.TYPE_POLL_REP)));
+                                    PkiMessageGenerator.generatePollRep(ConfigLogger.log(
+                                            INTERFACE_NAME,
+                                            "Configuration.getRetryAfterTimeInSeconds",
+                                            config::getRetryAfterTimeInSeconds,
+                                            certProfile,
+                                            PKIBody.TYPE_POLL_REP)));
                         }
                     default:
                         throw new CmpProcessingException(
@@ -144,20 +150,24 @@ class CmpRaUpstream implements RaUpstream {
             pesistencyContext.setInitialRequest(in);
 
             PKIMessage sentMessage;
+            final CmpMessageInterface upstreamConfiguration = ConfigLogger.log(
+                    INTERFACE_NAME,
+                    "Configuration.getUpstreamConfiguration",
+                    config::getUpstreamConfiguration,
+                    certProfile,
+                    in.getBody().getType());
             if (in.getBody().getType() == PKIBody.TYPE_KEY_UPDATE_REQ) {
                 // never re-protect a KUR
                 sentMessage = in;
             } else {
-                final MsgOutputProtector outputProtector = new MsgOutputProtector(
-                        config.getUpstreamConfiguration(
-                                certProfile, in.getBody().getType()),
-                        INTERFACE_NAME,
-                        pesistencyContext);
+                final MsgOutputProtector outputProtector =
+                        new MsgOutputProtector(upstreamConfiguration, INTERFACE_NAME, pesistencyContext);
                 sentMessage = outputProtector.protectOutgoingMessage(in, null);
             }
-            final NestedEndpointContext nestedEndpointContext = config.getUpstreamConfiguration(
-                            certProfile, in.getBody().getType())
-                    .getNestedEndpointContext();
+            final NestedEndpointContext nestedEndpointContext = ConfigLogger.logOptional(
+                    INTERFACE_NAME,
+                    "CmpMessageInterface.getNestedEndpointContext()",
+                    () -> upstreamConfiguration.getNestedEndpointContext());
             if (nestedEndpointContext != null) {
                 final MsgOutputProtector nestedProtector =
                         new MsgOutputProtector(nestedEndpointContext, "NESTED CMP upstream");

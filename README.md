@@ -170,6 +170,10 @@ between CMP RA component, downstream interface, and upstream interface:
   which supports dynamic changes.
     * Where appropriate, they may depend on a certificate profile
       optionally given in CMP request headers.
+* If accessing the configuration interface shall be logged, the SLF4J-Logger of
+  com.siemens.pki.cmpracomponent.util.ConfigLogger must be set to DEBUG, e.g.
+  start with 
+  -Dorg.slf4j.simpleLogger.log.com.siemens.pki.cmpracomponent.util.ConfigLogger=debug 
 
 
 ## Interfaces to inventory for certification request validation

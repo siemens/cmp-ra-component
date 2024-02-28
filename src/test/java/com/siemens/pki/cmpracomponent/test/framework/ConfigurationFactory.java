@@ -70,6 +70,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ConfigurationFactory {
 
+    private static final String INTERFACE_NAME = "testclient";
     private static final Logger LOGGER = LoggerFactory.getLogger(ConfigurationFactory.class);
     public static ProtectionProvider eeSignaturebasedProtectionProvider;
     public static ProtectionProvider eePbmac1ProtectionProvider;
@@ -705,7 +706,7 @@ public class ConfigurationFactory {
             throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException {
         if (eePasswordbasedProtectionProvider == null) {
             eePasswordbasedProtectionProvider =
-                    ProtectionProviderFactory.createProtectionProvider(getEeSharedSecretCredentials());
+                    ProtectionProviderFactory.createProtectionProvider(getEeSharedSecretCredentials(), INTERFACE_NAME);
         }
         return eePasswordbasedProtectionProvider;
     }
@@ -713,8 +714,8 @@ public class ConfigurationFactory {
     public static ProtectionProvider getEePbmac1ProtectionProvider()
             throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException {
         if (eePbmac1ProtectionProvider == null) {
-            eePbmac1ProtectionProvider =
-                    ProtectionProviderFactory.createProtectionProvider(new SharedSecret("PBMAC1", TestUtils.PASSWORD));
+            eePbmac1ProtectionProvider = ProtectionProviderFactory.createProtectionProvider(
+                    new SharedSecret("PBMAC1", TestUtils.PASSWORD), INTERFACE_NAME);
         }
         return eePbmac1ProtectionProvider;
     }
@@ -738,8 +739,8 @@ public class ConfigurationFactory {
 
     public static ProtectionProvider getEeSignaturebasedProtectionProvider() throws Exception {
         if (eeSignaturebasedProtectionProvider == null) {
-            eeSignaturebasedProtectionProvider =
-                    ProtectionProviderFactory.createProtectionProvider(getEeSignaturebasedCredentials());
+            eeSignaturebasedProtectionProvider = ProtectionProviderFactory.createProtectionProvider(
+                    getEeSignaturebasedCredentials(), INTERFACE_NAME);
         }
         return eeSignaturebasedProtectionProvider;
     }

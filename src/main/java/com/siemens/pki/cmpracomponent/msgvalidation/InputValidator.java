@@ -19,6 +19,7 @@ package com.siemens.pki.cmpracomponent.msgvalidation;
 
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
+import com.siemens.pki.cmpracomponent.util.ConfigLogger;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import com.siemens.pki.cmpracomponent.util.NullUtil.ExFunction;
 import java.util.Collection;
@@ -84,11 +85,20 @@ public class InputValidator implements ValidatorIF<PersistencyContext> {
                     in.getHeader().getTransactionID().getOctets());
             persistencyContext.setCertProfile(certProfile);
             certProfile = persistencyContext.getCertProfile();
-            final CmpMessageInterface cmpInterface =
-                    config.apply(certProfile, in.getBody().getType());
+            final CmpMessageInterface cmpInterface = ConfigLogger.log(
+                    interfaceName,
+                    "Configuration.getUpstreamConfiguration",
+                    config,
+                    certProfile,
+                    in.getBody().getType());
+            config.apply(certProfile, in.getBody().getType());
             new MessageBodyValidator(interfaceName, isRaVerifiedAcceptable, cmpInterface, certProfile).validate(in);
-            final ProtectionValidator protectionValidator =
-                    new ProtectionValidator(interfaceName, cmpInterface.getInputVerification());
+            final ProtectionValidator protectionValidator = new ProtectionValidator(
+                    interfaceName,
+                    ConfigLogger.logOptional(
+                            interfaceName,
+                            "CmpMessageInterface.getInputVerification()",
+                            () -> cmpInterface.getInputVerification()));
             protectionValidator.validate(in);
             return persistencyContext;
         } catch (final BaseCmpException ce) {

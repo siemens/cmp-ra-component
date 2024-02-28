@@ -22,6 +22,7 @@ import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
 import com.siemens.pki.cmpracomponent.configuration.SharedSecretCredentialContext;
 import com.siemens.pki.cmpracomponent.cryptoservices.WrappedMac;
+import com.siemens.pki.cmpracomponent.util.ConfigLogger;
 import java.util.List;
 import org.bouncycastle.asn1.ASN1Encoding;
 import org.bouncycastle.asn1.DERBitString;
@@ -42,8 +43,11 @@ public abstract class MacProtection implements ProtectionProvider {
 
     private WrappedMac protectingMac;
 
-    protected MacProtection(final SharedSecretCredentialContext config) {
+    protected String interfaceName;
+
+    protected MacProtection(final SharedSecretCredentialContext config, String interfaceName) {
         this.config = config;
+        this.interfaceName = interfaceName;
     }
 
     @Override
@@ -68,7 +72,10 @@ public abstract class MacProtection implements ProtectionProvider {
 
     @Override
     public DEROctetString getSenderKID() {
-        return ifNotNull(config.getSenderKID(), DEROctetString::new);
+        return ifNotNull(
+                ConfigLogger.logOptional(
+                        interfaceName, "SharedSecretCredentialContext.getSenderKID()", () -> config.getSenderKID()),
+                DEROctetString::new);
     }
 
     /**

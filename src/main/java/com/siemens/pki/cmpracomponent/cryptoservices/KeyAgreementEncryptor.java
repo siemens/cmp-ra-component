@@ -20,6 +20,7 @@ package com.siemens.pki.cmpracomponent.cryptoservices;
 import com.siemens.pki.cmpracomponent.configuration.CkgContext;
 import com.siemens.pki.cmpracomponent.configuration.CkgKeyAgreementContext;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpEnrollmentException;
+import com.siemens.pki.cmpracomponent.util.ConfigLogger;
 import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
@@ -49,8 +50,9 @@ public class KeyAgreementEncryptor extends CmsEncryptorBase {
             final int initialRequestType,
             final String interfaceName)
             throws GeneralSecurityException, CmpEnrollmentException {
-        super(config);
-        final CkgKeyAgreementContext keyAgreementContext = config.getKeyAgreementContext();
+        super(config, interfaceName);
+        final CkgKeyAgreementContext keyAgreementContext = ConfigLogger.log(
+                interfaceName, "CkgContext.getKeyAgreementContext()", () -> config.getKeyAgreementContext());
         if (keyAgreementContext == null) {
             throw new CmpEnrollmentException(
                     initialRequestType,
@@ -59,12 +61,27 @@ public class KeyAgreementEncryptor extends CmsEncryptorBase {
                     "support for key management technique Key Agreement is not configured for central key generation");
         }
         final JceKeyAgreeRecipientInfoGenerator infGen = new JceKeyAgreeRecipientInfoGenerator(
-                AlgorithmHelper.getKeyAgreementOID(keyAgreementContext.getKeyAgreementAlg()),
-                keyAgreementContext.getOwnPrivateKey(),
-                keyAgreementContext.getOwnPublicKey(),
-                AlgorithmHelper.getKekOID(keyAgreementContext.getKeyEncryptionAlg()));
+                AlgorithmHelper.getKeyAgreementOID(ConfigLogger.log(
+                        interfaceName,
+                        "CkgKeyAgreementContext.getKeyAgreementAlg()",
+                        () -> keyAgreementContext.getKeyAgreementAlg())),
+                ConfigLogger.log(
+                        interfaceName,
+                        "CkgKeyAgreementContext.getOwnPrivateKey()",
+                        () -> keyAgreementContext.getOwnPrivateKey()),
+                ConfigLogger.log(
+                        interfaceName,
+                        "CkgKeyAgreementContext.getOwnPublicKey()",
+                        () -> keyAgreementContext.getOwnPublicKey()),
+                AlgorithmHelper.getKekOID(ConfigLogger.log(
+                        interfaceName,
+                        "CkgKeyAgreementContext.getKeyEncryptionAlg()",
+                        () -> keyAgreementContext.getKeyEncryptionAlg())));
 
-        infGen.addRecipient(keyAgreementContext.getRecipient(protectingCert));
+        infGen.addRecipient(ConfigLogger.log(
+                interfaceName,
+                "CkgKeyAgreementContext.getRecipient(X509Certificate)",
+                () -> keyAgreementContext.getRecipient(protectingCert)));
         addRecipientInfoGenerator(infGen.setProvider(CertUtility.getBouncyCastleProvider()));
     }
 }
