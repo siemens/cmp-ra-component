@@ -82,14 +82,18 @@ class ClientRequestHandler {
 
         public ValidatorAndProtector(NestedEndpointContext nestedEndpoint)
                 throws GeneralSecurityException, CmpProcessingException {
-            final VerificationContext inputVerification = ConfigLogger.logOptional(
-                    NESTED_INTERFACE_NAME,
-                    "NestedEndpointContext.getInputVerification()",
-                    () -> nestedEndpoint.getInputVerification());
             headerValidator = new MessageHeaderValidator(NESTED_INTERFACE_NAME);
             outputProtection = new MsgOutputProtector(nestedEndpoint, NESTED_INTERFACE_NAME);
-            this.inputVerification = inputVerification;
-            protectionValidator = new ProtectionValidator(NESTED_INTERFACE_NAME, inputVerification);
+            this.inputVerification = ConfigLogger.logOptional(
+                    NESTED_INTERFACE_NAME,
+                    "NestedEndpointContext.getInputVerification()",
+                    nestedEndpoint::getInputVerification);
+            protectionValidator = new ProtectionValidator(
+                    NESTED_INTERFACE_NAME,
+                    ConfigLogger.logOptional(
+                            NESTED_INTERFACE_NAME,
+                            "NestedEndpointContext.getInputVerification()",
+                            nestedEndpoint::getInputVerification));
             bodyValidator = new MessageBodyValidator(NESTED_INTERFACE_NAME, (x, y) -> false, null, certProfile);
         }
 
@@ -98,7 +102,7 @@ class ClientRequestHandler {
             this.inputVerification = ConfigLogger.logOptional(
                     INTERFACE_NAME,
                     "CmpMessageInterface.getInputVerification()",
-                    () -> upstreamConfiguration.getInputVerification());
+                    upstreamConfiguration::getInputVerification);
             headerValidator = new MessageHeaderValidator(INTERFACE_NAME);
             outputProtection = new MsgOutputProtector(upstreamConfiguration, INTERFACE_NAME, null);
             protectionValidator = new ProtectionValidator(INTERFACE_NAME, inputVerification);
@@ -166,7 +170,7 @@ class ClientRequestHandler {
                 ConfigLogger.logOptional(
                         INTERFACE_NAME,
                         "CmpMessageInterface.getNestedEndpointContext()",
-                        () -> upstreamConfiguration.getNestedEndpointContext()),
+                        upstreamConfiguration::getNestedEndpointContext),
                 ValidatorAndProtector::new);
     }
 

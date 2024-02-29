@@ -98,7 +98,7 @@ public class InputValidator implements ValidatorIF<PersistencyContext> {
                     ConfigLogger.logOptional(
                             interfaceName,
                             "CmpMessageInterface.getInputVerification()",
-                            () -> cmpInterface.getInputVerification()));
+                            cmpInterface::getInputVerification));
             protectionValidator.validate(in);
             return persistencyContext;
         } catch (final BaseCmpException ce) {

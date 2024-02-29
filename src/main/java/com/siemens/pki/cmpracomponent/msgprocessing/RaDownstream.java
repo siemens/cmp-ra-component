@@ -229,8 +229,8 @@ class RaDownstream {
                     requesterDn = sender.toString();
                 }
             }
-            final String requesterDn_final = requesterDn;
-            final CertTemplate certTemplate_final = certTemplate;
+            final String requesterDnFinal = requesterDn;
+            final CertTemplate certTemplateFinal = certTemplate;
             final CheckAndModifyResult checkResult = ConfigLogger.logOptional(
                     INTERFACE_NAME,
                     "InventoryInterface.checkAndModifyCertRequest(byte[], String, byte[], String, byte[])",
@@ -238,9 +238,9 @@ class RaDownstream {
                         try {
                             return inventory.checkAndModifyCertRequest(
                                     persistencyContext.getTransactionId(),
-                                    requesterDn_final,
-                                    certTemplate_final.getEncoded(),
-                                    ifNotNull(certTemplate_final.getSubject(), X500Name::toString),
+                                    requesterDnFinal,
+                                    certTemplateFinal.getEncoded(),
+                                    ifNotNull(certTemplateFinal.getSubject(), X500Name::toString),
                                     incomingCertificateRequest.getEncoded());
                         } catch (IOException | RuntimeException e) {
                             return null;
@@ -248,8 +248,7 @@ class RaDownstream {
                     });
 
             if (checkResult == null
-                    || !ConfigLogger.log(
-                            INTERFACE_NAME, "CheckAndModifyResult.isGranted()", () -> checkResult.isGranted())) {
+                    || !ConfigLogger.log(INTERFACE_NAME, "CheckAndModifyResult.isGranted()", checkResult::isGranted)) {
                 throw new CmpEnrollmentException(
                         requestBodyType,
                         INTERFACE_NAME,
@@ -259,7 +258,7 @@ class RaDownstream {
             final byte[] updatedCertTemplate = ConfigLogger.logOptional(
                     INTERFACE_NAME,
                     "CheckAndModifyResult.getUpdatedCertTemplate()",
-                    () -> checkResult.getUpdatedCertTemplate());
+                    checkResult::getUpdatedCertTemplate);
             if (updatedCertTemplate != null) {
                 certTemplate = CertTemplate.getInstance(updatedCertTemplate);
                 certRequest = new CertRequest(0, certTemplate, certRequest.getControls());
@@ -404,7 +403,7 @@ class RaDownstream {
                     final NestedEndpointContext nestedEndpointContext = ConfigLogger.logOptional(
                             INTERFACE_NAME,
                             "CmpMessageInterface.getNestedEndpointContext()",
-                            () -> downstreamConfiguration.getNestedEndpointContext());
+                            downstreamConfiguration::getNestedEndpointContext);
                     if (nestedEndpointContext != null) {
                         final String NESTED_INTERFACE_NAME = "nested " + INTERFACE_NAME;
                         final MessageHeaderValidator headerValidator =
@@ -415,7 +414,7 @@ class RaDownstream {
                                 ConfigLogger.logOptional(
                                         NESTED_INTERFACE_NAME,
                                         "NestedEndpointContext.getInputVerification()",
-                                        () -> nestedEndpointContext.getInputVerification()));
+                                        nestedEndpointContext::getInputVerification));
                         protectionValidator.validate(in);
                         final PKIMessage[] embeddedMessages = PKIMessages.getInstance(
                                         in.getBody().getContent())
@@ -537,9 +536,9 @@ class RaDownstream {
                         requesterDn = sender.toString();
                     }
                 }
-                final PKCS10CertificationRequest p10Request_final = p10Request;
-                final PKIMessage incomingP10Request_final = incomingP10Request;
-                final String requesterDn_final = requesterDn;
+                final PKCS10CertificationRequest p10RequestFinal = p10Request;
+                final PKIMessage incomingP10RequestFinal = incomingP10Request;
+                final String requesterDnFinal = requesterDn;
                 if (!ConfigLogger.log(
                         INTERFACE_NAME,
                         "InventoryInterface.checkP10CertRequest(byte[], String, byte[], String, byte[])",
@@ -547,10 +546,10 @@ class RaDownstream {
                             try {
                                 return inventory.checkP10CertRequest(
                                         persistencyContext.getTransactionId(),
-                                        requesterDn_final,
-                                        p10Request_final.getEncoded(),
-                                        p10Request_final.getSubject().toString(),
-                                        incomingP10Request_final.getEncoded());
+                                        requesterDnFinal,
+                                        p10RequestFinal.getEncoded(),
+                                        p10RequestFinal.getSubject().toString(),
+                                        incomingP10RequestFinal.getEncoded());
                             } catch (final IOException e) {
                                 throw new RuntimeException(e);
                             }
@@ -808,9 +807,7 @@ class RaDownstream {
             }
 
             final SignatureCredentialContext signingCredentials = ConfigLogger.log(
-                    INTERFACE_NAME,
-                    "CkgContext.getSigningCredentials()",
-                    () -> ckgConfiguration.getSigningCredentials());
+                    INTERFACE_NAME, "CkgContext.getSigningCredentials()", ckgConfiguration::getSigningCredentials);
             if (signingCredentials == null) {
                 throw new CmpEnrollmentException(
                         initialRequestType,

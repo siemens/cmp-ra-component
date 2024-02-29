@@ -167,7 +167,7 @@ class CmpRaUpstream implements RaUpstream {
             final NestedEndpointContext nestedEndpointContext = ConfigLogger.logOptional(
                     INTERFACE_NAME,
                     "CmpMessageInterface.getNestedEndpointContext()",
-                    () -> upstreamConfiguration.getNestedEndpointContext());
+                    upstreamConfiguration::getNestedEndpointContext);
             if (nestedEndpointContext != null) {
                 final MsgOutputProtector nestedProtector =
                         new MsgOutputProtector(nestedEndpointContext, "NESTED CMP upstream");

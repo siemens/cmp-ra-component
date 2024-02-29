@@ -51,8 +51,8 @@ public class KeyTransportEncryptor extends CmsEncryptorBase {
             final String interfaceName)
             throws NoSuchAlgorithmException, CmpEnrollmentException {
         super(config, interfaceName);
-        final CkgKeyTransportContext transportContext = ConfigLogger.log(
-                interfaceName, "CkgContext.getKeyTransportContext()", () -> config.getKeyTransportContext());
+        final CkgKeyTransportContext transportContext =
+                ConfigLogger.log(interfaceName, "CkgContext.getKeyTransportContext()", config::getKeyTransportContext);
         if (transportContext == null) {
             throw new CmpEnrollmentException(
                     initialRequestType,

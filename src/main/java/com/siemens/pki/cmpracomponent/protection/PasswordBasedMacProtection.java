@@ -47,24 +47,24 @@ public class PasswordBasedMacProtection extends MacProtection {
         super(config, interfaceName);
 
         final byte[] raSecret = ConfigLogger.log(
-                interfaceName, "SharedSecretCredentialContext.getSharedSecret()", () -> config.getSharedSecret());
+                interfaceName, "SharedSecretCredentialContext.getSharedSecret()", config::getSharedSecret);
 
         final byte[] protectionSalt =
-                ConfigLogger.log(interfaceName, "SharedSecretCredentialContext.getSalt()", () -> config.getSalt());
+                ConfigLogger.log(interfaceName, "SharedSecretCredentialContext.getSalt()", config::getSalt);
         byte[] calculatingBaseKey = new byte[raSecret.length + protectionSalt.length];
         System.arraycopy(raSecret, 0, calculatingBaseKey, 0, raSecret.length);
         System.arraycopy(protectionSalt, 0, calculatingBaseKey, raSecret.length, protectionSalt.length);
         // Construct the base key according to rfc4210, section 5.1.3.1
         final MessageDigest dig = AlgorithmHelper.getMessageDigest(
-                ConfigLogger.log(interfaceName, "SharedSecretCredentialContext.getPrf()", () -> config.getPrf()));
+                ConfigLogger.log(interfaceName, "SharedSecretCredentialContext.getPrf()", config::getPrf));
         final int iterationCount = ConfigLogger.log(
-                interfaceName, "SharedSecretCredentialContext.getIterationCount()", () -> config.getIterationCount());
+                interfaceName, "SharedSecretCredentialContext.getIterationCount()", config::getIterationCount);
         for (int i = 0; i < iterationCount; i++) {
             calculatingBaseKey = dig.digest(calculatingBaseKey);
             dig.reset();
         }
         final AlgorithmIdentifier macAlgorithm = new AlgorithmIdentifier(AlgorithmHelper.getOidForMac(ConfigLogger.log(
-                interfaceName, "SharedSecretCredentialContext.getMacAlgorithm()", () -> config.getMacAlgorithm())));
+                interfaceName, "SharedSecretCredentialContext.getMacAlgorithm()", config::getMacAlgorithm)));
         final Mac protectingMac =
                 AlgorithmHelper.getMac(macAlgorithm.getAlgorithm().getId());
         protectingMac.init(new SecretKeySpec(calculatingBaseKey, protectingMac.getAlgorithm()));

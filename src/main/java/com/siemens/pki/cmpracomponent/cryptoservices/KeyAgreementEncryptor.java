@@ -51,8 +51,8 @@ public class KeyAgreementEncryptor extends CmsEncryptorBase {
             final String interfaceName)
             throws GeneralSecurityException, CmpEnrollmentException {
         super(config, interfaceName);
-        final CkgKeyAgreementContext keyAgreementContext = ConfigLogger.log(
-                interfaceName, "CkgContext.getKeyAgreementContext()", () -> config.getKeyAgreementContext());
+        final CkgKeyAgreementContext keyAgreementContext =
+                ConfigLogger.log(interfaceName, "CkgContext.getKeyAgreementContext()", config::getKeyAgreementContext);
         if (keyAgreementContext == null) {
             throw new CmpEnrollmentException(
                     initialRequestType,
@@ -64,19 +64,19 @@ public class KeyAgreementEncryptor extends CmsEncryptorBase {
                 AlgorithmHelper.getKeyAgreementOID(ConfigLogger.log(
                         interfaceName,
                         "CkgKeyAgreementContext.getKeyAgreementAlg()",
-                        () -> keyAgreementContext.getKeyAgreementAlg())),
+                        keyAgreementContext::getKeyAgreementAlg)),
                 ConfigLogger.log(
                         interfaceName,
                         "CkgKeyAgreementContext.getOwnPrivateKey()",
-                        () -> keyAgreementContext.getOwnPrivateKey()),
+                        keyAgreementContext::getOwnPrivateKey),
                 ConfigLogger.log(
                         interfaceName,
                         "CkgKeyAgreementContext.getOwnPublicKey()",
-                        () -> keyAgreementContext.getOwnPublicKey()),
+                        keyAgreementContext::getOwnPublicKey),
                 AlgorithmHelper.getKekOID(ConfigLogger.log(
                         interfaceName,
                         "CkgKeyAgreementContext.getKeyEncryptionAlg()",
-                        () -> keyAgreementContext.getKeyEncryptionAlg())));
+                        keyAgreementContext::getKeyEncryptionAlg)));
 
         infGen.addRecipient(ConfigLogger.log(
                 interfaceName,

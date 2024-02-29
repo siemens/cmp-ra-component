@@ -80,15 +80,14 @@ public class MsgOutputProtector {
         suppressRedundantExtraCerts = ConfigLogger.log(
                 interfaceName,
                 "CmpMessageInterface.getSuppressRedundantExtraCerts()",
-                () -> config.getSuppressRedundantExtraCerts());
-        reprotectMode = ConfigLogger.log(
-                interfaceName, "CmpMessageInterface.getReprotectMode()", () -> config.getReprotectMode());
+                config::getSuppressRedundantExtraCerts);
+        reprotectMode =
+                ConfigLogger.log(interfaceName, "CmpMessageInterface.getReprotectMode()", config::getReprotectMode);
         recipient = ifNotNull(
-                ConfigLogger.logOptional(
-                        interfaceName, "CmpMessageInterface.getRecipient()", () -> config.getRecipient()),
+                ConfigLogger.logOptional(interfaceName, "CmpMessageInterface.getRecipient()", config::getRecipient),
                 rec -> new GeneralName(new X500Name(rec)));
         final CredentialContext outputCredentials = ConfigLogger.logOptional(
-                interfaceName, "CmpMessageInterface.getOutputCredentials()", () -> config.getOutputCredentials());
+                interfaceName, "CmpMessageInterface.getOutputCredentials()", config::getOutputCredentials);
         if (reprotectMode == ReprotectMode.reprotect && outputCredentials == null) {
             throw new CmpProcessingException(
                     interfaceName,
@@ -111,14 +110,11 @@ public class MsgOutputProtector {
         suppressRedundantExtraCerts = false;
         reprotectMode = ReprotectMode.reprotect;
         recipient = ifNotNull(
-                ConfigLogger.logOptional(
-                        interfaceName, "NestedEndpointContext.getRecipient()", () -> config.getRecipient()),
+                ConfigLogger.logOptional(interfaceName, "NestedEndpointContext.getRecipient()", config::getRecipient),
                 rec -> new GeneralName(new X500Name(rec)));
         protector = ProtectionProviderFactory.createProtectionProvider(
                 ConfigLogger.logOptional(
-                        interfaceName,
-                        "NestedEndpointContext.getOutputCredentials()",
-                        () -> config.getOutputCredentials()),
+                        interfaceName, "NestedEndpointContext.getOutputCredentials()", config::getOutputCredentials),
                 interfaceName);
     }
 

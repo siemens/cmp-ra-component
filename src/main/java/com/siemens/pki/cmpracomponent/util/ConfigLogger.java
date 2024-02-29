@@ -237,4 +237,6 @@ public class ConfigLogger {
         }
         return MessageDumper.msgTypeAsString(bodyType) + "(" + bodyType + ")";
     }
+    // utility class
+    private ConfigLogger() {}
 }

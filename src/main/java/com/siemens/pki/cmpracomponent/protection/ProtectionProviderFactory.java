@@ -47,7 +47,7 @@ public class ProtectionProviderFactory {
             final String passwordBasedMacAlgorithm = ConfigLogger.log(
                     interfaceName,
                     "SharedSecretCredentialContext.getPasswordBasedMacAlgorithm()",
-                    () -> ssConfig.getPasswordBasedMacAlgorithm());
+                    ssConfig::getPasswordBasedMacAlgorithm);
             switch (passwordBasedMacAlgorithm.toLowerCase()) {
                 case "1.2.840.113533.7.66.13":
                 case "id-passwordbasedmac":

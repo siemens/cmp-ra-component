@@ -44,7 +44,7 @@ public class BaseCredentialService {
 
     protected List<X509Certificate> getCertChain() {
         return ConfigLogger.log(
-                interfaceName, "SignatureCredentialContext.getCertificateChain()", () -> config.getCertificateChain());
+                interfaceName, "SignatureCredentialContext.getCertificateChain()", config::getCertificateChain);
     }
 
     /**
@@ -60,8 +60,7 @@ public class BaseCredentialService {
      * @return private key related to end certificate
      */
     public PrivateKey getPrivateKey() {
-        return ConfigLogger.log(
-                interfaceName, "SignatureCredentialContext.getPrivateKey()", () -> config.getPrivateKey());
+        return ConfigLogger.log(interfaceName, "SignatureCredentialContext.getPrivateKey()", config::getPrivateKey);
     }
 
     protected AlgorithmIdentifier getSignatureAlgorithm() {
@@ -72,6 +71,6 @@ public class BaseCredentialService {
         return ConfigLogger.log(
                 interfaceName,
                 "SignatureCredentialContext.getSignatureAlgorithmName()",
-                () -> config.getSignatureAlgorithmName());
+                config::getSignatureAlgorithmName);
     }
 }

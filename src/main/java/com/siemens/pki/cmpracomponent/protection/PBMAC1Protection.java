@@ -49,13 +49,12 @@ public class PBMAC1Protection extends MacProtection {
     public PBMAC1Protection(final SharedSecretCredentialContext config, String interfaceName)
             throws InvalidKeySpecException, InvalidKeyException, NoSuchAlgorithmException {
         super(config, interfaceName);
-        final byte[] salt =
-                ConfigLogger.log(interfaceName, "SharedSecretCredentialContext.getSalt()", () -> config.getSalt());
-        final AlgorithmIdentifier prfAlgorithm = AlgorithmHelper.getPrf(ConfigLogger.log(
-                        interfaceName, "SharedSecretCredentialContext.getPrf()", () -> config.getPrf()))
+        final byte[] salt = ConfigLogger.log(interfaceName, "SharedSecretCredentialContext.getSalt()", config::getSalt);
+        final AlgorithmIdentifier prfAlgorithm = AlgorithmHelper.getPrf(
+                        ConfigLogger.log(interfaceName, "SharedSecretCredentialContext.getPrf()", config::getPrf))
                 .getAlgorithmID();
-        final int keyLength = ConfigLogger.log(
-                interfaceName, "SharedSecretCredentialContext.getkeyLength()", () -> config.getkeyLength());
+        final int keyLength =
+                ConfigLogger.log(interfaceName, "SharedSecretCredentialContext.getkeyLength()", config::getkeyLength);
         final AlgorithmIdentifier keyDerivationFunc = new AlgorithmIdentifier(
                 PKCSObjectIdentifiers.id_PBKDF2,
                 new PBKDF2Params(
@@ -63,7 +62,7 @@ public class PBMAC1Protection extends MacProtection {
                         ConfigLogger.log(
                                 interfaceName,
                                 "SharedSecretCredentialContext.getIterationCount()",
-                                () -> config.getIterationCount()),
+                                config::getIterationCount),
                         keyLength,
                         prfAlgorithm));
         final SecretKeyFactory keyFact =
@@ -75,9 +74,7 @@ public class PBMAC1Protection extends MacProtection {
                 keyLength));
         final AlgorithmIdentifier messageAuthScheme =
                 new AlgorithmIdentifier(AlgorithmHelper.getOidForMac(ConfigLogger.log(
-                        interfaceName,
-                        "SharedSecretCredentialContext.getMacAlgorithm()",
-                        () -> config.getMacAlgorithm())));
+                        interfaceName, "SharedSecretCredentialContext.getMacAlgorithm()", config::getMacAlgorithm)));
         final AlgorithmIdentifier protectionAlg = new AlgorithmIdentifier(
                 PKCSObjectIdentifiers.id_PBMAC1, new PBMAC1Params(keyDerivationFunc, messageAuthScheme));
         final WrappedMac wrappedMac = WrappedMacFactory.createWrappedMac(messageAuthScheme, key.getEncoded());

@@ -116,14 +116,14 @@ class ServiceImplementation {
                         }
                     }
                 }
-                final String[] dpnFullName_final = dpnFullName;
-                final String dpnNameRelativeToCRLIssuer_final = dpnNameRelativeToCRLIssuer;
+                final String[] dpnFullNameFinal = dpnFullName;
+                final String dpnNameRelativeToCRLIssuerFinal = dpnNameRelativeToCRLIssuer;
                 final List<X509CRL> crlsToAdd = ConfigLogger.logOptional(
                         INTERFACE_NAME,
                         "CrlUpdateRetrievalHandler.getCrls(String[], String, String[], Date)",
                         () -> messageHandler.getCrls(
-                                dpnFullName_final,
-                                dpnNameRelativeToCRLIssuer_final,
+                                dpnFullNameFinal,
+                                dpnNameRelativeToCRLIssuerFinal,
                                 issuers,
                                 ifNotNull(crlStatus.getThisUpdate(), Time::getDate)));
                 if (crlsToAdd != null) {
@@ -159,9 +159,7 @@ class ServiceImplementation {
             final ASN1ObjectIdentifier infoType, final GetCaCertificatesHandler messageHandler)
             throws CertificateException {
         final List<X509Certificate> caCertificates = ConfigLogger.logOptional(
-                INTERFACE_NAME,
-                "GetCaCertificatesHandler.getCaCertificates()",
-                () -> messageHandler.getCaCertificates());
+                INTERFACE_NAME, "GetCaCertificatesHandler.getCaCertificates()", messageHandler::getCaCertificates);
         if (caCertificates != null) {
             final CMPCertificate[] certificates = CertUtility.asCmpCertificates(caCertificates);
             return new PKIBody(
@@ -177,7 +175,7 @@ class ServiceImplementation {
         final byte[] template = ConfigLogger.logOptional(
                 INTERFACE_NAME,
                 "GetCertificateRequestTemplateHandler.getCertificateRequestTemplate()",
-                () -> messageHandler.getCertificateRequestTemplate());
+                messageHandler::getCertificateRequestTemplate);
         if (template != null) {
             return new PKIBody(
                     PKIBody.TYPE_GEN_REP,
@@ -203,20 +201,20 @@ class ServiceImplementation {
                 && ConfigLogger.logOptional(
                                 INTERFACE_NAME,
                                 "GetRootCaCertificateUpdateHandler.RootCaCertificateUpdateResponse.getNewWithNew()",
-                                () -> response.getNewWithNew())
+                                response::getNewWithNew)
                         != null) {
             final X509Certificate newWithNew = ConfigLogger.logOptional(
                     INTERFACE_NAME,
                     "GetRootCaCertificateUpdateHandler.RootCaCertificateUpdateResponse.getNewWithNew()",
-                    () -> response.getNewWithNew());
+                    response::getNewWithNew);
             final X509Certificate newWithOld = ConfigLogger.logOptional(
                     INTERFACE_NAME,
                     "GetRootCaCertificateUpdateHandler.RootCaCertificateUpdateResponse.getNewWithOld()",
-                    () -> response.getNewWithOld());
+                    response::getNewWithOld);
             final X509Certificate oldWithNew = ConfigLogger.logOptional(
                     INTERFACE_NAME,
                     "GetRootCaCertificateUpdateHandler.RootCaCertificateUpdateResponse.getOldWithNew()",
-                    () -> response.getOldWithNew());
+                    response::getOldWithNew);
             return new PKIBody(
                     PKIBody.TYPE_GEN_REP,
                     new GenRepContent(new InfoTypeAndValue(

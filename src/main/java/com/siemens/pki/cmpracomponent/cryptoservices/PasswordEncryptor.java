@@ -45,7 +45,7 @@ public class PasswordEncryptor extends CmsEncryptorBase {
             throws NoSuchAlgorithmException, CmpEnrollmentException {
         super(config, interfaceName);
         final CkgPasswordContext passwordContext =
-                ConfigLogger.log(interfaceName, "CkgContext.getPasswordContext()", () -> config.getPasswordContext());
+                ConfigLogger.log(interfaceName, "CkgContext.getPasswordContext()", config::getPasswordContext);
         if (passwordContext == null) {
             throw new CmpEnrollmentException(
                     initialRequestType,
@@ -56,26 +56,26 @@ public class PasswordEncryptor extends CmsEncryptorBase {
         final SharedSecretCredentialContext encryptionCredentials = ConfigLogger.log(
                 interfaceName,
                 "CkgPasswordContext.getEncryptionCredentials()",
-                () -> passwordContext.getEncryptionCredentials());
+                passwordContext::getEncryptionCredentials);
         addRecipientInfoGenerator(new JcePasswordRecipientInfoGenerator(
                         AlgorithmHelper.getKeyEncryptionOID(ConfigLogger.log(
-                                interfaceName, "CkgPasswordContext.getKekAlg()", () -> passwordContext.getKekAlg())),
+                                interfaceName, "CkgPasswordContext.getKekAlg()", passwordContext::getKekAlg)),
                         AlgorithmHelper.convertSharedSecretToPassword(ConfigLogger.log(
                                 interfaceName,
                                 "SharedSecretCredentialContext.getSharedSecret()",
-                                () -> encryptionCredentials.getSharedSecret())))
+                                encryptionCredentials::getSharedSecret)))
                 .setProvider(CertUtility.getBouncyCastleProvider())
                 .setPasswordConversionScheme(PasswordRecipient.PKCS5_SCHEME2_UTF8)
                 .setPRF(AlgorithmHelper.getPrf(ConfigLogger.log(
-                        interfaceName, "SharedSecretCredentialContext.getPrf()", () -> encryptionCredentials.getPrf())))
+                        interfaceName, "SharedSecretCredentialContext.getPrf()", encryptionCredentials::getPrf)))
                 .setSaltAndIterationCount(
                         ConfigLogger.log(
                                 interfaceName,
                                 "SharedSecretCredentialContext.getSalt()",
-                                () -> encryptionCredentials.getSalt()),
+                                encryptionCredentials::getSalt),
                         ConfigLogger.log(
                                 interfaceName,
                                 "SharedSecretCredentialContext.getIterationCount()",
-                                () -> encryptionCredentials.getIterationCount())));
+                                encryptionCredentials::getIterationCount)));
     }
 }

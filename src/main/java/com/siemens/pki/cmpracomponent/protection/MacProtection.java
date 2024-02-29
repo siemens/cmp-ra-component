@@ -74,7 +74,7 @@ public abstract class MacProtection implements ProtectionProvider {
     public DEROctetString getSenderKID() {
         return ifNotNull(
                 ConfigLogger.logOptional(
-                        interfaceName, "SharedSecretCredentialContext.getSenderKID()", () -> config.getSenderKID()),
+                        interfaceName, "SharedSecretCredentialContext.getSenderKID()", config::getSenderKID),
                 DEROctetString::new);
     }
 

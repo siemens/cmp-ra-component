@@ -100,7 +100,7 @@ public class TrustCredentialAdapter {
             final X509Certificate cert, final List<X509Certificate> additionalIntermediateCerts)
             throws NoSuchProviderException {
         final Collection<X509Certificate> trustedCertificates = ConfigLogger.logOptional(
-                interfaceName, "VerificationContext.getTrustedCertificates()", () -> config.getTrustedCertificates());
+                interfaceName, "VerificationContext.getTrustedCertificates()", config::getTrustedCertificates);
         if (trustedCertificates == null) {
             return null;
         }
@@ -139,7 +139,7 @@ public class TrustCredentialAdapter {
 
             final PKIXBuilderParameters params = new PKIXBuilderParameters(trust, targetConstraints);
 
-            if (ConfigLogger.log(interfaceName, "VerificationContext.isAIAsEnabled()", () -> config.isAIAsEnabled())) {
+            if (ConfigLogger.log(interfaceName, "VerificationContext.isAIAsEnabled()", config::isAIAsEnabled)) {
                 revocationEnabled = true;
                 java.security.Security.setProperty(OCSP_ENABLE_PROP, "true");
                 System.setProperty("com.sun.security.enableAIAcaIssuers", "true");
@@ -147,7 +147,7 @@ public class TrustCredentialAdapter {
                 System.setProperty("com.sun.security.enableAIAcaIssuers", FALSE_STRING);
             }
 
-            if (ConfigLogger.log(interfaceName, "VerificationContext.isCDPsEnabled()", () -> config.isCDPsEnabled())) {
+            if (ConfigLogger.log(interfaceName, "VerificationContext.isCDPsEnabled()", config::isCDPsEnabled)) {
                 revocationEnabled = true;
                 System.setProperty("com.sun.security.enableCRLDP", "true");
             } else {
@@ -164,7 +164,7 @@ public class TrustCredentialAdapter {
             }
 
             final Collection<X509Certificate> additionalCertsFromConfig = ConfigLogger.logOptional(
-                    interfaceName, "VerificationContext.getAdditionalCerts()", () -> config.getAdditionalCerts());
+                    interfaceName, "VerificationContext.getAdditionalCerts()", config::getAdditionalCerts);
             if (additionalCertsFromConfig != null) {
                 lstCertCrlStores.addAll(additionalCertsFromConfig);
             }
@@ -174,7 +174,7 @@ public class TrustCredentialAdapter {
             params.addCertStore(certStore);
 
             final Collection<X509CRL> crlsFromConfig =
-                    ConfigLogger.logOptional(interfaceName, "VerificationContext.getCRLs()", () -> config.getCRLs());
+                    ConfigLogger.logOptional(interfaceName, "VerificationContext.getCRLs()", config::getCRLs);
             if (crlsFromConfig != null) {
                 if (!crlsFromConfig.isEmpty()) {
                     revocationEnabled = true;
@@ -191,13 +191,13 @@ public class TrustCredentialAdapter {
             final EnumSet<Option> pkixRevocationCheckerOptions = ConfigLogger.logOptional(
                     interfaceName,
                     "VerificationContext.getPKIXRevocationCheckerOptions()",
-                    () -> config.getPKIXRevocationCheckerOptions());
+                    config::getPKIXRevocationCheckerOptions);
             if (pkixRevocationCheckerOptions != null) {
                 revChecker.setOptions(pkixRevocationCheckerOptions);
             }
 
             final URI ocspResponder = ConfigLogger.logOptional(
-                    interfaceName, "VerificationContext.getOCSPResponder()", () -> config.getOCSPResponder());
+                    interfaceName, "VerificationContext.getOCSPResponder()", config::getOCSPResponder);
             if (ocspResponder != null) {
                 revocationEnabled = true;
                 java.security.Security.setProperty(OCSP_ENABLE_PROP, "true");

@@ -64,7 +64,7 @@ public class CmsEncryptorBase {
                 new JceCMSContentEncryptorBuilder(AlgorithmHelper.getKeyEncryptionOID(ConfigLogger.log(
                                 interfaceName,
                                 "CkgContext.getContentEncryptionAlg()",
-                                () -> config.getContentEncryptionAlg())))
+                                config::getContentEncryptionAlg)))
                         .setProvider(CertUtility.getBouncyCastleProvider())
                         .build());
         return EnvelopedData.getInstance(cmsEnvData.toASN1Structure().getContent());
