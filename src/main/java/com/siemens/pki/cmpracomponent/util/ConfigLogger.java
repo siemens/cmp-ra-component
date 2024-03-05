@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ConfigLogger {
 
+    private static final String DYNAMIC_CONFIGURATION_EXCEPTION = "DynamicConfigurationException: ";
     private static final Logger LOGGER = LoggerFactory.getLogger(ConfigLogger.class);
 
     private static <T> void doInnerLogging(
@@ -106,23 +107,22 @@ public class ConfigLogger {
         try {
             ret = accessFunction.apply(certProfile, bodyType);
         } catch (final Throwable ex) {
-            LOGGER.error(
-                    "exception calling " + accessFunctionName + "(" + certProfile + ", " + typeToString(bodyType)
-                            + ") for \"" + interfaceName + "\"",
-                    ex);
+            final String errorMsg = "exception calling " + accessFunctionName + "(" + certProfile + ", "
+                    + typeToString(bodyType) + ") for \"" + interfaceName + "\"";
+            LOGGER.error(errorMsg, ex);
             Throwable cause = ex.getCause();
             while (cause != null) {
                 LOGGER.error("cause", cause);
                 cause = cause.getCause();
             }
-            throw ex;
+            throw new RuntimeException(DYNAMIC_CONFIGURATION_EXCEPTION + errorMsg, ex);
         }
         doInnerLogging(interfaceName, accessFunctionName, certProfile, bodyType, ret);
         if (ret == null) {
             final String logMsg = "calling " + accessFunctionName + "(" + certProfile + ", " + typeToString(bodyType)
                     + ") for \"" + interfaceName + "\" returns null, but this configuration item is mandatory";
             LOGGER.error(logMsg);
-            throw new NullPointerException(logMsg);
+            throw new RuntimeException(DYNAMIC_CONFIGURATION_EXCEPTION + logMsg);
         }
         return ret;
     }
@@ -142,20 +142,21 @@ public class ConfigLogger {
         try {
             ret = accessFunction.get();
         } catch (final Throwable ex) {
-            LOGGER.error("exception calling " + accessFunctionName + " for \"" + interfaceName + "\"", ex);
+            final String errorMsg = "exception calling " + accessFunctionName + " for \"" + interfaceName + "\"";
+            LOGGER.error(errorMsg, ex);
             Throwable cause = ex.getCause();
             while (cause != null) {
                 LOGGER.error("cause", cause);
                 cause = cause.getCause();
             }
-            throw ex;
+            throw new RuntimeException(DYNAMIC_CONFIGURATION_EXCEPTION + errorMsg, ex);
         }
         doInnerLogging(interfaceName, accessFunctionName, ret);
         if (ret == null) {
             final String logMsg = "calling " + accessFunctionName + " for \"" + interfaceName
                     + "\" returns null, but this configuration item is mandatory";
             LOGGER.error(logMsg);
-            throw new NullPointerException(logMsg);
+            throw new RuntimeException(DYNAMIC_CONFIGURATION_EXCEPTION + logMsg);
         }
         return ret;
     }
@@ -185,16 +186,15 @@ public class ConfigLogger {
         try {
             ret = accessFunction.apply(certProfile, bodyType);
         } catch (final Throwable ex) {
-            LOGGER.error(
-                    "exception calling " + accessFunctionName + "(" + certProfile + ", " + typeToString(bodyType)
-                            + ") for \"" + interfaceName + "\", proceed without configuration",
-                    ex);
+            final String errorMsg = "exception calling " + accessFunctionName + "(" + certProfile + ", "
+                    + typeToString(bodyType) + ") for \"" + interfaceName + "\"";
+            LOGGER.error(errorMsg, ex);
             Throwable cause = ex.getCause();
             while (cause != null) {
                 LOGGER.error("cause", cause);
                 cause = cause.getCause();
             }
-            return null;
+            throw new RuntimeException(DYNAMIC_CONFIGURATION_EXCEPTION + errorMsg, ex);
         }
         doInnerLogging(interfaceName, accessFunctionName, certProfile, bodyType, ret);
         return ret;
@@ -216,16 +216,14 @@ public class ConfigLogger {
         try {
             ret = accessFunction.get();
         } catch (final Throwable ex) {
-            LOGGER.error(
-                    "exception while calling " + accessFunctionName + " for  \"" + interfaceName
-                            + "\", proceed without configuration",
-                    ex);
+            final String errorMsg = "exception while calling " + accessFunctionName + " for  \"" + interfaceName + "\"";
+            LOGGER.error(errorMsg, ex);
             Throwable cause = ex.getCause();
             while (cause != null) {
                 LOGGER.error("cause", cause);
                 cause = cause.getCause();
             }
-            return null;
+            throw new RuntimeException(DYNAMIC_CONFIGURATION_EXCEPTION + errorMsg, ex);
         }
         doInnerLogging(interfaceName, accessFunctionName, ret);
         return ret;
