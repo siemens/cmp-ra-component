@@ -46,7 +46,7 @@ public class TestKemAlgs {
         //
         {"Kyber"},
         {BCObjectIdentifiers.kyber512.getId()},
-        {BCObjectIdentifiers.kyber1024_aes.getId()},
+        {BCObjectIdentifiers.kyber1024.getId()},
         //
         {"CMCE"},
         //

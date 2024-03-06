@@ -31,15 +31,6 @@ public interface ClientContext {
     EnrollmentContext getEnrollmentContext();
 
     /**
-     * CMP message recipient or <code>null</code> if NULL_DN should be used
-     *
-     * @return
-     */
-    default String getRecipient() {
-        return null;
-    }
-
-    /**
      * get revocation specific configuration
      *
      * @return revocation specific configuration

@@ -261,8 +261,8 @@ public class AlgorithmHelper {
         KDF_OIDS.addAll(PKCSObjectIdentifiers.id_alg_hkdf_with_sha512, "id_alg_hkdf_with_sha512", "hkdf_with_sha512");
     }
 
-    public static char[] convertSharedSecretToPassword(final byte[] password) {
-        if (password == null || password.length == 0) {
+    public static char[] convertSharedSecretToPassword(final byte[] sharedSecret) {
+        if (sharedSecret == null || sharedSecret.length == 0) {
             return new char[0];
         }
         final char[] ret = new char[sharedSecret.length];

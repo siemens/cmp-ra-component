@@ -424,7 +424,7 @@ class RaDownstream {
                         issuingChain = null;
                 }
                 return getOutputProtector(persistencyContext, responseBodyType)
-                        .protectOutgoingMessage(
+                        .protectAndForwardMessage(
                                 new PKIMessage(
                                         responseFromUpstream.getHeader(),
                                         responseFromUpstream.getBody(),

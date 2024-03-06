@@ -18,6 +18,7 @@
 package com.siemens.pki.cmpracomponent.msgprocessing;
 
 import com.siemens.pki.cmpracomponent.configuration.Configuration;
+import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
 import com.siemens.pki.cmpracomponent.msggeneration.MsgOutputProtector;
 import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
@@ -28,6 +29,8 @@ import com.siemens.pki.cmpracomponent.msgvalidation.InputValidator;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext.InterfaceContext;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContextManager;
+import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
+import com.siemens.pki.cmpracomponent.protection.ProtectionProviderFactory;
 import com.siemens.pki.cmpracomponent.util.CmpFuncEx;
 import java.util.Arrays;
 import java.util.Collection;
@@ -161,8 +164,6 @@ class CmpRaUpstream implements RaUpstream {
                             certProfile, in.getBody().getType())
                     .getNestedEndpointContext();
             if (nestedEndpointContext != null) {
-                final MsgOutputProtector nestedProtector =
-                        new MsgOutputProtector(nestedEndpointContext, "NESTED CMP upstream");
                 // wrap into nested message
                 final CredentialContext nestedOutputCredentials = nestedEndpointContext.getOutputCredentials();
                 final ProtectionProvider nestedProtector = ProtectionProviderFactory.createProtectionProvider(

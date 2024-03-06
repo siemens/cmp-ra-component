@@ -173,13 +173,13 @@ class ClientRequestHandler {
 
     private final UpstreamExchange upstreamExchange;
 
-    private final GeneralName recipient;
-
     private final String certProfile;
 
     private final ValidatorAndProtector nestedValidatorAndProtector;
 
     private final DEROctetString transactionId = new DEROctetString(CertUtility.generateRandomBytes(16));
+
+    private final GeneralName recipient;
 
     /**
      * @param certProfile           certificate profile to be used for enrollment.
@@ -202,8 +202,9 @@ class ClientRequestHandler {
             final ClientContext clientContext)
             throws GeneralSecurityException {
         this.upstreamExchange = upstreamExchange;
-        recipient = ifNotNull(clientContext.getRecipient(), r -> new GeneralName(new X500Name(r)));
+
         this.certProfile = certProfile;
+        recipient = ifNotNull(upstreamConfiguration.getRecipient(), x -> new GeneralName(new X500Name(x)));
         validatorAndProtector = new ValidatorAndProtector(certProfile, upstreamConfiguration);
         nestedValidatorAndProtector =
                 ifNotNull(upstreamConfiguration.getNestedEndpointContext(), ValidatorAndProtector::new);

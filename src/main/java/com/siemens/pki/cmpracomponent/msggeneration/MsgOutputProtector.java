@@ -23,7 +23,6 @@ import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface.ReprotectMode;
 import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
-import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext.InterfaceContext;
@@ -74,7 +73,7 @@ public class MsgOutputProtector {
      * @throws CmpProcessingException   in case of inconsistent configuration
      * @throws GeneralSecurityException in case of broken configuration
      */
-    MsgOutputProtector(
+    public MsgOutputProtector(
             final CmpMessageInterface config,
             final String interfaceName,
             final PersistencyContext persistencyContext,
@@ -108,6 +107,19 @@ public class MsgOutputProtector {
     }
 
     /**
+     * generate and protect a response to a request
+     *
+     * @param request request to answer
+     * @param body    body of new message
+     * @return new message
+     * @throws Exception in case of error
+     */
+    public PKIMessage generateAndProtectResponseTo(PKIMessage request, final PKIBody body) throws Exception {
+        return stripRedundantExtraCerts(PkiMessageGenerator.generateAndProtectMessage(
+                PkiMessageGenerator.buildRespondingHeaderProvider(request), protector, recipient, body, null));
+    }
+
+    /**
      * protect and forward a PKI message
      *
      * @param in           message to forward
@@ -116,15 +128,21 @@ public class MsgOutputProtector {
      * @return protected message
      * @throws Exception in case of processing error
      */
-    PKIMessage protectAndForwardMessage(final PKIMessage in, final List<CMPCertificate> issuingChain) throws Exception {
+    public PKIMessage protectAndForwardMessage(final PKIMessage in, final List<CMPCertificate> issuingChain)
+            throws Exception {
         switch (reprotectMode) {
             case reprotect:
                 return stripRedundantExtraCerts(PkiMessageGenerator.generateAndProtectMessage(
-                        PkiMessageGenerator.buildForwardingHeaderProvider(in), protector, in.getBody(), issuingChain));
+                        PkiMessageGenerator.buildForwardingHeaderProvider(in),
+                        protector,
+                        recipient,
+                        in.getBody(),
+                        issuingChain));
             case strip:
                 return PkiMessageGenerator.generateAndProtectMessage(
                         PkiMessageGenerator.buildForwardingHeaderProvider(in),
                         ProtectionProvider.NO_PROTECTION,
+                        recipient,
                         in.getBody(),
                         issuingChain);
             case keep:
@@ -133,6 +151,7 @@ public class MsgOutputProtector {
                     return stripRedundantExtraCerts(PkiMessageGenerator.generateAndProtectMessage(
                             PkiMessageGenerator.buildForwardingHeaderProvider(in),
                             protector,
+                            recipient,
                             in.getBody(),
                             issuingChain));
                 }
@@ -150,7 +169,7 @@ public class MsgOutputProtector {
     }
 
     private synchronized PKIMessage stripRedundantExtraCerts(PKIMessage msg) {
-        if (!config.getSuppressRedundantExtraCerts() || persistencyContext == null) {
+        if (!suppressRedundantExtraCerts || persistencyContext == null) {
             return msg;
         }
         final CMPCertificate[] extraCerts = msg.getExtraCerts();

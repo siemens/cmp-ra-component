@@ -47,8 +47,18 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
  * A utility class for certificate handling
  */
 public class CertUtility {
+    private static class BouncyCastleInitializer {
+        private static synchronized Provider getInstance() {
+            return Arrays.stream(Security.getProviders())
+                    .filter(it -> Objects.equals(it.getName(), BouncyCastleProvider.PROVIDER_NAME))
+                    .findFirst()
+                    .orElseGet(BouncyCastleProvider::new);
+        }
+    }
+
     private static final SecureRandom RANDOM = new SecureRandom();
     private static Provider BOUNCY_CASTLE_PROVIDER;
+
     private static CertificateFactory certificateFactory;
 
     /**
@@ -177,7 +187,7 @@ public class CertUtility {
      * @return static certificate factory object
      * @throws CertificateException thrown if the certificate factory could not be
      *                              instantiated
-     * @throws CertificateException            in case of an error
+     * @throws Exception            in case of an error
      */
     public static synchronized CertificateFactory getCertificateFactory() throws CertificateException {
         if (certificateFactory == null) {
@@ -207,20 +217,6 @@ public class CertUtility {
         } catch (CertificateException | NoSuchAlgorithmException | NoSuchProviderException e) {
             // processing error, could be self-signed
             return false;
-        }
-    }
-
-    /**
-     * Function to retrieve the static certificate factory object
-     *
-     * @return static certificate factory object
-     * @throws CertificateException thrown if the certificate factory could not be
-     *                              instantiated
-     * @throws Exception            in case of an error
-     */
-    public static synchronized CertificateFactory getCertificateFactory() throws CertificateException {
-        if (certificateFactory == null) {
-            certificateFactory = CertificateFactory.getInstance("X.509", BOUNCY_CASTLE_PROVIDER);
         }
     }
     // utility class

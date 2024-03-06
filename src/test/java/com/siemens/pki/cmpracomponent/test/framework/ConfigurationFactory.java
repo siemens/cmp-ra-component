@@ -1053,23 +1053,6 @@ public class ConfigurationFactory {
         return eeSignaturebasedCredentials;
     }
 
-    private static SharedSecret getEeSharedSecretCredentials() {
-        if (eeSharedSecretCredentials == null) {
-            eeSharedSecretCredentials = new SharedSecret("PASSWORDBASEDMAC", TestUtils.PASSWORD);
-        }
-        return eeSharedSecretCredentials;
-    }
-
-    public static TrustChainAndPrivateKey getEeSignaturebasedCredentials() throws Exception {
-        if (eeSignaturebasedCredentials == null) {
-            eeSignaturebasedCredentials = new TrustChainAndPrivateKey(
-                    // "credentials/CMP_EE_Keystore_EdDSA.p12",
-                    // "credentials/CMP_EE_Keystore_RSA.p12",
-                    "credentials/CMP_EE_Keystore.p12", TestUtils.PASSWORD_AS_CHAR_ARRAY);
-        }
-        return eeSignaturebasedCredentials;
-    }
-
     public static ProtectionProvider getEeSignaturebasedProtectionProvider() throws Exception {
         if (eeSignaturebasedProtectionProvider == null) {
             eeSignaturebasedProtectionProvider =

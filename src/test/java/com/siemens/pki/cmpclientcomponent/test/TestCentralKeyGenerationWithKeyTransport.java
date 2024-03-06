@@ -56,39 +56,13 @@ public class TestCentralKeyGenerationWithKeyTransport extends EnrollmentTestcase
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TestCentralKeyGenerationWithKeyTransport.class);
 
-    @Before
-    public void setUp() throws Exception {
-        upstreamExchange = launchCmpCaAndRa(buildSignatureBasedDownstreamConfiguration());
-    }
-
     private static final String UPSTREAM_TRUST_PATH = "credentials/CMP_CA_and_LRA_DOWNSTREAM_Root.pem";
-
-    /**
-     * Central Key Generation/Using Key Transport Key Management Technique
-     *
-     * @throws Exception
-     */
-    @Test
-    public void testIrWithKeyTransport() throws Exception {
-        final EnrollmentResult ret = getSignatureBasedCmpClient(
-                        "theCertProfileForOnlineEnrollment",
-                        getClientContext(PKIBody.TYPE_INIT_REQ, null, null),
-                        UPSTREAM_TRUST_PATH)
-                .invokeEnrollment();
-        assertNotNull(ret);
-        // try to use received certificate and key
-        final DataSigner testSigner = new DataSigner(ret.getPrivateKey(), ret.getEnrolledCertificate());
-        final byte[] msgToSign = "Hello Signer, I am the message".getBytes();
-        assertArrayEquals(
-                msgToSign,
-                DataSignVerifier.verifySignature(testSigner.signData(msgToSign).getEncoded()));
-    }
 
     private Configuration buildSignatureBasedDownstreamConfiguration() throws Exception {
         final TrustChainAndPrivateKey downstreamCredentials =
                 new TrustChainAndPrivateKey("credentials/CMP_LRA_DOWNSTREAM_Keystore.p12", "Password".toCharArray());
         final SignatureValidationCredentials downstreamTrust =
-                new SignatureValidationCredentials("credentials/CMP_EE_Root.pem", null);
+                new SignatureValidationCredentials("credentials/CMP_EE_Root_RSA.pem", null);
         final TrustChainAndPrivateKey upstreamCredentials =
                 new TrustChainAndPrivateKey("credentials/CMP_LRA_UPSTREAM_Keystore.p12", "Password".toCharArray());
         final SignatureValidationCredentials upstreamTrust =
@@ -374,10 +348,11 @@ public class TestCentralKeyGenerationWithKeyTransport extends EnrollmentTestcase
         };
     }
 
+    @Override
     protected CmpClient getSignatureBasedCmpClient(
             String certProfile, final ClientContext clientContext, final String upstreamTrustPath)
             throws GeneralSecurityException {
-        CmpMessageInterface upstreamconfiguration = new CmpMessageInterface() {
+        final CmpMessageInterface upstreamconfiguration = new CmpMessageInterface() {
 
             final SignatureValidationCredentials upstreamTrust =
                     new SignatureValidationCredentials(upstreamTrustPath, null);
@@ -424,5 +399,31 @@ public class TestCentralKeyGenerationWithKeyTransport extends EnrollmentTestcase
             }
         };
         return new CmpClient(certProfile, getUpstreamExchange(), upstreamconfiguration, clientContext);
+    }
+
+    @Before
+    public void setUp() throws Exception {
+        upstreamExchange = launchCmpCaAndRa(buildSignatureBasedDownstreamConfiguration());
+    }
+
+    /**
+     * Central Key Generation/Using Key Transport Key Management Technique
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testIrWithKeyTransport() throws Exception {
+        final EnrollmentResult ret = getSignatureBasedCmpClient(
+                        "theCertProfileForOnlineEnrollment",
+                        getClientContext(PKIBody.TYPE_INIT_REQ, null, null),
+                        UPSTREAM_TRUST_PATH)
+                .invokeEnrollment();
+        assertNotNull(ret);
+        // try to use received certificate and key
+        final DataSigner testSigner = new DataSigner(ret.getPrivateKey(), ret.getEnrolledCertificate());
+        final byte[] msgToSign = "Hello Signer, I am the message".getBytes();
+        assertArrayEquals(
+                msgToSign,
+                DataSignVerifier.verifySignature(testSigner.signData(msgToSign).getEncoded()));
     }
 }

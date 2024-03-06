@@ -305,8 +305,7 @@ class TransactionStateTracker {
      */
     public void trackMessage(final PKIMessage message) throws BaseCmpException, IOException {
         if (isResponse(message)) {
-            persistencyContext.setLastSenderNonce(
-                    message.getHeader().getSenderNonce().getOctets());
+            persistencyContext.setLastSenderNonce(message.getHeader().getSenderNonce());
         }
         if (isError(message)) {
             persistencyContext.setLastTransactionState(LastTransactionState.IN_ERROR_STATE);
@@ -319,9 +318,8 @@ class TransactionStateTracker {
                         PKIFailureInfo.transactionIdInUse,
                         "unexpected transcation ID for " + MessageDumper.msgAsShortString(message));
             }
-            if (!Arrays.equals(
-                    persistencyContext.getLastSenderNonce(),
-                    message.getHeader().getRecipNonce().getOctets())) {
+            if (!Objects.equals(
+                    persistencyContext.getLastSenderNonce(), message.getHeader().getRecipNonce())) {
                 throw new CmpValidationException(
                         INTERFACE_NAME,
                         PKIFailureInfo.badRecipientNonce,
