@@ -195,10 +195,7 @@ class ServiceImplementation {
             X509Certificate trustedCertificate)
             throws CmpValidationException, GeneralSecurityException, NoSuchProviderException {
         final InitialKemContext initialKemContext = new InitialKemContext(
-                respondingHeaderProvider.getTransactionID(),
-                respondingHeaderProvider.getSenderNonce(),
-                respondingHeaderProvider.getRecipNonce(),
-                messageHandler.getPubKey(trustedCertificate));
+                respondingHeaderProvider.getTransactionID(), messageHandler.getPubKey(trustedCertificate));
         LOGGER.debug("initialKemContext=\n" + initialKemContext);
         persistencyContext.setInitialKemContext(initialKemContext, interfaceContext);
         persistencyContext.markKemStart();

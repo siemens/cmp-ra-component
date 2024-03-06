@@ -56,7 +56,7 @@ public class ProtectionValidator implements ValidatorIF<Void> {
      * @param interfaceName      interface name used in error messages
      * @param config             specific configuration
      * @param persistencyContext persistency
-     * @param interfaceContext
+     * @param interfaceContext interface for KEM protection context
      */
     public ProtectionValidator(
             final String interfaceName,
@@ -70,7 +70,8 @@ public class ProtectionValidator implements ValidatorIF<Void> {
     }
 
     /**
-     *
+     * return GeneralInfo (KemCiphertextInfo) to be used in CMP header
+     * @param headerProvider related CMP header
      * @return GeneralInfo (KemCiphertextInfo) to be used in CMP header.
      * @throws Exception Exception in case of error
      */
@@ -84,11 +85,7 @@ public class ProtectionValidator implements ValidatorIF<Void> {
             // it_kemCiphertextInfo already known and shared
             return null;
         }
-        initialKemContext = new InitialKemContext(
-                headerProvider.getTransactionID(),
-                headerProvider.getSenderNonce(),
-                headerProvider.getRecipNonce(),
-                kemPubkey);
+        initialKemContext = new InitialKemContext(headerProvider.getTransactionID(), kemPubkey);
         LOGGER.debug("initialKemContext=\n" + initialKemContext);
         persistencyContext.setInitialKemContext(initialKemContext, interfaceContext);
         return new InfoTypeAndValue(

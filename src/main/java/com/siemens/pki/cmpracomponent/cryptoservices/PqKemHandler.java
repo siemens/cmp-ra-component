@@ -30,6 +30,9 @@ import org.bouncycastle.jcajce.spec.KEMExtractSpec;
 import org.bouncycastle.jcajce.spec.KEMGenerateSpec;
 import org.bouncycastle.pqc.crypto.util.SecretWithEncapsulationImpl;
 
+/**
+ *  wrapper for PQ KEM algorithms
+ */
 public class PqKemHandler extends KemHandler {
 
     protected PqKemHandler(String kemAlgorithm) throws NoSuchAlgorithmException {
@@ -37,13 +40,7 @@ public class PqKemHandler extends KemHandler {
     }
 
     /**
-     * KEM decapsulation
-     *
-     * @param encapsulation cipher text
-     * @param priv          private part of KEM keypair
-     * @return shared secret
-     * @throws InvalidAlgorithmParameterException
-     * @throws NoSuchAlgorithmException
+     * {@inheritDoc}
      */
     @Override
     public byte[] decapsulate(byte[] encapsulation, PrivateKey priv)
@@ -56,13 +53,7 @@ public class PqKemHandler extends KemHandler {
     }
 
     /**
-     * KEM encapsulation
-     *
-     * @param pub public part of KEM keypair
-     * @return shared secret and cipher text
-     * @throws InvalidAlgorithmParameterException
-     * @throws NoSuchAlgorithmException
-     * @throws NoSuchProviderException
+     * {@inheritDoc}
      */
     @Override
     public SecretWithEncapsulation encapsulate(PublicKey pub)

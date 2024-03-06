@@ -69,7 +69,7 @@ public class MsgOutputProtector {
      * @param interfaceName      name of interface used in logging messages
      * @param persistencyContext reference to transaction specific
      *                           {@link PersistencyContext}
-     * @param interfaceContext
+     * @param interfaceContext interface for KEM protection context
      * @throws CmpProcessingException   in case of inconsistent configuration
      * @throws GeneralSecurityException in case of broken configuration
      */

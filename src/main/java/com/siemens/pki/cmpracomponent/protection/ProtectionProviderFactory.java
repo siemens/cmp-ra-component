@@ -37,7 +37,7 @@ public class ProtectionProviderFactory {
      * create a {@link ProtectionProvider} according to the given configuration
      *
      * @param config             specific configuration
-     * @param persistencyContext
+     * @param persistencyContext interface for KEM protection context
      * @return a new {@link ProtectionProvider}
      * @throws NoSuchAlgorithmException in case of unknown algorithm
      * @throws InvalidKeyException      in case of internal error

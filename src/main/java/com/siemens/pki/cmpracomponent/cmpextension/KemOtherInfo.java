@@ -17,31 +17,29 @@
  */
 package com.siemens.pki.cmpracomponent.cmpextension;
 
-import java.util.Enumeration;
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1EncodableVector;
-import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1Object;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.ASN1TaggedObject;
+import org.bouncycastle.asn1.BEROctetString;
 import org.bouncycastle.asn1.DERSequence;
 import org.bouncycastle.asn1.DERTaggedObject;
 import org.bouncycastle.asn1.cmp.PKIFreeText;
-import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 
 /*
- * KemOtherInfo ::= SEQUENCE {
- *   staticString      PKIFreeText,
- *   transactionID [0] OCTET STRING     OPTIONAL,
- *   senderNonce   [1] OCTET STRING     OPTIONAL,
- *   recipNonce    [2] OCTET STRING     OPTIONAL,
- *   len               INTEGER (1..MAX),
- *   mac               AlgorithmIdentifier{MAC-ALGORITHM, {...}}
- *   ct                OCTET STRING
- * }
- */
+  KemOtherInfo ::= SEQUENCE {
+     staticString     PKIFreeText,
+     -- MUST be "CMP-KEM"
+     transactionID    OCTET STRING,
+     -- MUST contain the values from the message previously received
+     -- containing the ciphertext (ct) in KemCiphertextInfo
+     kemContext   [0] OCTET STRING OPTIONAL
+     -- MAY contain additional algorithm specific context information
+   }
+*/
 
 public class KemOtherInfo extends ASN1Object {
 
@@ -60,67 +58,37 @@ public class KemOtherInfo extends ASN1Object {
     }
 
     private final PKIFreeText staticString;
-    private ASN1OctetString transactionID;
-    private ASN1OctetString senderNonce;
-    private ASN1OctetString recipNonce;
-    private final ASN1Integer len;
-    private final AlgorithmIdentifier mac;
-    private final ASN1OctetString ct;
+    private final ASN1OctetString transactionID;
+    private final ASN1OctetString kemContext;
 
-    public KemOtherInfo(
-            ASN1OctetString transactionID,
-            ASN1OctetString senderNonce,
-            ASN1OctetString recipNonce,
-            ASN1Integer len,
-            AlgorithmIdentifier mac,
-            ASN1OctetString ct) {
+    public KemOtherInfo(ASN1OctetString transactionID, ASN1OctetString kemContext) {
         this.staticString = DEFAULT_staticString;
         this.transactionID = transactionID;
-        this.senderNonce = senderNonce;
-        this.recipNonce = recipNonce;
-        this.len = len;
-        this.mac = mac;
-        this.ct = ct;
-    }
-
-    public KemOtherInfo(
-            ASN1OctetString transactionID,
-            ASN1OctetString senderNonce,
-            ASN1OctetString recipNonce,
-            long len,
-            AlgorithmIdentifier mac,
-            ASN1OctetString ct) {
-        this(transactionID, senderNonce, recipNonce, new ASN1Integer(len), mac, ct);
+        this.kemContext = kemContext;
     }
 
     private KemOtherInfo(ASN1Sequence seq) {
 
-        final Enumeration en = seq.getObjects();
-
-        staticString = PKIFreeText.getInstance(en.nextElement());
-        ASN1Object next = null;
-        while (en.hasMoreElements()) {
-            next = (ASN1Object) en.nextElement();
-            if (!(next instanceof ASN1TaggedObject)) {
-                break;
+        staticString = PKIFreeText.getInstance(seq.getObjectAt(0));
+        transactionID = ASN1OctetString.getInstance(seq.getObjectAt(1));
+        if (seq.size() > 2) {
+            final ASN1Encodable optionalKemContext = seq.getObjectAt(2);
+            if (optionalKemContext instanceof ASN1TaggedObject) {
+                final ASN1TaggedObject taggedKemContext = (ASN1TaggedObject) optionalKemContext;
+                if (taggedKemContext.getTagNo() == 0) {
+                    kemContext = ASN1OctetString.getInstance(taggedKemContext, true);
+                    return;
+                }
             }
-            final ASN1TaggedObject tagged = (ASN1TaggedObject) next;
-            switch (tagged.getTagNo()) {
-                case 0:
-                    transactionID = ASN1OctetString.getInstance(tagged, true);
-                    break;
-                case 1:
-                    senderNonce = ASN1OctetString.getInstance(tagged, true);
-                    break;
-                case 2:
-                    recipNonce = ASN1OctetString.getInstance(tagged, true);
-                default:
-                    throw new IllegalArgumentException("unknown tag number: " + tagged.getTagNo());
-            }
+            throw new IllegalArgumentException("kemContext must be tagged with [0]");
         }
-        len = ASN1Integer.getInstance(next);
-        mac = AlgorithmIdentifier.getInstance(en.nextElement());
-        ct = ASN1OctetString.getInstance(en.nextElement());
+        kemContext = null;
+    }
+
+    public KemOtherInfo(byte[] transactionID, byte[] kemContext) {
+        this.staticString = DEFAULT_staticString;
+        this.transactionID = new BEROctetString(transactionID);
+        this.kemContext = kemContext != null ? new BEROctetString(kemContext) : null;
     }
 
     private void addOptional(ASN1EncodableVector v, int tagNo, ASN1Encodable obj) {
@@ -129,24 +97,8 @@ public class KemOtherInfo extends ASN1Object {
         }
     }
 
-    public ASN1OctetString getCt() {
-        return ct;
-    }
-
-    public ASN1Integer getLen() {
-        return len;
-    }
-
-    public AlgorithmIdentifier getMac() {
-        return mac;
-    }
-
-    public ASN1OctetString getRecipNonce() {
-        return recipNonce;
-    }
-
-    public ASN1OctetString getSenderNonce() {
-        return senderNonce;
+    public ASN1OctetString getKemContext() {
+        return kemContext;
     }
 
     public ASN1OctetString getTransactionID() {
@@ -173,20 +125,14 @@ public class KemOtherInfo extends ASN1Object {
         final ASN1EncodableVector v = new ASN1EncodableVector(7);
 
         v.add(staticString);
-        addOptional(v, 0, transactionID);
-        addOptional(v, 1, senderNonce);
-        addOptional(v, 2, recipNonce);
-        v.add(len);
-        v.add(mac);
-        v.add(ct);
-
+        v.add(transactionID);
+        addOptional(v, 0, kemContext);
         return new DERSequence(v);
     }
 
     @Override
     public String toString() {
-        return "KemOtherInfo [\n\ttransactionID=" + transactionID
-                + ", \n\tsenderNonce=" + senderNonce + ", \n\trecipNonce=" + recipNonce + ", \n\tlen=" + len
-                + ", \n\tmac=" + mac.getAlgorithm() + ", \n\tct=" + ct + "]";
+        return "KemOtherInfo [staticString=" + staticString + ", transactionID=" + transactionID + ", kemContext="
+                + kemContext + "]";
     }
 }

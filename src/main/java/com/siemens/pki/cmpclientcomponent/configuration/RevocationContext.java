@@ -34,6 +34,7 @@ public interface RevocationContext {
 
     /**
      * get revocation reason to use
+     * @return revocation reason to use
      */
     default int getRevocationReason() {
         return CRLReason.UNSPECIFIED.ordinal();

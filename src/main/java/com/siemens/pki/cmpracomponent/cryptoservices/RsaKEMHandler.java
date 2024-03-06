@@ -31,28 +31,41 @@ import org.bouncycastle.crypto.kems.RSAKEMExtractor;
 import org.bouncycastle.crypto.kems.RSAKEMGenerator;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
 
+/**
+ *  wrapper for RSA KEM algorithms
+ */
 public class RsaKEMHandler extends KemHandler {
 
-    private final Digest hasher = new SHA256Digest();
-
-    private final KDF2BytesGenerator kdf = new KDF2BytesGenerator(hasher);
-
     private static final int derivedKeyLength = 32;
+
     private static final int rsaKeyLength = 2048;
+
+    private final Digest hasher = new SHA256Digest();
+    private final KDF2BytesGenerator kdf = new KDF2BytesGenerator(hasher);
     private final RSAKEMGenerator encapsulator = new RSAKEMGenerator(derivedKeyLength, kdf, new SecureRandom());
 
+    /**
+     *
+     * @param kemAlgorithm RSA algorithm to support
+     * @throws NoSuchAlgorithmException if kemAlgorithm is not supported
+     */
     public RsaKEMHandler(String kemAlgorithm) throws NoSuchAlgorithmException {
         super(kemAlgorithm, KeyPairGeneratorFactory.getRsaKeyPairGenerator(rsaKeyLength));
     }
-
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public byte[] decapsulate(byte[] encapsulation, PrivateKey priv) {
-        RSAKeyParameters rsaKeyParameters = new RSAKeyParameters(
+        final RSAKeyParameters rsaKeyParameters = new RSAKeyParameters(
                 true, ((RSAPrivateKey) priv).getModulus(), ((RSAPrivateKey) priv).getPrivateExponent());
-        RSAKEMExtractor decapsulator = new RSAKEMExtractor(rsaKeyParameters, derivedKeyLength, kdf);
+        final RSAKEMExtractor decapsulator = new RSAKEMExtractor(rsaKeyParameters, derivedKeyLength, kdf);
         return decapsulator.extractSecret(encapsulation);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public SecretWithEncapsulation encapsulate(PublicKey pub) {
         final RSAKeyParameters rsaKeyParameters = new RSAKeyParameters(

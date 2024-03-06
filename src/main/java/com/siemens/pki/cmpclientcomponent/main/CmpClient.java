@@ -148,7 +148,7 @@ public class CmpClient
      *                              towards the CA
      *
      * @param clientContext         client specific configuration
-     * @throws GeneralSecurityException
+     * @throws GeneralSecurityException in case of internal error
      */
     public CmpClient(
             String certProfile,

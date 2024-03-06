@@ -187,7 +187,7 @@ public class CertUtility {
      * @return static certificate factory object
      * @throws CertificateException thrown if the certificate factory could not be
      *                              instantiated
-     * @throws Exception            in case of an error
+     * @throws CertificateException            in case of an internal error
      */
     public static synchronized CertificateFactory getCertificateFactory() throws CertificateException {
         if (certificateFactory == null) {

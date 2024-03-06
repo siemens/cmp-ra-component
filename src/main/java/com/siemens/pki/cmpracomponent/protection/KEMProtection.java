@@ -80,13 +80,13 @@ public class KEMProtection implements ProtectionProvider {
 
     @Override
     public AlgorithmIdentifier getProtectionAlg() {
-        return new AlgorithmIdentifier(NewCMPObjectIdentifiers.kemBasedMac, new KemBMParameter(kdf, keyLen, mac));
+        return new AlgorithmIdentifier(NewCMPObjectIdentifiers.kemBasedMac, new KemBMParameter(kdf, null, keyLen, mac));
     }
 
     @Override
     public DERBitString getProtectionFor(ProtectedPart protectedPart) throws Exception {
         final InitialKemContext initialKemContext = persistencyContext.getInitialKemContext(interfaceContext);
-        final KemOtherInfo kemOtherInfo = initialKemContext.buildKemOtherInfo(keyLen, mac);
+        final KemOtherInfo kemOtherInfo = new KemOtherInfo(initialKemContext.getTransactionID(), null);
         final KdfFunction kdf = KdfFunction.getKdfInstance(this.kdf);
         final SecretKey key =
                 kdf.deriveKey(initialKemContext.getSharedSecret(privkey), keyLen, null, kemOtherInfo.getEncoded());

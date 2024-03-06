@@ -61,11 +61,7 @@ public class PersistencyContext {
                 if (NewCMPObjectIdentifiers.it_kemCiphertextInfo.equals(itav.getInfoType())) {
                     final KemCiphertextInfo kemCiphertextInfo = KemCiphertextInfo.getInstance(itav.getInfoValue());
                     if (kemCiphertextInfo != null) {
-                        return new InitialKemContext(
-                                header.getTransactionID(),
-                                header.getSenderNonce(),
-                                header.getRecipNonce(),
-                                kemCiphertextInfo);
+                        return new InitialKemContext(header.getTransactionID(), kemCiphertextInfo);
                     }
                 }
             }
@@ -83,11 +79,7 @@ public class PersistencyContext {
             if (NewCMPObjectIdentifiers.it_kemCiphertextInfo.equals(itav.getInfoType())) {
                 final KemCiphertextInfo kemCiphertextInfo = KemCiphertextInfo.getInstance(itav.getInfoValue());
                 if (kemCiphertextInfo != null) {
-                    return new InitialKemContext(
-                            header.getTransactionID(),
-                            header.getSenderNonce(),
-                            header.getRecipNonce(),
-                            kemCiphertextInfo);
+                    return new InitialKemContext(header.getTransactionID(), kemCiphertextInfo);
                 }
             }
         }

@@ -32,6 +32,9 @@ import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.crypto.SecretWithEncapsulation;
 import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;
 
+/**
+ * top level wrapper for KEM algorithms
+ */
 public abstract class KemHandler {
 
     protected static final SecureRandom RANDOMGENERATOR = new SecureRandom();
@@ -44,7 +47,12 @@ public abstract class KemHandler {
         Security.addProvider(BC_PQ_PROV);
         Security.addProvider(CertUtility.getBouncyCastleProvider());
     }
-
+    /**
+     * create a handler for an specific algorithm
+     * @param kemAlgorithm the specific algorithm
+     * @return a handler for an specific algorithm
+     * @throws NoSuchAlgorithmException if kemAlgorithm is not supported
+     */
     public static KemHandler createKemHandler(String kemAlgorithm) throws NoSuchAlgorithmException {
         if (ISOIECObjectIdentifiers.id_kem_rsa.getId().equalsIgnoreCase(kemAlgorithm)
                 || "RSA".equalsIgnoreCase(kemAlgorithm)) {
@@ -69,8 +77,8 @@ public abstract class KemHandler {
      * @param encapsulation cipher text
      * @param priv          private part of KEM keypair
      * @return shared secret
-     * @throws InvalidAlgorithmParameterException
-     * @throws NoSuchAlgorithmException
+     * @throws InvalidAlgorithmParameterException if the private key is not sufficient
+     * @throws NoSuchAlgorithmException if the private key cannot be used by this {@link KemHandler}
      */
     public abstract byte[] decapsulate(byte[] encapsulation, PrivateKey priv)
             throws InvalidAlgorithmParameterException, NoSuchAlgorithmException;
@@ -80,9 +88,9 @@ public abstract class KemHandler {
      *
      * @param pub public part of KEM keypair
      * @return shared secret and cipher text
-     * @throws InvalidAlgorithmParameterException
-     * @throws NoSuchAlgorithmException
-     * @throws NoSuchProviderException
+     * @throws InvalidAlgorithmParameterException if the public key is not sufficient
+     * @throws NoSuchAlgorithmException if the public key cannot be used by this {@link KemHandler}
+     * @throws NoSuchProviderException in case of intenal error
      */
     public abstract SecretWithEncapsulation encapsulate(PublicKey pub)
             throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException;
@@ -96,6 +104,11 @@ public abstract class KemHandler {
         return kpg.generateKeyPair();
     }
 
+    /**
+     * get the AlgorithmIdentifier for this {@link KemHandler}
+     * @return the AlgorithmIdentifier
+     * @throws NoSuchAlgorithmException in case of internal error
+     */
     public AlgorithmIdentifier getAlgorithmIdentifier() throws NoSuchAlgorithmException {
         return AlgorithmHelper.getKemAlgIdFromName(kemAlgorithm);
     }

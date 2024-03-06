@@ -57,9 +57,8 @@ public class KEMProtectionValidator implements ValidatorIF<Void> {
 
             final KemBMParameter kemBmpParameter =
                     KemBMParameter.getInstance(header.getProtectionAlg().getParameters());
-            final int keyLen = kemBmpParameter.getLen().intPositiveValueExact();
 
-            final KemOtherInfo kemOtherInfo = initialKemContext.buildKemOtherInfo(keyLen, kemBmpParameter.getMac());
+            final KemOtherInfo kemOtherInfo = new KemOtherInfo(initialKemContext.getTransactionID(), null);
 
             final KdfFunction kdf = KdfFunction.getKdfInstance(kemBmpParameter.getKdf());
             final byte[] sharedSecret = initialKemContext.getSharedSecret();
@@ -69,8 +68,8 @@ public class KEMProtectionValidator implements ValidatorIF<Void> {
                         PKIFailureInfo.badMessageCheck,
                         "could not calculate shared secret, KEM protection check failed");
             }
+            final int keyLen = kemBmpParameter.getLen().intPositiveValueExact();
             final SecretKey key = kdf.deriveKey(sharedSecret, keyLen, null, kemOtherInfo.getEncoded());
-
             final WrappedMac mac = WrappedMacFactory.createWrappedMac(kemBmpParameter.getMac(), key.getEncoded());
             final byte[] protectedBytes = new ProtectedPart(header, message.getBody()).getEncoded(ASN1Encoding.DER);
             final byte[] recalculatedProtection = mac.calculateMac(protectedBytes);
