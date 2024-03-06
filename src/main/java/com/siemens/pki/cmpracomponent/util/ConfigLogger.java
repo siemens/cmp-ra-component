@@ -30,56 +30,28 @@ import org.slf4j.LoggerFactory;
  */
 public class ConfigLogger {
 
+    private static final String EXCEPTION_CALLING = "exception while calling ";
+
     private static final String DYNAMIC_CONFIGURATION_EXCEPTION = "DynamicConfigurationException: ";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(ConfigLogger.class);
 
     private static <T> void doInnerLogging(
             String interfaceName, String accessFunctionName, String certProfile, Integer bodyType, T ret) {
         if (LOGGER.isDebugEnabled()) {
-            final String logMsg = "call {}({}, {}) for \"{}\" -> {}";
-            if (ret instanceof byte[]) {
-                LOGGER.debug(
-                        logMsg,
-                        accessFunctionName,
-                        certProfile,
-                        typeToString(bodyType),
-                        interfaceName,
-                        Hex.toHexString((byte[]) ret));
-            } else if (ret instanceof Collection<?>) {
-                LOGGER.debug(
-                        logMsg,
-                        accessFunctionName,
-                        certProfile,
-                        typeToString(bodyType),
-                        interfaceName,
-                        Arrays.toString(((Collection<?>) ret).toArray()));
-            } else if (ret != null && ret.getClass().isArray()) {
-                LOGGER.debug(
-                        logMsg,
-                        accessFunctionName,
-                        certProfile,
-                        typeToString(bodyType),
-                        interfaceName,
-                        Arrays.toString((Object[]) ret));
-            } else {
-                LOGGER.debug(logMsg, accessFunctionName, certProfile, typeToString(bodyType), interfaceName, ret);
-            }
+            LOGGER.debug(
+                    "call {}({}, {}) for \"{}\" -> {}",
+                    accessFunctionName,
+                    certProfile,
+                    typeToString(bodyType),
+                    interfaceName,
+                    retValueToString(ret));
         }
     }
 
     private static <T> void doInnerLogging(String interfaceName, String accessFunctionName, T ret) {
         if (LOGGER.isDebugEnabled()) {
-            final String logMsg = "call {} for \"{}\" -> {}";
-            if (ret instanceof byte[]) {
-                LOGGER.debug(logMsg, accessFunctionName, interfaceName, Hex.toHexString((byte[]) ret));
-            } else if (ret instanceof Collection<?>) {
-                LOGGER.debug(
-                        logMsg, accessFunctionName, interfaceName, Arrays.toString(((Collection<?>) ret).toArray()));
-            } else if (ret != null && ret.getClass().isArray()) {
-                LOGGER.debug(logMsg, accessFunctionName, interfaceName, Arrays.toString((Object[]) ret));
-            } else {
-                LOGGER.debug(logMsg, accessFunctionName, interfaceName, ret);
-            }
+            LOGGER.debug("call {} for \"{}\" -> {}", accessFunctionName, interfaceName, retValueToString(ret));
         }
     }
 
@@ -90,10 +62,10 @@ public class ConfigLogger {
      * @param interfaceName      related interface of configuration
      * @param accessFunctionName name of access function
      * @param accessFunction     the access function
-     * @param certProfile certificate profile extracted from the CMP request header
-     *                    generalInfo field or <code>null</code> if no certificate
-     *                    profile was specified
-     * @param bodyType    request/response PKI Message Body type
+     * @param certProfile        certificate profile extracted from the CMP request
+     *                           header generalInfo field or <code>null</code> if no
+     *                           certificate profile was specified
+     * @param bodyType           request/response PKI Message Body type
      * @return return value of access function
      * @throws NullPointerException if return value was <code>null</code>
      */
@@ -107,14 +79,9 @@ public class ConfigLogger {
         try {
             ret = accessFunction.apply(certProfile, bodyType);
         } catch (final Throwable ex) {
-            final String errorMsg = "exception calling " + accessFunctionName + "(" + certProfile + ", "
+            final String errorMsg = EXCEPTION_CALLING + accessFunctionName + "(" + certProfile + ", "
                     + typeToString(bodyType) + ") for \"" + interfaceName + "\"";
-            LOGGER.error(errorMsg, ex);
-            Throwable cause = ex.getCause();
-            while (cause != null) {
-                LOGGER.error("cause", cause);
-                cause = cause.getCause();
-            }
+            logThrowableAndCause(ex, errorMsg);
             throw new RuntimeException(DYNAMIC_CONFIGURATION_EXCEPTION + errorMsg, ex);
         }
         doInnerLogging(interfaceName, accessFunctionName, certProfile, bodyType, ret);
@@ -142,13 +109,8 @@ public class ConfigLogger {
         try {
             ret = accessFunction.get();
         } catch (final Throwable ex) {
-            final String errorMsg = "exception calling " + accessFunctionName + " for \"" + interfaceName + "\"";
-            LOGGER.error(errorMsg, ex);
-            Throwable cause = ex.getCause();
-            while (cause != null) {
-                LOGGER.error("cause", cause);
-                cause = cause.getCause();
-            }
+            final String errorMsg = EXCEPTION_CALLING + accessFunctionName + " for \"" + interfaceName + "\"";
+            logThrowableAndCause(ex, errorMsg);
             throw new RuntimeException(DYNAMIC_CONFIGURATION_EXCEPTION + errorMsg, ex);
         }
         doInnerLogging(interfaceName, accessFunctionName, ret);
@@ -168,10 +130,10 @@ public class ConfigLogger {
      * @param interfaceName      related interface of configuration
      * @param accessFunctionName name of access function
      * @param accessFunction     the access function
-     * @param certProfile certificate profile extracted from the CMP request header
-     *                    generalInfo field or <code>null</code> if no certificate
-     *                    profile was specified
-     * @param bodyType    request/response PKI Message Body type
+     * @param certProfile        certificate profile extracted from the CMP request
+     *                           header generalInfo field or <code>null</code> if no
+     *                           certificate profile was specified
+     * @param bodyType           request/response PKI Message Body type
      * @return return value of access function
      * @throws NullPointerException if return value of access function was
      *                              <code>null</code>
@@ -186,14 +148,9 @@ public class ConfigLogger {
         try {
             ret = accessFunction.apply(certProfile, bodyType);
         } catch (final Throwable ex) {
-            final String errorMsg = "exception calling " + accessFunctionName + "(" + certProfile + ", "
+            final String errorMsg = EXCEPTION_CALLING + accessFunctionName + "(" + certProfile + ", "
                     + typeToString(bodyType) + ") for \"" + interfaceName + "\"";
-            LOGGER.error(errorMsg, ex);
-            Throwable cause = ex.getCause();
-            while (cause != null) {
-                LOGGER.error("cause", cause);
-                cause = cause.getCause();
-            }
+            logThrowableAndCause(ex, errorMsg);
             throw new RuntimeException(DYNAMIC_CONFIGURATION_EXCEPTION + errorMsg, ex);
         }
         doInnerLogging(interfaceName, accessFunctionName, certProfile, bodyType, ret);
@@ -216,17 +173,37 @@ public class ConfigLogger {
         try {
             ret = accessFunction.get();
         } catch (final Throwable ex) {
-            final String errorMsg = "exception while calling " + accessFunctionName + " for  \"" + interfaceName + "\"";
-            LOGGER.error(errorMsg, ex);
-            Throwable cause = ex.getCause();
-            while (cause != null) {
-                LOGGER.error("cause", cause);
-                cause = cause.getCause();
-            }
+            final String errorMsg = EXCEPTION_CALLING + accessFunctionName + " for  \"" + interfaceName + "\"";
+            logThrowableAndCause(ex, errorMsg);
             throw new RuntimeException(DYNAMIC_CONFIGURATION_EXCEPTION + errorMsg, ex);
         }
         doInnerLogging(interfaceName, accessFunctionName, ret);
         return ret;
+    }
+
+    private static void logThrowableAndCause(final Throwable ex, final String errorMsg) {
+        LOGGER.error(errorMsg, ex);
+        Throwable cause = ex.getCause();
+        while (cause != null) {
+            LOGGER.error("cause", cause);
+            cause = cause.getCause();
+        }
+    }
+
+    private static String retValueToString(Object ret) {
+        if (ret == null) {
+            return "<null>";
+        }
+        if (ret instanceof byte[]) {
+            return Hex.toHexString((byte[]) ret);
+        }
+        if (ret instanceof Collection<?>) {
+            return Arrays.toString(((Collection<?>) ret).toArray());
+        }
+        if (ret.getClass().isArray()) {
+            return Arrays.toString((Object[]) ret);
+        }
+        return ret.toString();
     }
 
     private static String typeToString(Integer bodyType) {
@@ -235,6 +212,7 @@ public class ConfigLogger {
         }
         return MessageDumper.msgTypeAsString(bodyType) + "(" + bodyType + ")";
     }
+
     // utility class
     private ConfigLogger() {}
 }
