@@ -28,6 +28,7 @@ import com.siemens.pki.cmpracomponent.configuration.CrlUpdateRetrievalHandler;
 import com.siemens.pki.cmpracomponent.configuration.GetCaCertificatesHandler;
 import com.siemens.pki.cmpracomponent.configuration.GetCertificateRequestTemplateHandler;
 import com.siemens.pki.cmpracomponent.configuration.GetRootCaCertificateUpdateHandler;
+import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.cryptoservices.CmsDecryptor;
@@ -130,6 +131,8 @@ public class CmpClient
     }
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CmpClient.class);
+
+    private static final String INTERFACE_NAME = "cmpclient";
 
     private final ClientRequestHandler requestHandler;
 
@@ -451,14 +454,16 @@ public class CmpClient
                 case PKIBody.TYPE_CERT_REQ:
                 case PKIBody.TYPE_INIT_REQ: {
                     final String subject = enrollmentContext.getSubject();
-                    final Extension[] extensions = ifNotNull(enrollmentContext.getExtensions(), exts -> exts.stream()
-                            .map(ext -> new Extension(
-                                    new ASN1ObjectIdentifier(ext.getId()), ext.isCritical(), ext.getValue()))
-                            .toArray(Extension[]::new));
+                    final Extension[] arrayOfExtensions =
+                            ifNotNull(enrollmentContext.getExtensions(), exts -> exts.stream()
+                                    .map(ext -> new Extension(
+                                            new ASN1ObjectIdentifier(ext.getId()), ext.isCritical(), ext.getValue()))
+                                    .toArray(Extension[]::new));
+                    final Extensions extensions = ifNotNull(arrayOfExtensions, Extensions::new);
                     final CertTemplateBuilder ctb = new CertTemplateBuilder()
                             .setSubject(ifNotNull(subject, X500Name::new))
                             .setPublicKey(enrolledPublicKeyInfo)
-                            .setExtensions((Extensions) ifNotNull(extensions, Extensions::new));
+                            .setExtensions(extensions);
                     requestBody = PkiMessageGenerator.generateIrCrKurBody(
                             enrollmentType, ctb.build(), null, enrolledPrivateKey);
                     pvno = enrolledPrivateKey == null ? PKIHeader.CMP_2021 : PKIHeader.CMP_2000;
@@ -511,7 +516,12 @@ public class CmpClient
                     LOGGER.error("wrong or missing local credentials, no key decryption possible");
                     return null;
                 }
-                final DataSignVerifier verifier = new DataSignVerifier(requestHandler.getInputVerification());
+                final VerificationContext inputVerification = requestHandler.getInputVerification();
+                if (inputVerification == null) {
+                    LOGGER.error("wrong or missing local trust, no key verification possible");
+                    return null;
+                }
+                final DataSignVerifier verifier = new DataSignVerifier(inputVerification, INTERFACE_NAME);
                 final byte[] decryptedKey = decryptor.decrypt(EnvelopedData.getInstance(
                         certifiedKeyPair.getPrivateKey().getValue()));
                 enrolledPrivateKey = verifier.verifySignedKey(decryptedKey);
@@ -533,7 +543,7 @@ public class CmpClient
             if (enrollmentContext.getEnrollmentTrust() != null) {
                 try {
                     final List<? extends X509Certificate> validationResult = new TrustCredentialAdapter(
-                                    enrollmentContext.getEnrollmentTrust())
+                                    enrollmentContext.getEnrollmentTrust(), INTERFACE_NAME)
                             .validateCertAgainstTrust(
                                     enrolledCertAsX509,
                                     CertUtility.asX509Certificates(responseMessage.getExtraCerts()));

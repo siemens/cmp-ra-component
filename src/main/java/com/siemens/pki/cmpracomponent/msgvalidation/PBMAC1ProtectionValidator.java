@@ -79,7 +79,7 @@ public class PBMAC1ProtectionValidator extends MacValidator {
             final byte[] protectionBytes = message.getProtection().getBytes();
             if (!Arrays.equals(recalculatedProtection, protectionBytes)) {
                 throw new CmpValidationException(
-                        getInterfaceName(), PKIFailureInfo.badMessageCheck, "PasswordBasedMac protection check failed");
+                        getInterfaceName(), PKIFailureInfo.badMessageCheck, "PBMAC1 protection check failed");
             }
         } catch (final BaseCmpException cex) {
             throw cex;

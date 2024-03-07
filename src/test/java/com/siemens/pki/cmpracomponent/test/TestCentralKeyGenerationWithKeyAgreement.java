@@ -60,7 +60,7 @@ public class TestCentralKeyGenerationWithKeyAgreement extends CkgOnlineEnrollmen
 
     public static final String DEFAULT_KEY_ENCRYPTION = "AES256_WRAP";
     private static final Logger LOGGER = LoggerFactory.getLogger(TestCentralKeyGenerationWithKeyAgreement.class);
-    public static Object[][] inputList = new Object[][] {
+    public static Object[][] inputList = {
         //
         {DEFAULT_KEY_AGREEMENT, DEFAULT_KEY_ENCRYPTION},
         //
@@ -125,39 +125,6 @@ public class TestCentralKeyGenerationWithKeyAgreement extends CkgOnlineEnrollmen
             final String keyEncryptionOID) {
         this.keyAgreementAlg = keyAgreementOID;
         this.keyEncryptionAlg = keyEncryptionOID;
-    }
-
-    @Override
-    @Before
-    public void setUp() throws Exception {
-        super.setUp();
-        eeCredentials = new SignatureBasedProtection(
-                new TrustChainAndPrivateKey("credentials/CMP_EE_Keystore.p12", TestUtils.PASSWORD_AS_CHAR_ARRAY));
-        keyAgreementDecryptor =
-                new CmsDecryptor(eeCredentials.getEndCertificate(), eeCredentials.getPrivateKey(), null);
-        launchCmpCaAndRa(buildSignatureBasedDownstreamConfiguration());
-
-        raCredentials = new TrustChainAndPrivateKey(
-                "credentials/CMP_LRA_DOWNSTREAM_Keystore.p12", TestUtils.PASSWORD_AS_CHAR_ARRAY);
-    }
-
-    /**
-     * Central Key Generation/Using Key Agreement Key Management Technique
-     */
-    @Test
-    public void testCrWithKeyAgreement() throws Exception {
-        executeCrmfCertificateRequestWithoutKey(
-                PKIBody.TYPE_CERT_REQ, PKIBody.TYPE_CERT_REP, eeCredentials, getEeClient(), keyAgreementDecryptor);
-    }
-
-    @Test
-    public void testKurWithKeyAgreement() throws Exception {
-        executeCrmfCertificateRequestWithoutKey(
-                PKIBody.TYPE_KEY_UPDATE_REQ,
-                PKIBody.TYPE_KEY_UPDATE_REP,
-                eeCredentials,
-                getEeClient(),
-                keyAgreementDecryptor);
     }
 
     private Configuration buildSignatureBasedDownstreamConfiguration() throws Exception {
@@ -472,5 +439,39 @@ public class TestCentralKeyGenerationWithKeyAgreement extends CkgOnlineEnrollmen
                 return true;
             }
         };
+    }
+
+    @Override
+    @Before
+    public void setUp() throws Exception {
+        super.setUp();
+        eeCredentials = new SignatureBasedProtection(
+                new TrustChainAndPrivateKey("credentials/CMP_EE_Keystore.p12", TestUtils.PASSWORD_AS_CHAR_ARRAY),
+                INTERFACE_NAME);
+        keyAgreementDecryptor =
+                new CmsDecryptor(eeCredentials.getEndCertificate(), eeCredentials.getPrivateKey(), null);
+        launchCmpCaAndRa(buildSignatureBasedDownstreamConfiguration());
+
+        raCredentials = new TrustChainAndPrivateKey(
+                "credentials/CMP_LRA_DOWNSTREAM_Keystore.p12", TestUtils.PASSWORD_AS_CHAR_ARRAY);
+    }
+
+    /**
+     * Central Key Generation/Using Key Agreement Key Management Technique
+     */
+    @Test
+    public void testCrWithKeyAgreement() throws Exception {
+        executeCrmfCertificateRequestWithoutKey(
+                PKIBody.TYPE_CERT_REQ, PKIBody.TYPE_CERT_REP, eeCredentials, getEeClient(), keyAgreementDecryptor);
+    }
+
+    @Test
+    public void testKurWithKeyAgreement() throws Exception {
+        executeCrmfCertificateRequestWithoutKey(
+                PKIBody.TYPE_KEY_UPDATE_REQ,
+                PKIBody.TYPE_KEY_UPDATE_REP,
+                eeCredentials,
+                getEeClient(),
+                keyAgreementDecryptor);
     }
 }

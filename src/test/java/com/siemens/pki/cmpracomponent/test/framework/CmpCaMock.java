@@ -74,6 +74,7 @@ import org.slf4j.LoggerFactory;
  */
 public class CmpCaMock implements CmpRaComponent.UpstreamExchange {
 
+    private static final String INTERFACE_NAME = "CA Mock";
     private static final Logger LOGGER = LoggerFactory.getLogger(CmpCaMock.class);
     private static final JcaX509ContentVerifierProviderBuilder X509_CVPB =
             new JcaX509ContentVerifierProviderBuilder().setProvider(CertUtility.getBouncyCastleProvider());
@@ -90,7 +91,7 @@ public class CmpCaMock implements CmpRaComponent.UpstreamExchange {
         this.enrollmentCredentials =
                 new TrustChainAndPrivateKey(enrollmentCredentials, TestUtils.PASSWORD_AS_CHAR_ARRAY);
         caProtectionProvider = new SignatureBasedProtection(
-                new TrustChainAndPrivateKey(protectionCredentials, TestUtils.PASSWORD_AS_CHAR_ARRAY));
+                new TrustChainAndPrivateKey(protectionCredentials, TestUtils.PASSWORD_AS_CHAR_ARRAY), INTERFACE_NAME);
     }
 
     private CMPCertificate createCertificate(

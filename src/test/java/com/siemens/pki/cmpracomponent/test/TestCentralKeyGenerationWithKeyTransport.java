@@ -348,7 +348,8 @@ public class TestCentralKeyGenerationWithKeyTransport extends CkgOnlineEnrollmen
     public void setUp() throws Exception {
         super.setUp();
         eeRsaCredentials = new SignatureBasedProtection(
-                new TrustChainAndPrivateKey("credentials/CMP_EE_Keystore_RSA.p12", TestUtils.PASSWORD_AS_CHAR_ARRAY));
+                new TrustChainAndPrivateKey("credentials/CMP_EE_Keystore_RSA.p12", TestUtils.PASSWORD_AS_CHAR_ARRAY),
+                INTERFACE_NAME);
         keyTransportDecryptor =
                 new CmsDecryptor(eeRsaCredentials.getEndCertificate(), eeRsaCredentials.getPrivateKey(), null);
         launchCmpCaAndRa(buildRsaSignatureBasedDownstreamConfiguration());

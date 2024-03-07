@@ -18,6 +18,7 @@
 package com.siemens.pki.cmpracomponent.cryptoservices;
 
 import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
+import com.siemens.pki.cmpracomponent.util.ConfigLogger;
 import java.net.URI;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.NoSuchAlgorithmException;
@@ -62,12 +63,23 @@ public class TrustCredentialAdapter {
 
     private final VerificationContext config;
 
+    private final String interfaceName;
+
     /**
      * ctor
      * @param config specific configuration
+     * @param interfaceName CMP interface name for logging
      */
-    public TrustCredentialAdapter(final VerificationContext config) {
+    public TrustCredentialAdapter(final VerificationContext config, String interfaceName) {
         this.config = config;
+        this.interfaceName = interfaceName;
+    }
+
+    public boolean isIntermediateCertAcceptable(X509Certificate cert) {
+        return ConfigLogger.log(
+                interfaceName,
+                "VerificationContext.isIntermediateCertAcceptable(X509Certificate)",
+                () -> config.isIntermediateCertAcceptable(cert));
     }
 
     /**
@@ -87,7 +99,8 @@ public class TrustCredentialAdapter {
     public synchronized List<? extends X509Certificate> validateCertAgainstTrust(
             final X509Certificate cert, final List<X509Certificate> additionalIntermediateCerts)
             throws NoSuchProviderException {
-        final Collection<X509Certificate> trustedCertificates = config.getTrustedCertificates();
+        final Collection<X509Certificate> trustedCertificates = ConfigLogger.logOptional(
+                interfaceName, "VerificationContext.getTrustedCertificates()", config::getTrustedCertificates);
         if (trustedCertificates == null) {
             return null;
         }
@@ -107,7 +120,10 @@ public class TrustCredentialAdapter {
         try {
             final boolean[] leafKeyUsage = cert.getKeyUsage();
             if (leafKeyUsage != null && !leafKeyUsage[0] // digitalSignature
-                    || !config.isLeafCertAcceptable(cert)) {
+                    || !ConfigLogger.log(
+                            interfaceName,
+                            "VerificationContext.isLeafCertAcceptable(X509Certificate)",
+                            () -> config.isLeafCertAcceptable(cert))) {
                 return null;
             }
             // initial state
@@ -123,7 +139,7 @@ public class TrustCredentialAdapter {
 
             final PKIXBuilderParameters params = new PKIXBuilderParameters(trust, targetConstraints);
 
-            if (config.isAIAsEnabled()) {
+            if (ConfigLogger.log(interfaceName, "VerificationContext.isAIAsEnabled()", config::isAIAsEnabled)) {
                 revocationEnabled = true;
                 java.security.Security.setProperty(OCSP_ENABLE_PROP, "true");
                 System.setProperty("com.sun.security.enableAIAcaIssuers", "true");
@@ -131,7 +147,7 @@ public class TrustCredentialAdapter {
                 System.setProperty("com.sun.security.enableAIAcaIssuers", FALSE_STRING);
             }
 
-            if (config.isCDPsEnabled()) {
+            if (ConfigLogger.log(interfaceName, "VerificationContext.isCDPsEnabled()", config::isCDPsEnabled)) {
                 revocationEnabled = true;
                 System.setProperty("com.sun.security.enableCRLDP", "true");
             } else {
@@ -142,12 +158,13 @@ public class TrustCredentialAdapter {
 
             if (additionalIntermediateCerts != null) {
                 additionalIntermediateCerts.stream()
-                        .filter(config::isIntermediateCertAcceptable)
+                        .filter(this::isIntermediateCertAcceptable)
                         .filter(CertUtility::isIntermediateCertificate)
                         .forEach(lstCertCrlStores::add);
             }
 
-            final Collection<X509Certificate> additionalCertsFromConfig = config.getAdditionalCerts();
+            final Collection<X509Certificate> additionalCertsFromConfig = ConfigLogger.logOptional(
+                    interfaceName, "VerificationContext.getAdditionalCerts()", config::getAdditionalCerts);
             if (additionalCertsFromConfig != null) {
                 lstCertCrlStores.addAll(additionalCertsFromConfig);
             }
@@ -156,7 +173,8 @@ public class TrustCredentialAdapter {
                     CertStore.getInstance("Collection", new CollectionCertStoreParameters(lstCertCrlStores), PROVIDER);
             params.addCertStore(certStore);
 
-            final Collection<X509CRL> crlsFromConfig = config.getCRLs();
+            final Collection<X509CRL> crlsFromConfig =
+                    ConfigLogger.logOptional(interfaceName, "VerificationContext.getCRLs()", config::getCRLs);
             if (crlsFromConfig != null) {
                 if (!crlsFromConfig.isEmpty()) {
                     revocationEnabled = true;
@@ -170,12 +188,16 @@ public class TrustCredentialAdapter {
 
             final PKIXRevocationChecker revChecker = (PKIXRevocationChecker) cpb.getRevocationChecker();
 
-            final EnumSet<Option> pkixRevocationCheckerOptions = config.getPKIXRevocationCheckerOptions();
+            final EnumSet<Option> pkixRevocationCheckerOptions = ConfigLogger.logOptional(
+                    interfaceName,
+                    "VerificationContext.getPKIXRevocationCheckerOptions()",
+                    config::getPKIXRevocationCheckerOptions);
             if (pkixRevocationCheckerOptions != null) {
                 revChecker.setOptions(pkixRevocationCheckerOptions);
             }
 
-            final URI ocspResponder = config.getOCSPResponder();
+            final URI ocspResponder = ConfigLogger.logOptional(
+                    interfaceName, "VerificationContext.getOCSPResponder()", config::getOCSPResponder);
             if (ocspResponder != null) {
                 revocationEnabled = true;
                 java.security.Security.setProperty(OCSP_ENABLE_PROP, "true");
