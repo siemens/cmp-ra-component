@@ -21,6 +21,7 @@ import com.siemens.pki.cmpracomponent.configuration.CkgContext;
 import com.siemens.pki.cmpracomponent.configuration.CkgPasswordContext;
 import com.siemens.pki.cmpracomponent.configuration.SharedSecretCredentialContext;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpEnrollmentException;
+import com.siemens.pki.cmpracomponent.util.ConfigLogger;
 import java.security.NoSuchAlgorithmException;
 import org.bouncycastle.asn1.cmp.PKIFailureInfo;
 import org.bouncycastle.cms.PasswordRecipient;
@@ -42,8 +43,9 @@ public class PasswordEncryptor extends CmsEncryptorBase {
      */
     public PasswordEncryptor(final CkgContext config, final int initialRequestType, final String interfaceName)
             throws NoSuchAlgorithmException, CmpEnrollmentException {
-        super(config);
-        final CkgPasswordContext passwordContext = config.getPasswordContext();
+        super(config, interfaceName);
+        final CkgPasswordContext passwordContext =
+                ConfigLogger.log(interfaceName, "CkgContext.getPasswordContext()", config::getPasswordContext);
         if (passwordContext == null) {
             throw new CmpEnrollmentException(
                     initialRequestType,
@@ -51,13 +53,29 @@ public class PasswordEncryptor extends CmsEncryptorBase {
                     PKIFailureInfo.notAuthorized,
                     "support for key management technique Password-Based is not configured for central key generation");
         }
-        final SharedSecretCredentialContext encryptionCredentials = passwordContext.getEncryptionCredentials();
+        final SharedSecretCredentialContext encryptionCredentials = ConfigLogger.log(
+                interfaceName,
+                "CkgPasswordContext.getEncryptionCredentials()",
+                passwordContext::getEncryptionCredentials);
         addRecipientInfoGenerator(new JcePasswordRecipientInfoGenerator(
-                        AlgorithmHelper.getKeyEncryptionOID(passwordContext.getKekAlg()),
-                        AlgorithmHelper.convertSharedSecretToPassword(encryptionCredentials.getSharedSecret()))
+                        AlgorithmHelper.getKeyEncryptionOID(ConfigLogger.log(
+                                interfaceName, "CkgPasswordContext.getKekAlg()", passwordContext::getKekAlg)),
+                        AlgorithmHelper.convertSharedSecretToPassword(ConfigLogger.log(
+                                interfaceName,
+                                "SharedSecretCredentialContext.getSharedSecret()",
+                                encryptionCredentials::getSharedSecret)))
                 .setProvider(CertUtility.getBouncyCastleProvider())
                 .setPasswordConversionScheme(PasswordRecipient.PKCS5_SCHEME2_UTF8)
-                .setPRF(AlgorithmHelper.getPrf(encryptionCredentials.getPrf()))
-                .setSaltAndIterationCount(encryptionCredentials.getSalt(), encryptionCredentials.getIterationCount()));
+                .setPRF(AlgorithmHelper.getPrf(ConfigLogger.log(
+                        interfaceName, "SharedSecretCredentialContext.getPrf()", encryptionCredentials::getPrf)))
+                .setSaltAndIterationCount(
+                        ConfigLogger.log(
+                                interfaceName,
+                                "SharedSecretCredentialContext.getSalt()",
+                                encryptionCredentials::getSalt),
+                        ConfigLogger.log(
+                                interfaceName,
+                                "SharedSecretCredentialContext.getIterationCount()",
+                                encryptionCredentials::getIterationCount)));
     }
 }

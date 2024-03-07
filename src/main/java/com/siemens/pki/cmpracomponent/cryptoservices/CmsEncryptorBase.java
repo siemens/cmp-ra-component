@@ -18,11 +18,17 @@
 package com.siemens.pki.cmpracomponent.cryptoservices;
 
 import com.siemens.pki.cmpracomponent.configuration.CkgContext;
+import com.siemens.pki.cmpracomponent.util.ConfigLogger;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import org.bouncycastle.asn1.cms.EnvelopedData;
 import org.bouncycastle.asn1.cms.SignedData;
-import org.bouncycastle.cms.*;
+import org.bouncycastle.cms.CMSAlgorithm;
+import org.bouncycastle.cms.CMSEnvelopedData;
+import org.bouncycastle.cms.CMSEnvelopedDataGenerator;
+import org.bouncycastle.cms.CMSException;
+import org.bouncycastle.cms.CMSProcessableByteArray;
+import org.bouncycastle.cms.RecipientInfoGenerator;
 import org.bouncycastle.cms.jcajce.JceCMSContentEncryptorBuilder;
 
 /**
@@ -32,9 +38,15 @@ public class CmsEncryptorBase {
 
     private final CMSEnvelopedDataGenerator envGen = new CMSEnvelopedDataGenerator();
     private final CkgContext config;
+    private final String interfaceName;
 
-    protected CmsEncryptorBase(final CkgContext config) {
+    protected CmsEncryptorBase(final CkgContext config, String interfaceName) {
         this.config = config;
+        this.interfaceName = interfaceName;
+    }
+
+    protected void addRecipientInfoGenerator(final RecipientInfoGenerator recipientGenerator) {
+        envGen.addRecipientInfoGenerator(recipientGenerator);
     }
 
     /**
@@ -49,7 +61,10 @@ public class CmsEncryptorBase {
     public EnvelopedData encrypt(final byte[] msg) throws CMSException, NoSuchAlgorithmException {
         final CMSEnvelopedData cmsEnvData = envGen.generate(
                 new CMSProcessableByteArray(msg),
-                new JceCMSContentEncryptorBuilder(AlgorithmHelper.getKeyEncryptionOID(config.getContentEncryptionAlg()))
+                new JceCMSContentEncryptorBuilder(AlgorithmHelper.getKeyEncryptionOID(ConfigLogger.log(
+                                interfaceName,
+                                "CkgContext.getContentEncryptionAlg()",
+                                config::getContentEncryptionAlg)))
                         .setProvider(CertUtility.getBouncyCastleProvider())
                         .build());
         return EnvelopedData.getInstance(cmsEnvData.toASN1Structure().getContent());
@@ -70,9 +85,5 @@ public class CmsEncryptorBase {
                         .setProvider(CertUtility.getBouncyCastleProvider())
                         .build());
         return EnvelopedData.getInstance(cmsEnvData.toASN1Structure().getContent());
-    }
-
-    protected void addRecipientInfoGenerator(final RecipientInfoGenerator recipientGenerator) {
-        envGen.addRecipientInfoGenerator(recipientGenerator);
     }
 }

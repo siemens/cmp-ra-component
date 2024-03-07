@@ -59,7 +59,7 @@ public class TestCentralKeyGenerationWithPassword extends CkgOnlineEnrollmentTes
     private static final String DEFAULT_PRF = "SHA224";
     private static final int DEFAULT_ITERATIONCOUNT = 10_000;
     private static final Logger LOGGER = LoggerFactory.getLogger(TestCentralKeyGenerationWithPassword.class);
-    public static Object[][] inputList = new Object[][] {
+    public static Object[][] inputList = {
         //
         {DEFAULT_PRF, DEFAULT_ITERATIONCOUNT, DEFAULT_KEK_ALG},
         //
@@ -135,26 +135,8 @@ public class TestCentralKeyGenerationWithPassword extends CkgOnlineEnrollmentTes
         final SignatureValidationCredentials enrollmentTrust =
                 new SignatureValidationCredentials("credentials/ENROLL_Root.pem", null);
 
-        final Configuration config = buildSimpleRaConfiguration(
+        return buildSimpleRaConfiguration(
                 sharedSecret, downstreamTrust, upstreamCredentials, upstreamTrust, enrollmentTrust);
-        return config;
-    }
-
-    /**
-     * Central Key Generation/Using Password-Based Key Management Technique
-     *
-     * @throws Exception
-     */
-    @Test
-    public void testCrWithPassword() throws Exception {
-        final ProtectionProvider macBasedProvider = new PasswordBasedMacProtection(sharedSecret);
-
-        executeCrmfCertificateRequestWithoutKey(
-                PKIBody.TYPE_CERT_REQ,
-                PKIBody.TYPE_CERT_REP,
-                macBasedProvider,
-                getEeClient(),
-                new CmsDecryptor(null, null, "theSecret".toCharArray()));
     }
 
     protected Configuration buildSimpleRaConfiguration(
@@ -436,5 +418,22 @@ public class TestCentralKeyGenerationWithPassword extends CkgOnlineEnrollmentTes
                 return true;
             }
         };
+    }
+
+    /**
+     * Central Key Generation/Using Password-Based Key Management Technique
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testCrWithPassword() throws Exception {
+        final ProtectionProvider macBasedProvider = new PasswordBasedMacProtection(sharedSecret, INTERFACE_NAME);
+
+        executeCrmfCertificateRequestWithoutKey(
+                PKIBody.TYPE_CERT_REQ,
+                PKIBody.TYPE_CERT_REP,
+                macBasedProvider,
+                getEeClient(),
+                new CmsDecryptor(null, null, "theSecret".toCharArray()));
     }
 }

@@ -100,9 +100,10 @@ public class DataSignVerifier extends TrustCredentialAdapter {
     /**
      * ctor
      * @param config context used for verification
+     * @param interfaceName CMP interface name for logging
      */
-    public DataSignVerifier(final VerificationContext config) {
-        super(config);
+    public DataSignVerifier(final VerificationContext config, String interfaceName) {
+        super(config, interfaceName);
     }
 
     private boolean validate(final X509CertificateHolder cert, final List<X509Certificate> allCerts)

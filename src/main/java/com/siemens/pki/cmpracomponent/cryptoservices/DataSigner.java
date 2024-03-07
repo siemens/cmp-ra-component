@@ -81,25 +81,28 @@ public class DataSigner {
      * ctor
      * @param privateKey private key used for signing
      * @param endCertificate certificate used for signing
+     * @param interfaceName CMP interface name for logging
      * @throws CertificateEncodingException in case of error
      * @throws OperatorCreationException in case of error
      * @throws IOException in case of error
      * @throws CMSException in case of error
      */
-    public DataSigner(final PrivateKey privateKey, final X509Certificate endCertificate)
+    public DataSigner(final PrivateKey privateKey, final X509Certificate endCertificate, String interfaceName)
             throws CertificateEncodingException, OperatorCreationException, IOException, CMSException {
-        this(new BaseCredentialService(new SignatureCredentialContext() {
+        this(new BaseCredentialService(
+                new SignatureCredentialContext() {
 
-            @Override
-            public List<X509Certificate> getCertificateChain() {
-                return Collections.singletonList(endCertificate);
-            }
+                    @Override
+                    public List<X509Certificate> getCertificateChain() {
+                        return Collections.singletonList(endCertificate);
+                    }
 
-            @Override
-            public PrivateKey getPrivateKey() {
-                return privateKey;
-            }
-        }));
+                    @Override
+                    public PrivateKey getPrivateKey() {
+                        return privateKey;
+                    }
+                },
+                interfaceName));
     }
 
     /**
