@@ -18,6 +18,7 @@
 package com.siemens.pki.cmpracomponent.cryptoservices;
 
 import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
+import com.siemens.pki.cmpracomponent.util.ConfigLogger;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.List;
@@ -29,17 +30,21 @@ import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 public class BaseCredentialService {
 
     private final SignatureCredentialContext config;
+    final String interfaceName;
 
     /**
      * ctor
      * @param config related config
+     * @param interfaceName CMP interface name for logging
      */
-    public BaseCredentialService(final SignatureCredentialContext config) {
+    public BaseCredentialService(final SignatureCredentialContext config, String interfaceName) {
         this.config = config;
+        this.interfaceName = interfaceName;
     }
 
     protected List<X509Certificate> getCertChain() {
-        return config.getCertificateChain();
+        return ConfigLogger.log(
+                interfaceName, "SignatureCredentialContext.getCertificateChain()", config::getCertificateChain);
     }
 
     /**
@@ -47,7 +52,7 @@ public class BaseCredentialService {
      * @return end certificate
      */
     public X509Certificate getEndCertificate() {
-        return config.getCertificateChain().get(0);
+        return getCertChain().get(0);
     }
 
     /**
@@ -55,7 +60,7 @@ public class BaseCredentialService {
      * @return private key related to end certificate
      */
     public PrivateKey getPrivateKey() {
-        return config.getPrivateKey();
+        return ConfigLogger.log(interfaceName, "SignatureCredentialContext.getPrivateKey()", config::getPrivateKey);
     }
 
     protected AlgorithmIdentifier getSignatureAlgorithm() {
@@ -63,6 +68,9 @@ public class BaseCredentialService {
     }
 
     protected String getSignatureAlgorithmName() {
-        return config.getSignatureAlgorithmName();
+        return ConfigLogger.log(
+                interfaceName,
+                "SignatureCredentialContext.getSignatureAlgorithmName()",
+                config::getSignatureAlgorithmName);
     }
 }

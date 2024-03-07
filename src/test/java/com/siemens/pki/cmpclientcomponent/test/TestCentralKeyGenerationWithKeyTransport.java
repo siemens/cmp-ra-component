@@ -418,7 +418,7 @@ public class TestCentralKeyGenerationWithKeyTransport extends EnrollmentTestcase
                 .invokeEnrollment();
         assertNotNull(ret);
         // try to use received certificate and key
-        final DataSigner testSigner = new DataSigner(ret.getPrivateKey(), ret.getEnrolledCertificate());
+        final DataSigner testSigner = new DataSigner(ret.getPrivateKey(), ret.getEnrolledCertificate(), INTERFACE_NAME);
         final byte[] msgToSign = "Hello Signer, I am the message".getBytes();
         assertArrayEquals(
                 msgToSign,

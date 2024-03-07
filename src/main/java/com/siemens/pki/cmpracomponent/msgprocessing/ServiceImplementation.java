@@ -31,6 +31,7 @@ import com.siemens.pki.cmpracomponent.msggeneration.MsgOutputProtector;
 import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
+import com.siemens.pki.cmpracomponent.util.ConfigLogger;
 import java.io.IOException;
 import java.security.cert.CRLException;
 import java.security.cert.CertificateException;
@@ -115,11 +116,16 @@ class ServiceImplementation {
                         }
                     }
                 }
-                final List<X509CRL> crlsToAdd = messageHandler.getCrls(
-                        dpnFullName,
-                        dpnNameRelativeToCRLIssuer,
-                        issuers,
-                        ifNotNull(crlStatus.getThisUpdate(), Time::getDate));
+                final String[] dpnFullNameFinal = dpnFullName;
+                final String dpnNameRelativeToCRLIssuerFinal = dpnNameRelativeToCRLIssuer;
+                final List<X509CRL> crlsToAdd = ConfigLogger.logOptional(
+                        INTERFACE_NAME,
+                        "CrlUpdateRetrievalHandler.getCrls(String[], String, String[], Date)",
+                        () -> messageHandler.getCrls(
+                                dpnFullNameFinal,
+                                dpnNameRelativeToCRLIssuerFinal,
+                                issuers,
+                                ifNotNull(crlStatus.getThisUpdate(), Time::getDate)));
                 if (crlsToAdd != null) {
                     if (responseCrl == null) {
                         responseCrl = new ASN1EncodableVector();
@@ -152,7 +158,8 @@ class ServiceImplementation {
     private PKIBody handleGetCaCertificates(
             final ASN1ObjectIdentifier infoType, final GetCaCertificatesHandler messageHandler)
             throws CertificateException {
-        final List<X509Certificate> caCertificates = messageHandler.getCaCertificates();
+        final List<X509Certificate> caCertificates = ConfigLogger.logOptional(
+                INTERFACE_NAME, "GetCaCertificatesHandler.getCaCertificates()", messageHandler::getCaCertificates);
         if (caCertificates != null) {
             final CMPCertificate[] certificates = CertUtility.asCmpCertificates(caCertificates);
             return new PKIBody(
@@ -165,7 +172,10 @@ class ServiceImplementation {
     private PKIBody handleGetCertificateRequestTemplate(
             final ASN1ObjectIdentifier infoType, final GetCertificateRequestTemplateHandler messageHandler)
             throws IOException {
-        final byte[] template = messageHandler.getCertificateRequestTemplate();
+        final byte[] template = ConfigLogger.logOptional(
+                INTERFACE_NAME,
+                "GetCertificateRequestTemplateHandler.getCertificateRequestTemplate()",
+                messageHandler::getCertificateRequestTemplate);
         if (template != null) {
             return new PKIBody(
                     PKIBody.TYPE_GEN_REP,
@@ -178,12 +188,33 @@ class ServiceImplementation {
             final InfoTypeAndValue itav, final GetRootCaCertificateUpdateHandler messageHandler)
             throws CertificateException {
         final CMPCertificate oldRoot = ifNotNull(itav.getInfoValue(), CMPCertificate::getInstance);
-        final RootCaCertificateUpdateResponse response =
-                messageHandler.getRootCaCertificateUpdate(ifNotNull(oldRoot, CertUtility::asX509Certificate));
-        if (response != null && response.getNewWithNew() != null) {
-            final X509Certificate newWithNew = response.getNewWithNew();
-            final X509Certificate newWithOld = response.getNewWithOld();
-            final X509Certificate oldWithNew = response.getOldWithNew();
+        final RootCaCertificateUpdateResponse response = ConfigLogger.logOptional(
+                INTERFACE_NAME, "GetRootCaCertificateUpdateHandler.getRootCaCertificateUpdate(X509Certificate)", () -> {
+                    try {
+                        return messageHandler.getRootCaCertificateUpdate(
+                                ifNotNull(oldRoot, CertUtility::asX509Certificate));
+                    } catch (final CertificateException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+        if (response != null
+                && ConfigLogger.logOptional(
+                                INTERFACE_NAME,
+                                "GetRootCaCertificateUpdateHandler.RootCaCertificateUpdateResponse.getNewWithNew()",
+                                response::getNewWithNew)
+                        != null) {
+            final X509Certificate newWithNew = ConfigLogger.logOptional(
+                    INTERFACE_NAME,
+                    "GetRootCaCertificateUpdateHandler.RootCaCertificateUpdateResponse.getNewWithNew()",
+                    response::getNewWithNew);
+            final X509Certificate newWithOld = ConfigLogger.logOptional(
+                    INTERFACE_NAME,
+                    "GetRootCaCertificateUpdateHandler.RootCaCertificateUpdateResponse.getNewWithOld()",
+                    response::getNewWithOld);
+            final X509Certificate oldWithNew = ConfigLogger.logOptional(
+                    INTERFACE_NAME,
+                    "GetRootCaCertificateUpdateHandler.RootCaCertificateUpdateResponse.getOldWithNew()",
+                    response::getOldWithNew);
             return new PKIBody(
                     PKIBody.TYPE_GEN_REP,
                     new GenRepContent(new InfoTypeAndValue(
@@ -204,8 +235,10 @@ class ServiceImplementation {
             final InfoTypeAndValue itav = ((GenMsgContent) msg.getBody().getContent()).toInfoTypeAndValueArray()[0];
             final ASN1ObjectIdentifier infoType = itav.getInfoType();
 
-            final SupportMessageHandlerInterface messageHandler =
-                    config.getSupportMessageHandler(persistencyContext.getCertProfile(), infoType.getId());
+            final SupportMessageHandlerInterface messageHandler = ConfigLogger.logOptional(
+                    INTERFACE_NAME,
+                    "com.siemens.pki.cmpracomponent.configuration.Configuration.getSupportMessageHandler(String, String)",
+                    () -> config.getSupportMessageHandler(persistencyContext.getCertProfile(), infoType.getId()));
             if (messageHandler == null) {
                 return null;
             }
@@ -227,8 +260,12 @@ class ServiceImplementation {
                 body = new PKIBody(PKIBody.TYPE_GEN_REP, new GenRepContent(new InfoTypeAndValue(infoType)));
             }
             final MsgOutputProtector protector = new MsgOutputProtector(
-                    config.getDownstreamConfiguration(
-                            ifNotNull(persistencyContext, PersistencyContext::getCertProfile), body.getType()),
+                    ConfigLogger.log(
+                            INTERFACE_NAME,
+                            "Configuration.getDownstreamConfiguration",
+                            config::getDownstreamConfiguration,
+                            ifNotNull(persistencyContext, PersistencyContext::getCertProfile),
+                            body.getType()),
                     INTERFACE_NAME,
                     persistencyContext);
             return protector.generateAndProtectResponseTo(msg, body);

@@ -53,6 +53,7 @@ import org.bouncycastle.asn1.pkcs.CertificationRequestInfo;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.Extensions;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.cert.CertIOException;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
@@ -73,6 +74,7 @@ import org.slf4j.LoggerFactory;
  */
 public class CmpCaMock implements CmpRaComponent.UpstreamExchange {
 
+    private static final String INTERFACE_NAME = "CA Mock";
     private static final Logger LOGGER = LoggerFactory.getLogger(CmpCaMock.class);
     private static final JcaX509ContentVerifierProviderBuilder X509_CVPB =
             new JcaX509ContentVerifierProviderBuilder().setProvider(CertUtility.getBouncyCastleProvider());
@@ -89,11 +91,14 @@ public class CmpCaMock implements CmpRaComponent.UpstreamExchange {
         this.enrollmentCredentials =
                 new TrustChainAndPrivateKey(enrollmentCredentials, TestUtils.PASSWORD_AS_CHAR_ARRAY);
         caProtectionProvider = new SignatureBasedProtection(
-                new TrustChainAndPrivateKey(protectionCredentials, TestUtils.PASSWORD_AS_CHAR_ARRAY));
+                new TrustChainAndPrivateKey(protectionCredentials, TestUtils.PASSWORD_AS_CHAR_ARRAY), INTERFACE_NAME);
     }
 
     private CMPCertificate createCertificate(
-            final X500Name subject, final SubjectPublicKeyInfo publicKey, final X509Certificate issuingCert)
+            final X500Name subject,
+            final SubjectPublicKeyInfo publicKey,
+            final X509Certificate issuingCert,
+            Extensions extensionsFromTemplate)
             throws PEMException, NoSuchAlgorithmException, CertIOException, CertificateException,
                     OperatorCreationException {
         final long now = System.currentTimeMillis();
@@ -107,6 +112,16 @@ public class CmpCaMock implements CmpRaComponent.UpstreamExchange {
                 pubKey);
 
         final JcaX509ExtensionUtils extUtils = new JcaX509ExtensionUtils();
+        if (extensionsFromTemplate != null) {
+            Arrays.stream(extensionsFromTemplate.getExtensionOIDs()).forEach(oid -> {
+                try {
+                    v3CertBldr.addExtension(extensionsFromTemplate.getExtension(oid));
+                } catch (final CertIOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            });
+        }
         v3CertBldr.addExtension(Extension.subjectKeyIdentifier, false, extUtils.createSubjectKeyIdentifier(pubKey));
         v3CertBldr.addExtension(
                 Extension.authorityKeyIdentifier, false, extUtils.createAuthorityKeyIdentifier(issuingCert));
@@ -155,7 +170,8 @@ public class CmpCaMock implements CmpRaComponent.UpstreamExchange {
                 .getCertTemplate();
         final SubjectPublicKeyInfo publicKey = requestTemplate.getPublicKey();
         final X500Name subject = requestTemplate.getSubject();
-        final CMPCertificate cmpCertificateFromCertificate = createCertificate(subject, publicKey, issuingCert);
+        final CMPCertificate cmpCertificateFromCertificate =
+                createCertificate(subject, publicKey, issuingCert, requestTemplate.getExtensions());
 
         // drop root certificate from copy
         issuingChain.remove(issuingChain.size() - 1);
@@ -177,7 +193,10 @@ public class CmpCaMock implements CmpRaComponent.UpstreamExchange {
         final List<X509Certificate> issuingChain = enrollmentCredentials.getCertificateChain();
         final X509Certificate issuingCert = issuingChain.get(0);
         return createCertificate(
-                certificationRequest.getSubject(), certificationRequest.getSubjectPublicKeyInfo(), issuingCert);
+                certificationRequest.getSubject(),
+                certificationRequest.getSubjectPublicKeyInfo(),
+                issuingCert,
+                certificationRequest.getRequestedExtensions());
     }
 
     private PKIMessage handleP10CerticateRequest(final PKIMessage receivedMessage) throws Exception {
@@ -188,7 +207,10 @@ public class CmpCaMock implements CmpRaComponent.UpstreamExchange {
         final CertificationRequestInfo certificationRequestInfo =
                 ((CertificationRequest) receivedMessage.getBody().getContent()).getCertificationRequestInfo();
         final CMPCertificate cmpCertificateFromCertificate = createCertificate(
-                certificationRequestInfo.getSubject(), certificationRequestInfo.getSubjectPublicKeyInfo(), issuingCert);
+                certificationRequestInfo.getSubject(),
+                certificationRequestInfo.getSubjectPublicKeyInfo(),
+                issuingCert,
+                null);
 
         // drop root certificate from copy
         issuingChain.remove(issuingChain.size() - 1);

@@ -66,7 +66,7 @@ public class TestCentralKeyGenerationWithKeyAgreement extends EnrollmentTestcase
     public static final String DEFAULT_KEY_ENCRYPTION = "AES256_WRAP";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TestCentralKeyGenerationWithKeyAgreement.class);
-    public static Object[][] inputList = new Object[][] {
+    public static Object[][] inputList = {
         //
         {DEFAULT_KEY_AGREEMENT, DEFAULT_KEY_ENCRYPTION},
         //
@@ -464,7 +464,7 @@ public class TestCentralKeyGenerationWithKeyAgreement extends EnrollmentTestcase
                 .invokeEnrollment();
         assertNotNull(ret);
         // try to use received certificate and key
-        final DataSigner testSigner = new DataSigner(ret.getPrivateKey(), ret.getEnrolledCertificate());
+        final DataSigner testSigner = new DataSigner(ret.getPrivateKey(), ret.getEnrolledCertificate(), INTERFACE_NAME);
         final byte[] msgToSign = "Hello Signer, I am the message".getBytes();
         assertArrayEquals(
                 msgToSign,

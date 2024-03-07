@@ -31,6 +31,8 @@ import java.util.List;
 
 public class EnrollmentTestcaseBase extends CmpClientTestcaseBase {
 
+    protected String INTERFACE_NAME = "testclient";
+
     SignatureValidationCredentials enrollmentCredentials;
 
     ClientContext getClientContext(final int enrollmentType, KeyPair keyPair, byte[] certificationRequest) {

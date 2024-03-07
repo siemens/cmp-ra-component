@@ -62,7 +62,7 @@ public class TestCentralKeyGenerationWithPassword extends EnrollmentTestcaseBase
     private static final String DEFAULT_PRF = "SHA224";
     private static final int DEFAULT_ITERATIONCOUNT = 10_000;
     private static final Logger LOGGER = LoggerFactory.getLogger(TestCentralKeyGenerationWithPassword.class);
-    public static Object[][] inputList = new Object[][] {
+    public static Object[][] inputList = {
         //
         {DEFAULT_PRF, DEFAULT_ITERATIONCOUNT, DEFAULT_KEK_ALG},
         //
@@ -137,34 +137,8 @@ public class TestCentralKeyGenerationWithPassword extends EnrollmentTestcaseBase
         final SignatureValidationCredentials enrollmentTrust =
                 new SignatureValidationCredentials("credentials/ENROLL_Root.pem", null);
 
-        final Configuration config = buildSimpleRaConfiguration(
+        return buildSimpleRaConfiguration(
                 sharedSecret, downstreamTrust, upstreamCredentials, upstreamTrust, enrollmentTrust);
-        return config;
-    }
-
-    /**
-     * Central Key Generation/Using Password-Based Key Management Technique
-     *
-     * @throws Exception
-     */
-    @Test
-    public void testCrWithPassword() throws Exception {
-
-        SignatureValidationCredentials keyValidationCredentials = new SignatureValidationCredentials(
-                "credentials/CMP_LRA_DOWNSTREAM_Keystore.p12", "Password".toCharArray());
-        final EnrollmentResult ret = getPasswordBasedCmpClient(
-                        "theCertProfileForOnlineEnrollment",
-                        getClientContext(PKIBody.TYPE_CERT_REQ, null, null),
-                        sharedSecret,
-                        keyValidationCredentials)
-                .invokeEnrollment();
-        assertNotNull(ret);
-        // try to use received certificate and key
-        final DataSigner testSigner = new DataSigner(ret.getPrivateKey(), ret.getEnrolledCertificate());
-        final byte[] msgToSign = "Hello Signer, I am the message".getBytes();
-        assertArrayEquals(
-                msgToSign,
-                DataSignVerifier.verifySignature(testSigner.signData(msgToSign).getEncoded()));
     }
 
     protected Configuration buildSimpleRaConfiguration(
@@ -451,5 +425,30 @@ public class TestCentralKeyGenerationWithPassword extends EnrollmentTestcaseBase
     @Before
     public void setUp() throws Exception {
         upstreamExchange = launchCmpCaAndRa(buildPasswordbasedDownstreamConfiguration());
+    }
+
+    /**
+     * Central Key Generation/Using Password-Based Key Management Technique
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testCrWithPassword() throws Exception {
+
+        final SignatureValidationCredentials keyValidationCredentials = new SignatureValidationCredentials(
+                "credentials/CMP_LRA_DOWNSTREAM_Keystore.p12", "Password".toCharArray());
+        final EnrollmentResult ret = getPasswordBasedCmpClient(
+                        "theCertProfileForOnlineEnrollment",
+                        getClientContext(PKIBody.TYPE_CERT_REQ, null, null),
+                        sharedSecret,
+                        keyValidationCredentials)
+                .invokeEnrollment();
+        assertNotNull(ret);
+        // try to use received certificate and key
+        final DataSigner testSigner = new DataSigner(ret.getPrivateKey(), ret.getEnrolledCertificate(), INTERFACE_NAME);
+        final byte[] msgToSign = "Hello Signer, I am the message".getBytes();
+        assertArrayEquals(
+                msgToSign,
+                DataSignVerifier.verifySignature(testSigner.signData(msgToSign).getEncoded()));
     }
 }

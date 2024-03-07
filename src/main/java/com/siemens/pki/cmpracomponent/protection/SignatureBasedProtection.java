@@ -44,9 +44,10 @@ public class SignatureBasedProtection extends BaseCredentialService implements P
     /**
      * ctor
      * @param config specific configuration
+     * @param interfaceName CMP interface name for logging
      */
-    public SignatureBasedProtection(final SignatureCredentialContext config) {
-        super(config);
+    public SignatureBasedProtection(final SignatureCredentialContext config, String interfaceName) {
+        super(config, interfaceName);
     }
 
     @Override
