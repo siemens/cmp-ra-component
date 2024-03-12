@@ -1,10 +1,9 @@
 # Build and digitally sign the JAR file, then upload it to Maven
 name: Build and digitally sign the JAR
 
-
 on:
-  release:
-    types: [created]
+  pull_request:
+  push:
 
 jobs:
   sign:
