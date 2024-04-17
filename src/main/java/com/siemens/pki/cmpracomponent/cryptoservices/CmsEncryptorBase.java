@@ -21,9 +21,8 @@ import com.siemens.pki.cmpracomponent.configuration.CkgContext;
 import com.siemens.pki.cmpracomponent.util.ConfigLogger;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
+import org.bouncycastle.asn1.ASN1Object;
 import org.bouncycastle.asn1.cms.EnvelopedData;
-import org.bouncycastle.asn1.cms.SignedData;
-import org.bouncycastle.cms.CMSAlgorithm;
 import org.bouncycastle.cms.CMSEnvelopedData;
 import org.bouncycastle.cms.CMSEnvelopedDataGenerator;
 import org.bouncycastle.cms.CMSException;
@@ -73,17 +72,15 @@ public class CmsEncryptorBase {
     /**
      * encrypt the data
      *
-     * @param data signed data to encrypt
+     * @param asn1Object ASN.1 object to encrypt
      * @return encrypted data
      * @throws CMSException in case of an CMS processing error
      * @throws IOException  in case of ASN.1 encoding error
+     * @throws NoSuchAlgorithmException if getContentEncryptionAlg in config is
+     *                                  unknown
      */
-    public EnvelopedData encrypt(final SignedData data) throws CMSException, IOException {
-        final CMSEnvelopedData cmsEnvData = envGen.generate(
-                new CMSProcessableByteArray(data.getEncoded()),
-                new JceCMSContentEncryptorBuilder(CMSAlgorithm.AES256_CBC)
-                        .setProvider(CertUtility.getBouncyCastleProvider())
-                        .build());
-        return EnvelopedData.getInstance(cmsEnvData.toASN1Structure().getContent());
+    public EnvelopedData encrypt(final ASN1Object asn1Object)
+            throws CMSException, IOException, NoSuchAlgorithmException {
+        return encrypt(asn1Object.getEncoded());
     }
 }
