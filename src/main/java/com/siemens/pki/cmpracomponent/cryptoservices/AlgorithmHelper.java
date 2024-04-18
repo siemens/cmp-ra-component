@@ -438,6 +438,43 @@ public class AlgorithmHelper {
         return "SHA256with" + keyAlgorithm;
     }
 
+    /**
+     * Password-Based MAC used for protection
+     */
+    public enum PasswordBasedMacAlg {
+        /**
+         * The PasswordBasedMac algorithm is defined in Section 5.1.3.1 of [RFC4210]
+         */
+        PasswordBasedMac,
+        /**
+         * Password-Based Message Authentication Code 1 (PBMAC1) is defined in [RFC8018]
+         */
+        PBMAC1
+    };
+
+    /**
+     * get an Password-based message authentication code (MAC) algorithms
+     * @param passwordBasedMacAlgorithm id of Password-Based MAC used for protection
+     * @return related {@link PasswordBasedMacAlg}
+     * @throws NoSuchAlgorithmException if id is unknown
+     */
+    public static PasswordBasedMacAlg getPasswordBesedMacAlg(final String passwordBasedMacAlgorithm)
+            throws NoSuchAlgorithmException {
+        switch (passwordBasedMacAlgorithm.toLowerCase()) {
+            case "1.2.840.113533.7.66.13":
+            case "id-passwordbasedmac":
+            case "passwordbasedmac":
+            case "pbm":
+                return PasswordBasedMacAlg.PasswordBasedMac;
+            case "1.2.840.113549.1.5.14":
+            case "id-pbmac1":
+            case "pbmac1":
+                return PasswordBasedMacAlg.PBMAC1;
+            default:
+                throw new NoSuchAlgorithmException(passwordBasedMacAlgorithm);
+        }
+    }
+
     private static String normalizeId(final String id) {
         if (id == null) {
             LOGGER.error("id is null");
