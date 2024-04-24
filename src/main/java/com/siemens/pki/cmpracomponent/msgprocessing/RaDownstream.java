@@ -406,16 +406,26 @@ class RaDownstream {
                             downstreamConfiguration::getNestedEndpointContext);
                     if (nestedEndpointContext != null) {
                         final String NESTED_INTERFACE_NAME = "nested " + INTERFACE_NAME;
-                        final MessageHeaderValidator headerValidator =
+                        final MessageHeaderValidator nestedHeaderValidator =
                                 new MessageHeaderValidator(NESTED_INTERFACE_NAME);
-                        headerValidator.validate(in);
-                        final ProtectionValidator protectionValidator = new ProtectionValidator(
+                        nestedHeaderValidator.validate(in);
+                        final ProtectionValidator nestedProtectionValidator = new ProtectionValidator(
                                 NESTED_INTERFACE_NAME,
                                 ConfigLogger.logOptional(
                                         NESTED_INTERFACE_NAME,
                                         "NestedEndpointContext.getInputVerification()",
                                         nestedEndpointContext::getInputVerification));
-                        protectionValidator.validate(in);
+                        nestedProtectionValidator.validate(in);
+                        PKIHeader inHeader = in.getHeader();
+                        if (!ConfigLogger.log(
+                                NESTED_INTERFACE_NAME,
+                                "NestedEndpointContext.isIncomingRecipientValid()",
+                                () -> nestedEndpointContext.isIncomingRecipientValid(
+                                        inHeader.getRecipient().getName().toString()))) {
+                            persistencyContext = persistencyContextManager.loadCreatePersistencyContext(
+                                    inHeader.getTransactionID().getEncoded());
+                            return upstreamHandler.handleRequest(in, persistencyContext);
+                        }
                         final PKIMessage[] embeddedMessages = PKIMessages.getInstance(
                                         in.getBody().getContent())
                                 .toPKIMessageArray();

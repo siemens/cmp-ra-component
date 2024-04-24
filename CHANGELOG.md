@@ -135,3 +135,8 @@ feat: revocation checking via inventory interface
 ### 4.1.2 (Feb 28 2024)
 
 feat: add logging while accessing configuration data
+
+### 4.1.3 (Apr 24 2024)
+
+fix: handling of NestedEndpointContext.isIncomingRecipientValid
+
