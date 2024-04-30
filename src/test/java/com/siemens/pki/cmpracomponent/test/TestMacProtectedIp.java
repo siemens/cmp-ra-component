@@ -17,7 +17,6 @@
  */
 package com.siemens.pki.cmpracomponent.test;
 
-import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
 import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
 import org.bouncycastle.asn1.cmp.PKIBody;
 import org.junit.Ignore;

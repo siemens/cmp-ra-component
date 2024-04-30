@@ -17,9 +17,7 @@ public class SharedSecretCredentials implements SharedSecretCredentialContext {
     final byte[] senderKID;
     final byte[] sharedSecret;
 
-    public SharedSecretCredentials(final PBMParameter pbmParameter,
-                                   final byte[] senderKID,
-                                   final byte[] sharedSecret) {
+    public SharedSecretCredentials(final PBMParameter pbmParameter, final byte[] senderKID, final byte[] sharedSecret) {
         this.iterationCount = pbmParameter.getIterationCount().getValue().intValue();
         this.macAlgorithm = pbmParameter.getMac().getAlgorithm().getId();
         this.passwordBasedMacAlgorithm = CMPObjectIdentifiers.passwordBasedMac.getId();
@@ -31,10 +29,8 @@ public class SharedSecretCredentials implements SharedSecretCredentialContext {
         this.keyLength = 0;
     }
 
-    public SharedSecretCredentials(PBKDF2Params pbkdf2Params,
-                                   String macAlgorithm,
-                                   byte[] senderKID,
-                                   byte[] sharedSecret) {
+    public SharedSecretCredentials(
+            PBKDF2Params pbkdf2Params, String macAlgorithm, byte[] senderKID, byte[] sharedSecret) {
         this.iterationCount = pbkdf2Params.getIterationCount().intValue();
         this.macAlgorithm = macAlgorithm;
         this.keyLength = pbkdf2Params.getKeyLength().intValue();

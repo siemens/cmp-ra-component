@@ -205,9 +205,8 @@ class ServiceImplementation {
             final InfoTypeAndValue itav = ((GenMsgContent) msg.getBody().getContent()).toInfoTypeAndValueArray()[0];
             final ASN1ObjectIdentifier infoType = itav.getInfoType();
 
-            final SupportMessageHandlerInterface messageHandler =
-                    config.getSupportMessageHandler(messageContext.getPersistencyContext().getCertProfile(),
-                            infoType.getId());
+            final SupportMessageHandlerInterface messageHandler = config.getSupportMessageHandler(
+                    messageContext.getPersistencyContext().getCertProfile(), infoType.getId());
             if (messageHandler == null) {
                 return null;
             }

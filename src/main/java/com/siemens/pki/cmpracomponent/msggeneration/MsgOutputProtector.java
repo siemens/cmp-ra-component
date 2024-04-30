@@ -83,11 +83,11 @@ public class MsgOutputProtector {
         suppressRedundantExtraCerts = config.getSuppressRedundantExtraCerts();
         reprotectMode = config.getReprotectMode();
         recipient = ifNotNull(config.getRecipient(), rec -> new GeneralName(new X500Name(rec)));
-        final CredentialContext verificationCredentials = ifNotNull(messageContext, MessageContext::getCredentialContext);
+        final CredentialContext verificationCredentials =
+                ifNotNull(messageContext, MessageContext::getCredentialContext);
         if (verificationCredentials instanceof SharedSecretCredentialContext) {
             protectionCredentials = verificationCredentials;
-        }
-        else {
+        } else {
             protectionCredentials = config.getOutputCredentials();
             if (reprotectMode == ReprotectMode.reprotect && protectionCredentials == null) {
                 throw new CmpProcessingException(
@@ -117,7 +117,6 @@ public class MsgOutputProtector {
     }
 
     // new MsgoutputProtector with CredentialContext == VerificationContext.credentials
-
 
     /**
      * generate and protect a request

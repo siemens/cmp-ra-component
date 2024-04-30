@@ -23,8 +23,6 @@ import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import com.siemens.pki.cmpracomponent.util.NullUtil.ExFunction;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import org.bouncycastle.asn1.cmp.PKIFailureInfo;
