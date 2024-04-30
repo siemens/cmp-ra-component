@@ -41,6 +41,7 @@ import com.siemens.pki.cmpracomponent.msgvalidation.CmpEnrollmentException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpValidationException;
 import com.siemens.pki.cmpracomponent.msgvalidation.InputValidator;
+import com.siemens.pki.cmpracomponent.msgvalidation.MessageContext;
 import com.siemens.pki.cmpracomponent.msgvalidation.MessageHeaderValidator;
 import com.siemens.pki.cmpracomponent.msgvalidation.ProtectionValidator;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
@@ -196,11 +197,12 @@ class RaDownstream {
                         INTERFACE_NAME,
                         "Configuration.getDownstreamConfiguration",
                         config::getDownstreamConfiguration,
-                        ifNotNull(ifNotNull(messageContext, MessageContext::getPersistencyContext),
+                        ifNotNull(
+                                ifNotNull(messageContext, MessageContext::getPersistencyContext),
                                 PersistencyContext::getCertProfile),
                         bodyType),
                 INTERFACE_NAME,
-                persistencyContext);
+                messageContext);
     }
     // special handling for CR, IR, KUR
     private PKIMessage handleCrmfCertificateRequest(
@@ -417,6 +419,7 @@ class RaDownstream {
                 persistencyContext = persistencyContextManager.loadCreatePersistencyContext(transactionId);
                 final int inBodyType = in.getBody().getType();
                 if (inBodyType == PKIBody.TYPE_NESTED) {
+                        return getOutputProtector(
                     PersistencyContext nestedPersistencyContext = persistencyContext;
                     // suppress persistency update for NESTED messages
                     persistencyContext = null;
@@ -703,8 +706,8 @@ class RaDownstream {
             case PKIBody.TYPE_GEN_MSG:
                 // try to handle locally
                 persistencyContext.setRequestType(incomingRequest.getBody().getType());
-                final PKIMessage genmResponse = new ServiceImplementation(config)
-                        .handleValidatedInputMessage(incomingRequest, messageContext);
+                final PKIMessage genmResponse =
+                        new ServiceImplementation(config).handleValidatedInputMessage(incomingRequest, messageContext);
                 if (genmResponse != null) {
                     return genmResponse;
                 }

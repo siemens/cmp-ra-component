@@ -239,7 +239,8 @@ class ServiceImplementation {
             final SupportMessageHandlerInterface messageHandler = ConfigLogger.logOptional(
                     INTERFACE_NAME,
                     "com.siemens.pki.cmpracomponent.configuration.Configuration.getSupportMessageHandler(String, String)",
-                    () -> config.getSupportMessageHandler(messageContext.getPersistencyContext().getCertProfile(), infoType.getId()));
+                    () -> config.getSupportMessageHandler(
+                            messageContext.getPersistencyContext().getCertProfile(), infoType.getId()));
             if (messageHandler == null) {
                 return null;
             }
