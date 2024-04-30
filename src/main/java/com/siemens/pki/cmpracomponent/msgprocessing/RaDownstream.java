@@ -35,6 +35,7 @@ import com.siemens.pki.cmpracomponent.msgvalidation.CmpEnrollmentException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpValidationException;
 import com.siemens.pki.cmpracomponent.msgvalidation.InputValidator;
+import com.siemens.pki.cmpracomponent.msgvalidation.MessageContext;
 import com.siemens.pki.cmpracomponent.msgvalidation.MessageHeaderValidator;
 import com.siemens.pki.cmpracomponent.msgvalidation.ProtectionValidator;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
@@ -178,11 +179,12 @@ class RaDownstream {
                         INTERFACE_NAME,
                         "Configuration.getDownstreamConfiguration",
                         config::getDownstreamConfiguration,
-                        ifNotNull(ifNotNull(messageContext, MessageContext::getPersistencyContext),
+                        ifNotNull(
+                                ifNotNull(messageContext, MessageContext::getPersistencyContext),
                                 PersistencyContext::getCertProfile),
                         bodyType),
                 INTERFACE_NAME,
-                persistencyContext);
+                messageContext);
     }
 
     /**
@@ -438,7 +440,8 @@ class RaDownstream {
                         final PKIMessage[] responses = Arrays.stream(embeddedMessages)
                                 .map(this::handleInputMessage)
                                 .toArray(PKIMessage[]::new);
-                        return getOutputProtector(new MessageContext(persistencyContext, credentialContext), PKIBody.TYPE_NESTED)
+                        return getOutputProtector(
+                                        new MessageContext(persistencyContext, credentialContext), PKIBody.TYPE_NESTED)
                                 .generateAndProtectResponseTo(
                                         in, new PKIBody(PKIBody.TYPE_NESTED, new PKIMessages(responses)));
                     }
@@ -462,8 +465,7 @@ class RaDownstream {
                         issuingChain = persistencyContext.getIssuingChain();
                         break;
                     case PKIBody.TYPE_POLL_REP:
-                        retryAfterTime = ((PollRepContent)
-                                        response.getBody().getContent())
+                        retryAfterTime = ((PollRepContent) response.getBody().getContent())
                                 .getCheckAfter(0)
                                 .intPositiveValueExact();
                         issuingChain = null;
@@ -482,13 +484,11 @@ class RaDownstream {
             } catch (final BaseCmpException e) {
                 final PKIBody errorBody = e.asErrorBody();
                 responseBodyType = errorBody.getType();
-                return getOutputProtector(messageContext, responseBodyType)
-                        .generateAndProtectResponseTo(in, errorBody);
+                return getOutputProtector(messageContext, responseBodyType).generateAndProtectResponseTo(in, errorBody);
             } catch (final RuntimeException ex) {
                 final PKIBody errorBody = new CmpProcessingException(INTERFACE_NAME, ex).asErrorBody();
                 responseBodyType = errorBody.getType();
-                return getOutputProtector(messageContext, responseBodyType)
-                        .generateAndProtectResponseTo(in, errorBody);
+                return getOutputProtector(messageContext, responseBodyType).generateAndProtectResponseTo(in, errorBody);
             } finally {
                 if (persistencyContext != null) {
                     int offset = ConfigLogger.log(
@@ -612,8 +612,8 @@ class RaDownstream {
         return incomingRequest;
     }
 
-    private PKIMessage handleValidatedRequest(
-            final PKIMessage incomingRequest, final MessageContext messageContext) throws Exception {
+    private PKIMessage handleValidatedRequest(final PKIMessage incomingRequest, final MessageContext messageContext)
+            throws Exception {
         // request pre processing
         // by default there is no pre processing
         PKIMessage preprocessedRequest = incomingRequest;
@@ -643,8 +643,8 @@ class RaDownstream {
             case PKIBody.TYPE_GEN_MSG:
                 // try to handle locally
                 persistencyContext.setRequestType(incomingRequest.getBody().getType());
-                final PKIMessage genmResponse = new ServiceImplementation(config)
-                        .handleValidatedInputMessage(incomingRequest, messageContext);
+                final PKIMessage genmResponse =
+                        new ServiceImplementation(config).handleValidatedInputMessage(incomingRequest, messageContext);
                 if (genmResponse != null) {
                     return genmResponse;
                 }
