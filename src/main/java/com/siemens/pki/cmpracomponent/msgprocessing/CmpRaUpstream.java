@@ -21,10 +21,7 @@ import com.siemens.pki.cmpracomponent.configuration.Configuration;
 import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
 import com.siemens.pki.cmpracomponent.msggeneration.MsgOutputProtector;
 import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
-import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
-import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
-import com.siemens.pki.cmpracomponent.msgvalidation.CmpValidationException;
-import com.siemens.pki.cmpracomponent.msgvalidation.InputValidator;
+import com.siemens.pki.cmpracomponent.msgvalidation.*;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContextManager;
 import com.siemens.pki.cmpracomponent.util.CmpFuncEx;
@@ -152,7 +149,7 @@ class CmpRaUpstream implements RaUpstream {
                         config.getUpstreamConfiguration(
                                 certProfile, in.getBody().getType()),
                         INTERFACE_NAME,
-                        pesistencyContext);
+                        new MessageContext(pesistencyContext, null));
                 sentMessage = outputProtector.protectOutgoingMessage(in, null);
             }
             final NestedEndpointContext nestedEndpointContext = config.getUpstreamConfiguration(

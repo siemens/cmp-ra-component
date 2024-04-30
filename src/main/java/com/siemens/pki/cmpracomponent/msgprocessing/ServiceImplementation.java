@@ -30,6 +30,7 @@ import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.msggeneration.MsgOutputProtector;
 import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
+import com.siemens.pki.cmpracomponent.msgvalidation.MessageContext;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import java.io.IOException;
 import java.security.cert.CRLException;
@@ -198,14 +199,15 @@ class ServiceImplementation {
                 new GenRepContent(new InfoTypeAndValue(CMPObjectIdentifiers.id_it_rootCaKeyUpdate)));
     }
 
-    protected PKIMessage handleValidatedInputMessage(final PKIMessage msg, final PersistencyContext persistencyContext)
+    protected PKIMessage handleValidatedInputMessage(final PKIMessage msg, final MessageContext messageContext)
             throws BaseCmpException {
         try {
             final InfoTypeAndValue itav = ((GenMsgContent) msg.getBody().getContent()).toInfoTypeAndValueArray()[0];
             final ASN1ObjectIdentifier infoType = itav.getInfoType();
 
             final SupportMessageHandlerInterface messageHandler =
-                    config.getSupportMessageHandler(persistencyContext.getCertProfile(), infoType.getId());
+                    config.getSupportMessageHandler(messageContext.getPersistencyContext().getCertProfile(),
+                            infoType.getId());
             if (messageHandler == null) {
                 return null;
             }
@@ -228,9 +230,10 @@ class ServiceImplementation {
             }
             final MsgOutputProtector protector = new MsgOutputProtector(
                     config.getDownstreamConfiguration(
-                            ifNotNull(persistencyContext, PersistencyContext::getCertProfile), body.getType()),
+                            ifNotNull(messageContext.getPersistencyContext(), PersistencyContext::getCertProfile),
+                            body.getType()),
                     INTERFACE_NAME,
-                    persistencyContext);
+                    messageContext);
             return protector.generateAndProtectResponseTo(msg, body);
         } catch (final BaseCmpException ex) {
             throw ex;

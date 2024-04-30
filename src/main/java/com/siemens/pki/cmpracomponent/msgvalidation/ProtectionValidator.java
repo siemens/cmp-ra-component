@@ -17,6 +17,7 @@
  */
 package com.siemens.pki.cmpracomponent.msgvalidation;
 
+import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import org.bouncycastle.asn1.ASN1BitString;
@@ -33,7 +34,7 @@ import org.slf4j.LoggerFactory;
  * This class validates the signature or password based protection of all
  * incoming messages and generates proper error responses on failed validation.
  */
-public class ProtectionValidator implements ValidatorIF<Void> {
+public class ProtectionValidator implements ValidatorIF<CredentialContext> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ProtectionValidator.class);
 
@@ -59,11 +60,12 @@ public class ProtectionValidator implements ValidatorIF<Void> {
      *                                validation
      */
     @Override
-    public Void validate(final PKIMessage message) throws BaseCmpException {
+    public CredentialContext validate(final PKIMessage message) throws BaseCmpException {
         if (config == null) {
             // protection validation is not needed
             return null;
         }
+        final CredentialContext credentialContext;
         final ASN1BitString protection = message.getProtection();
         final AlgorithmIdentifier protectionAlg = message.getHeader().getProtectionAlg();
         if (protection == null || protectionAlg == null) {
@@ -83,12 +85,13 @@ public class ProtectionValidator implements ValidatorIF<Void> {
             }
         }
         if (CMPObjectIdentifiers.passwordBasedMac.equals(protectionAlg.getAlgorithm())) {
-            new PasswordBasedMacValidator(interfaceName, config).validate(message);
+            credentialContext = new PasswordBasedMacValidator(interfaceName, config).validate(message);
         } else if (PKCSObjectIdentifiers.id_PBMAC1.equals(protectionAlg.getAlgorithm())) {
-            new PBMAC1ProtectionValidator(interfaceName, config).validate(message);
+            credentialContext = new PBMAC1ProtectionValidator(interfaceName, config).validate(message);
         } else {
             new SignatureProtectionValidator(interfaceName, config).validate(message);
+            credentialContext = null;
         }
-        return null;
+        return credentialContext;
     }
 }
