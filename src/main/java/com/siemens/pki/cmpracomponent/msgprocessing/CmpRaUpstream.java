@@ -26,6 +26,7 @@ import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpValidationException;
 import com.siemens.pki.cmpracomponent.msgvalidation.InputValidator;
+import com.siemens.pki.cmpracomponent.msgvalidation.MessageContext;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContextManager;
 import com.siemens.pki.cmpracomponent.util.CmpFuncEx;
@@ -161,7 +162,8 @@ class CmpRaUpstream implements RaUpstream {
                 sentMessage = in;
             } else {
                 final MsgOutputProtector outputProtector =
-                        new MsgOutputProtector(upstreamConfiguration, INTERFACE_NAME, pesistencyContext);
+                        new MsgOutputProtector(upstreamConfiguration, INTERFACE_NAME,
+                                new MessageContext(pesistencyContext, null));
                 sentMessage = outputProtector.protectOutgoingMessage(in, null);
             }
             final NestedEndpointContext nestedEndpointContext = ConfigLogger.logOptional(
