@@ -135,6 +135,8 @@ class RaDownstream {
 
     private final PersistencyContextManager persistencyContextManager;
 
+    private boolean macBasedProtection;
+
     /**
      * @param persistencyContextManager persistency interface
      * @param config                    specific configuration
@@ -187,6 +189,19 @@ class RaDownstream {
         return new KeyTransportEncryptor(ckgConfiguration, recipientCert, initialRequestType, interfaceName);
     }
 
+    private MsgOutputProtector getOutputProtector(final MessageContext messageContext, final int bodyType)
+            throws Exception {
+        return new MsgOutputProtector(
+                ConfigLogger.log(
+                        INTERFACE_NAME,
+                        "Configuration.getDownstreamConfiguration",
+                        config::getDownstreamConfiguration,
+                        ifNotNull(ifNotNull(messageContext, MessageContext::getPersistencyContext),
+                                PersistencyContext::getCertProfile),
+                        bodyType),
+                INTERFACE_NAME,
+                persistencyContext);
+    }
     // special handling for CR, IR, KUR
     private PKIMessage handleCrmfCertificateRequest(
             final PKIMessage incomingCertificateRequest, final PersistencyContext persistencyContext)
@@ -377,6 +392,7 @@ class RaDownstream {
      */
     PKIMessage handleInputMessage(final PKIMessage in) {
         PersistencyContext persistencyContext = null;
+        MessageContext messageContext = null;
         int responseBodyType = PKIBody.TYPE_ERROR;
         int retryAfterTime = 0;
         try {
@@ -406,16 +422,20 @@ class RaDownstream {
                     persistencyContext = null;
                     return handleNestedRequest(in, nestedPersistencyContext);
                 }
+                }
                 final InputValidator inputValidator = new InputValidator(
                         INTERFACE_NAME,
                         config::getDownstreamConfiguration,
                         config::isRaVerifiedAcceptable,
                         supportedMessageTypes,
                         persistencyContext);
-                inputValidator.validate(in);
+                        INTERFACE_NAME,
+                        config::getDownstreamConfiguration,
+                        config::isRaVerifiedAcceptable,
+                        supportedMessageTypes,
+                        persistencyContextManager::loadCreatePersistencyContext);
+                persistencyContext = messageContext.getPersistencyContext();
 
-                PKIMessage responseFromUpstream = handleValidatedRequest(in, persistencyContext);
-                // apply downstream protection and nesting
                 List<CMPCertificate> issuingChain = null;
                 responseBodyType = responseFromUpstream.getBody().getType();
                 switch (responseBodyType) {
@@ -443,13 +463,13 @@ class RaDownstream {
                         ifNotNull(persistencyContext, PersistencyContext::getCertProfile),
                         responseBodyType);
                 PKIMessage protectedResponse = new MsgOutputProtector(
-                                downstreamConfiguration, INTERFACE_NAME, persistencyContext)
+                                downstreamConfiguration, INTERFACE_NAME, messageContext)
                         .protectOutgoingMessage(
                                 new PKIMessage(
-                                        responseFromUpstream.getHeader(),
-                                        responseFromUpstream.getBody(),
-                                        responseFromUpstream.getProtection(),
-                                        responseFromUpstream.getExtraCerts()),
+                                        response.getHeader(),
+                                        response.getBody(),
+                                        response.getProtection(),
+                                        response.getExtraCerts()),
                                 issuingChain);
 
                 final NestedEndpointContext nestedEndpointContext = ConfigLogger.logOptional(
@@ -472,7 +492,7 @@ class RaDownstream {
                         config::getDownstreamConfiguration,
                         ifNotNull(persistencyContext, PersistencyContext::getCertProfile),
                         errorBody.getType());
-                return new MsgOutputProtector(downstreamConfiguration, INTERFACE_NAME, persistencyContext)
+                return new MsgOutputProtector(downstreamConfiguration, INTERFACE_NAME, messageContext)
                         .generateAndProtectResponseTo(in, errorBody);
             } catch (final RuntimeException ex) {
                 final PKIBody errorBody = new CmpProcessingException(INTERFACE_NAME, ex).asErrorBody();
@@ -482,7 +502,7 @@ class RaDownstream {
                         config::getDownstreamConfiguration,
                         ifNotNull(persistencyContext, PersistencyContext::getCertProfile),
                         errorBody.getType());
-                return new MsgOutputProtector(downstreamConfiguration, INTERFACE_NAME, persistencyContext)
+                return new MsgOutputProtector(downstreamConfiguration, INTERFACE_NAME, messageContext)
                         .generateAndProtectResponseTo(in, errorBody);
             } finally {
                 if (persistencyContext != null) {
@@ -652,11 +672,12 @@ class RaDownstream {
     }
 
     private PKIMessage handleValidatedRequest(
-            final PKIMessage incomingRequest, final PersistencyContext persistencyContext)
+            final PKIMessage incomingRequest, final MessageContext messageContext)
             throws BaseCmpException, IOException {
         // request pre processing
         // by default there is no pre processing
         PKIMessage preprocessedRequest = incomingRequest;
+        final PersistencyContext persistencyContext = messageContext.getPersistencyContext();
         switch (incomingRequest.getBody().getType()) {
             case PKIBody.TYPE_INIT_REQ:
             case PKIBody.TYPE_CERT_REQ:
@@ -683,7 +704,7 @@ class RaDownstream {
                 // try to handle locally
                 persistencyContext.setRequestType(incomingRequest.getBody().getType());
                 final PKIMessage genmResponse = new ServiceImplementation(config)
-                        .handleValidatedInputMessage(incomingRequest, persistencyContext);
+                        .handleValidatedInputMessage(incomingRequest, messageContext);
                 if (genmResponse != null) {
                     return genmResponse;
                 }

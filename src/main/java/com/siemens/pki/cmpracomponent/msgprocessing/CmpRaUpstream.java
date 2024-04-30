@@ -26,6 +26,7 @@ import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpValidationException;
 import com.siemens.pki.cmpracomponent.msgvalidation.InputValidator;
+import com.siemens.pki.cmpracomponent.msgvalidation.MessageContext;
 import com.siemens.pki.cmpracomponent.msgvalidation.MessageHeaderValidator;
 import com.siemens.pki.cmpracomponent.msgvalidation.ProtectionValidator;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
@@ -52,8 +53,6 @@ import org.slf4j.LoggerFactory;
 class CmpRaUpstream implements RaUpstream {
 
     private static final String INTERFACE_NAME = "CMP upstream";
-
-    private static final String NESTED_INTERFACE_NAME = "nested " + INTERFACE_NAME;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CmpRaUpstream.class);
 
@@ -132,7 +131,8 @@ class CmpRaUpstream implements RaUpstream {
                 sentMessage = in;
             } else {
                 final MsgOutputProtector outputProtector =
-                        new MsgOutputProtector(upstreamConfiguration, INTERFACE_NAME, persistencyContext);
+                        new MsgOutputProtector(upstreamConfiguration, INTERFACE_NAME,
+                                new MessageContext(persistencyContext, null));
                 sentMessage = outputProtector.protectOutgoingMessage(in, null);
             }
             final NestedEndpointContext nestedEndpointContext = ConfigLogger.logOptional(
