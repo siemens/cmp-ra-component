@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2020 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -17,18 +17,15 @@
  */
 package com.siemens.pki.cmpracomponent.test;
 
+import com.siemens.pki.cmpracomponent.configuration.Configuration;
 import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
-import org.bouncycastle.asn1.cmp.PKIBody;
-import org.junit.Test;
+import org.junit.Before;
 
-public class TestPasswordbasedIr extends PasswordEnrollmentTestcasebase {
+public class Pbmac1EnrollmentTestcasebase extends OnlineEnrollmentTestcaseBase {
 
-    @Test
-    public void testPasswordbasedIr() throws Exception {
-        executeCrmfCertificateRequest(
-                PKIBody.TYPE_INIT_REQ,
-                PKIBody.TYPE_INIT_REP,
-                ConfigurationFactory.getEePasswordbasedProtectionProvider(),
-                getEeClient());
+    @Before
+    public void setUp() throws Exception {
+        final Configuration config = ConfigurationFactory.buildPbmac1DownstreamConfiguration();
+        launchCmpCaAndRa(config);
     }
 }

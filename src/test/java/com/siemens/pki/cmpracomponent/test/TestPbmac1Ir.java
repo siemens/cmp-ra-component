@@ -21,14 +21,20 @@ import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
 import org.bouncycastle.asn1.cmp.PKIBody;
 import org.junit.Test;
 
-public class TestPasswordbasedIr extends PasswordEnrollmentTestcasebase {
+public class TestPbmac1Ir extends PasswordEnrollmentTestcasebase {
 
+    /**
+     * Enrolling an End Entity to a New PKI/Using MAC-Based Protection for
+     * Enrollment
+     *
+     * @throws Exception in case of error
+     */
     @Test
-    public void testPasswordbasedIr() throws Exception {
+    public void testPbmac1Ir() throws Exception {
         executeCrmfCertificateRequest(
                 PKIBody.TYPE_INIT_REQ,
                 PKIBody.TYPE_INIT_REP,
-                ConfigurationFactory.getEePasswordbasedProtectionProvider(),
+                ConfigurationFactory.getEePbmac1ProtectionProvider(),
                 getEeClient());
     }
 }
