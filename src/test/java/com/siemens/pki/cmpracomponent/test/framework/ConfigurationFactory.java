@@ -82,7 +82,48 @@ public class ConfigurationFactory {
     private static SharedSecret eeSharedSecretCredentials;
 
     public static Configuration buildPasswordbasedDownstreamConfiguration() throws Exception {
+        final CredentialContext downstreamCredentials = new SharedSecret("PASSWORDBASEDMAC", TestUtils.PASSWORD);
+        final VerificationContext downstreamTrust = new PasswordValidationCredentials(TestUtils.PASSWORD);
+
+        final CredentialContext upstreamCredentials =
+                new TrustChainAndPrivateKey("credentials/CMP_LRA_UPSTREAM_Keystore.p12", "Password".toCharArray());
+        final VerificationContext upstreamTrust =
+                new SignatureValidationCredentials("credentials/CMP_CA_Root.pem", null);
+        final SignatureValidationCredentials enrollmentTrust =
+                new SignatureValidationCredentials("credentials/ENROLL_Root.pem", null);
+
+        return buildSimpleRaConfiguration(
+                downstreamCredentials,
+                ReprotectMode.reprotect,
+                downstreamTrust,
+                upstreamCredentials,
+                upstreamTrust,
+                enrollmentTrust);
+    }
+
+    public static Configuration buildPbmac1DownstreamConfiguration() throws Exception {
         final CredentialContext downstreamCredentials = new SharedSecret("PBMAC1", TestUtils.PASSWORD);
+        final VerificationContext downstreamTrust = new PasswordValidationCredentials(TestUtils.PASSWORD);
+
+        final CredentialContext upstreamCredentials =
+                new TrustChainAndPrivateKey("credentials/CMP_LRA_UPSTREAM_Keystore.p12", "Password".toCharArray());
+        final VerificationContext upstreamTrust =
+                new SignatureValidationCredentials("credentials/CMP_CA_Root.pem", null);
+        final SignatureValidationCredentials enrollmentTrust =
+                new SignatureValidationCredentials("credentials/ENROLL_Root.pem", null);
+
+        return buildSimpleRaConfiguration(
+                downstreamCredentials,
+                ReprotectMode.reprotect,
+                downstreamTrust,
+                upstreamCredentials,
+                upstreamTrust,
+                enrollmentTrust);
+    }
+
+    public static Configuration buildMixedDownstreamConfiguration() throws Exception {
+        final TrustChainAndPrivateKey downstreamCredentials =
+                new TrustChainAndPrivateKey("credentials/CMP_LRA_DOWNSTREAM_Keystore.p12", "Password".toCharArray());
         final VerificationContext downstreamTrust = new PasswordValidationCredentials(TestUtils.PASSWORD);
 
         final CredentialContext upstreamCredentials =
@@ -746,6 +787,15 @@ public class ConfigurationFactory {
         return eePasswordbasedProtectionProvider;
     }
 
+    public static ProtectionProvider getEeWrongPasswordbasedProtectionProvider()
+            throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException {
+        if (eePasswordbasedProtectionProvider == null) {
+            eePasswordbasedProtectionProvider = ProtectionProviderFactory.createProtectionProvider(
+                    getEeWrongSharedSecretCredentials(), INTERFACE_NAME);
+        }
+        return eePasswordbasedProtectionProvider;
+    }
+
     public static ProtectionProvider getEePbmac1ProtectionProvider()
             throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException {
         if (eePbmac1ProtectionProvider == null) {
@@ -758,6 +808,13 @@ public class ConfigurationFactory {
     private static SharedSecret getEeSharedSecretCredentials() {
         if (eeSharedSecretCredentials == null) {
             eeSharedSecretCredentials = new SharedSecret("PASSWORDBASEDMAC", TestUtils.PASSWORD);
+        }
+        return eeSharedSecretCredentials;
+    }
+
+    private static SharedSecret getEeWrongSharedSecretCredentials() {
+        if (eeSharedSecretCredentials == null) {
+            eeSharedSecretCredentials = new SharedSecret("PASSWORDBASEDMAC", TestUtils.WRONG_PASSWORD);
         }
         return eeSharedSecretCredentials;
     }

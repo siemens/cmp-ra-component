@@ -26,6 +26,9 @@ public class TestUtils {
 
     public static final String PASSWORD = "Password";
     public static final char[] PASSWORD_AS_CHAR_ARRAY = PASSWORD.toCharArray();
+
+    public static final String WRONG_PASSWORD = "WrongPassword";
+    public static final char[] WRONG_PASSWORD_AS_CHAR_ARRAY = WRONG_PASSWORD.toCharArray();
     static final SecureRandom RANDOM = new SecureRandom();
 
     // utility class, never create an instance

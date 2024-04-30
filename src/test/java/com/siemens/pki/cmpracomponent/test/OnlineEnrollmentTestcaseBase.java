@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
 import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
+import com.siemens.pki.cmpracomponent.protection.MacProtection;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
 import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
 import com.siemens.pki.cmpracomponent.test.framework.EnrollmentResult;
@@ -77,6 +78,13 @@ public class OnlineEnrollmentTestcaseBase extends EnrollmentTestcaseBase {
                 "message type",
                 expectedResponseMessageType,
                 crResponse.getBody().getType());
+
+        if (protectionProvider instanceof MacProtection) {
+            assertEquals(
+                    "protection type",
+                    cr.getHeader().getProtectionAlg().getAlgorithm().getId(),
+                    crResponse.getHeader().getProtectionAlg().getAlgorithm().getId());
+        }
 
         final CMPCertificate enrolledCertificate = ((CertRepMessage)
                         crResponse.getBody().getContent())

@@ -19,16 +19,44 @@ package com.siemens.pki.cmpracomponent.test;
 
 import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
 import org.bouncycastle.asn1.cmp.PKIBody;
+import org.junit.Ignore;
 import org.junit.Test;
 
-public class TestPasswordbasedIr extends PasswordEnrollmentTestcasebase {
+public class TestMacProtectedIp extends MacProtectionTestcasebase {
+
+    @Ignore
+    public void testFailedProtectionIp() throws Exception {
+        executeCrmfCertificateRequest(
+                PKIBody.TYPE_INIT_REQ,
+                PKIBody.TYPE_ERROR,
+                ConfigurationFactory.getEeWrongPasswordbasedProtectionProvider(),
+                "1.2.840.10045.4.3.2", // signature based protection
+                getEeClient());
+    }
 
     @Test
-    public void testPasswordbasedIr() throws Exception {
+    public void testPasswordbasedIp() throws Exception {
         executeCrmfCertificateRequest(
                 PKIBody.TYPE_INIT_REQ,
                 PKIBody.TYPE_INIT_REP,
                 ConfigurationFactory.getEePasswordbasedProtectionProvider(),
+                "1.2.840.113533.7.66.13",
+                getEeClient());
+    }
+
+    /**
+     * Enrolling an End Entity to a New PKI/Using MAC-Based Protection for
+     * Enrollment
+     *
+     * @throws Exception in case of error
+     */
+    @Test
+    public void testPbmac1Ip() throws Exception {
+        executeCrmfCertificateRequest(
+                PKIBody.TYPE_INIT_REQ,
+                PKIBody.TYPE_INIT_REP,
+                ConfigurationFactory.getEePbmac1ProtectionProvider(),
+                "1.2.840.113549.1.5.14",
                 getEeClient());
     }
 }
