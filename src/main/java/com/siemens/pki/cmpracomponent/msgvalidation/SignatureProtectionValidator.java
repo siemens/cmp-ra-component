@@ -116,7 +116,7 @@ class SignatureProtectionValidator implements ValidatorIF<Void> {
                 checkProtectingSignature(
                         message, message.getHeader().getProtectionAlg().getAlgorithm(), protectingCert);
                 if (trustCredentialAdapter.validateCertAgainstTrust(protectingCert, extraCertsAsX509) == null) {
-                    final String errorDetails = "path building for validating the protection certificate failed";
+                    final String errorDetails = "validating the protection certificate failed";
                     LOGGER.warn(errorDetails);
                     throw new CmpValidationException(interfaceName, PKIFailureInfo.signerNotTrusted, errorDetails);
                 }
