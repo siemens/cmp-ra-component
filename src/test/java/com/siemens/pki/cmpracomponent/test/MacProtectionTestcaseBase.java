@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2024 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -17,8 +17,6 @@
  */
 package com.siemens.pki.cmpracomponent.test;
 
-import static org.junit.Assert.assertEquals;
-
 import com.siemens.pki.cmpracomponent.configuration.Configuration;
 import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
 import com.siemens.pki.cmpracomponent.protection.MacProtection;
@@ -27,8 +25,6 @@ import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
 import com.siemens.pki.cmpracomponent.test.framework.EnrollmentResult;
 import com.siemens.pki.cmpracomponent.test.framework.HeaderProviderForTest;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
-import java.security.KeyPair;
-import java.util.function.Function;
 import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.CertRepMessage;
 import org.bouncycastle.asn1.cmp.PKIBody;
@@ -40,13 +36,19 @@ import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MacProtectionTestcasebase extends OnlineEnrollmentTestcaseBase {
+import java.security.KeyPair;
+import java.util.function.Function;
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MacProtectionTestcasebase.class);
+import static org.junit.Assert.assertEquals;
+
+public class MacProtectionTestcaseBase extends OnlineEnrollmentTestcaseBase {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(MacProtectionTestcaseBase.class);
 
     @Before
     public void setUp() throws Exception {
-        final Configuration config = ConfigurationFactory.buildMixedDownstreamConfiguration();
+        ConfigurationFactory.resetConfiguration();
+        Configuration config = ConfigurationFactory.buildMixedDownstreamConfiguration();
         launchCmpCaAndRa(config);
     }
 

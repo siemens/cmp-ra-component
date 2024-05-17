@@ -17,12 +17,12 @@
  */
 package com.siemens.pki.cmpracomponent.msgprocessing;
 
-import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
-
+import com.siemens.pki.cmpracomponent.configuration.CheckAndModifyResult;
 import com.siemens.pki.cmpracomponent.configuration.CheckAndModifyResult;
 import com.siemens.pki.cmpracomponent.configuration.CkgContext;
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
 import com.siemens.pki.cmpracomponent.configuration.Configuration;
+import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.InventoryInterface;
 import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
 import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
@@ -104,6 +104,25 @@ import org.bouncycastle.pkcs.PKCSException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.Signature;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.X509Certificate;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
+
 /**
  * representation of a downstream interface of a RA
  */
@@ -135,8 +154,6 @@ class RaDownstream {
     private final RaUpstream upstreamHandler;
 
     private final PersistencyContextManager persistencyContextManager;
-
-    private boolean macBasedProtection;
 
     /**
      * @param persistencyContextManager persistency interface

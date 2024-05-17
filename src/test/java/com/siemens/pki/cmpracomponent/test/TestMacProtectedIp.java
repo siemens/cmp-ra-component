@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2020 Siemens AG
+ *  Copyright (c) 2024 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -19,12 +19,11 @@ package com.siemens.pki.cmpracomponent.test;
 
 import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
 import org.bouncycastle.asn1.cmp.PKIBody;
-import org.junit.Ignore;
 import org.junit.Test;
 
-public class TestMacProtectedIp extends MacProtectionTestcasebase {
+public class TestMacProtectedIp extends MacProtectionTestcaseBase {
 
-    @Ignore
+    @Test
     public void testFailedProtectionIp() throws Exception {
         executeCrmfCertificateRequest(
                 PKIBody.TYPE_INIT_REQ,

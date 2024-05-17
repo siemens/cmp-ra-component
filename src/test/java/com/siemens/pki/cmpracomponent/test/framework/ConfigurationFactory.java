@@ -17,9 +17,6 @@
  */
 package com.siemens.pki.cmpracomponent.test.framework;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-
 import com.siemens.pki.cmpracomponent.configuration.CheckAndModifyResult;
 import com.siemens.pki.cmpracomponent.configuration.CkgContext;
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
@@ -41,6 +38,17 @@ import com.siemens.pki.cmpracomponent.persistency.DefaultPersistencyImplementati
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProviderFactory;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
+import org.bouncycastle.asn1.ASN1Integer;
+import org.bouncycastle.asn1.ASN1Sequence;
+import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
+import org.bouncycastle.asn1.cmp.CertReqTemplateContent;
+import org.bouncycastle.asn1.crmf.AttributeTypeAndValue;
+import org.bouncycastle.asn1.crmf.CertTemplateBuilder;
+import org.bouncycastle.asn1.crmf.Controls;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.GeneralSecurityException;
@@ -54,16 +62,9 @@ import java.security.cert.X509CRL;
 import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Collections;
-import org.bouncycastle.asn1.ASN1Integer;
-import org.bouncycastle.asn1.ASN1Sequence;
-import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
-import org.bouncycastle.asn1.cmp.CertReqTemplateContent;
-import org.bouncycastle.asn1.crmf.AttributeTypeAndValue;
-import org.bouncycastle.asn1.crmf.CertTemplateBuilder;
-import org.bouncycastle.asn1.crmf.Controls;
-import org.bouncycastle.asn1.x500.X500Name;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 /**
  * builder class for {@link Configuration} objects
@@ -851,6 +852,15 @@ public class ConfigurationFactory {
             }
         }
         return keyGenerator;
+    }
+
+    public static void resetConfiguration() {
+        eeSignaturebasedProtectionProvider = null;
+        eePbmac1ProtectionProvider = null;
+        keyGenerator = null;
+        eePasswordbasedProtectionProvider = null;
+        eeSignaturebasedCredentials = null;
+        eeSharedSecretCredentials = null;
     }
 
     private ConfigurationFactory() {}

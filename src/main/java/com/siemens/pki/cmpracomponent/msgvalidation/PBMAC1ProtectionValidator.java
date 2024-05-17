@@ -22,7 +22,7 @@ import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
 import com.siemens.pki.cmpracomponent.cryptoservices.WrappedMac;
 import com.siemens.pki.cmpracomponent.cryptoservices.WrappedMacFactory;
-import com.siemens.pki.cmpracomponent.protection.SharedSecretCredentials;
+import com.siemens.pki.cmpracomponent.protection.OutputSharedSecretCredentials;
 import java.util.Arrays;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
@@ -83,7 +83,7 @@ public class PBMAC1ProtectionValidator extends MacValidator {
                 throw new CmpValidationException(
                         getInterfaceName(), PKIFailureInfo.badMessageCheck, "PBMAC1 protection check failed");
             }
-            return new SharedSecretCredentials(
+            return new OutputSharedSecretCredentials(
                     params,
                     pbmac1Params.getMessageAuthScheme().getAlgorithm().getId(),
                     header.getSenderKID().getOctets(),

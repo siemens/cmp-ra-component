@@ -20,7 +20,7 @@ package com.siemens.pki.cmpracomponent.msgvalidation;
 import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
-import com.siemens.pki.cmpracomponent.protection.SharedSecretCredentials;
+import com.siemens.pki.cmpracomponent.protection.OutputSharedSecretCredentials;
 import java.security.MessageDigest;
 import java.util.Arrays;
 import javax.crypto.Mac;
@@ -81,7 +81,7 @@ public class PasswordBasedMacValidator extends MacValidator {
                 throw new CmpValidationException(
                         getInterfaceName(), PKIFailureInfo.badMessageCheck, "PasswordBasedMac protection check failed");
             }
-            return new SharedSecretCredentials(
+            return new OutputSharedSecretCredentials(
                     pbmParameter, header.getSenderKID().getOctets(), passwordAsBytes);
         } catch (final BaseCmpException cex) {
             throw cex;

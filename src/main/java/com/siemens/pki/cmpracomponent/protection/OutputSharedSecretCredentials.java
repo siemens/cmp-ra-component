@@ -6,7 +6,11 @@ import org.bouncycastle.asn1.cmp.PBMParameter;
 import org.bouncycastle.asn1.pkcs.PBKDF2Params;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 
-public class SharedSecretCredentials implements SharedSecretCredentialContext {
+/**
+ * an instance implementing {@link com.siemens.pki.cmpracomponent.configuration.SharedSecretCredentialContext}
+ * provides all attributes needed for shared secret based CMP protection of outgoing messages
+ */
+public class OutputSharedSecretCredentials implements SharedSecretCredentialContext {
 
     final int iterationCount;
     final int keyLength;
@@ -17,7 +21,14 @@ public class SharedSecretCredentials implements SharedSecretCredentialContext {
     final byte[] senderKID;
     final byte[] sharedSecret;
 
-    public SharedSecretCredentials(final PBMParameter pbmParameter, final byte[] senderKID, final byte[] sharedSecret) {
+    /**
+     * Constructor for password-based MAC protection
+     * @param pbmParameter  PBM parameter
+     * @param senderKID sender key identifier
+     * @param sharedSecret  shared secret
+     */
+    public OutputSharedSecretCredentials(
+            final PBMParameter pbmParameter, final byte[] senderKID, final byte[] sharedSecret) {
         this.iterationCount = pbmParameter.getIterationCount().getValue().intValue();
         this.macAlgorithm = pbmParameter.getMac().getAlgorithm().getId();
         this.passwordBasedMacAlgorithm = CMPObjectIdentifiers.passwordBasedMac.getId();
@@ -29,7 +40,14 @@ public class SharedSecretCredentials implements SharedSecretCredentialContext {
         this.keyLength = 0;
     }
 
-    public SharedSecretCredentials(
+    /**
+     * Constructor for PMAC1 protection
+     * @param pbkdf2Params parameters for PBKDF2 key derivation function
+     * @param macAlgorithm MAC algorithm
+     * @param senderKID sender key identifer
+     * @param sharedSecret shared secret
+     */
+    public OutputSharedSecretCredentials(
             PBKDF2Params pbkdf2Params, String macAlgorithm, byte[] senderKID, byte[] sharedSecret) {
         this.iterationCount = pbkdf2Params.getIterationCount().intValue();
         this.macAlgorithm = macAlgorithm;
