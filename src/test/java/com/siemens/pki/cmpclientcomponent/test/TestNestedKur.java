@@ -82,8 +82,9 @@ public class TestNestedKur extends EnrollmentTestcaseBase {
                             case "certProfileForKur":
                             case "certProfileForRr":
                                 return new SignatureValidationCredentials("credentials/ENROLL_Root.pem", null);
+                            default:
+                                return new SignatureValidationCredentials("credentials/CMP_EE_Root.pem", null);
                         }
-                        return new SignatureValidationCredentials("credentials/CMP_EE_Root.pem", null);
                     }
 
                     @Override
@@ -268,7 +269,12 @@ public class TestNestedKur extends EnrollmentTestcaseBase {
                             @Override
                             public boolean isIncomingRecipientValid(final String recipient) {
                                 LOGGER.debug("LRA: isIncomingRecipientValid called with recipient: {}", recipient);
-                                return true;
+                                return recipient.contains("NestedRecipientToLra");
+                            }
+
+                            @Override
+                            public String getRecipient() {
+                                return "CN=NestedRecipientToRa";
                             }
                         };
                     }
@@ -342,8 +348,9 @@ public class TestNestedKur extends EnrollmentTestcaseBase {
                             case "certProfileForKur":
                             case "certProfileForRr":
                                 return new SignatureValidationCredentials("credentials/ENROLL_Root.pem", null);
+                            default:
+                                return new SignatureValidationCredentials("credentials/CMP_EE_Root.pem", null);
                         }
-                        return new SignatureValidationCredentials("credentials/CMP_EE_Root.pem", null);
                     }
 
                     @Override
@@ -369,7 +376,12 @@ public class TestNestedKur extends EnrollmentTestcaseBase {
                             @Override
                             public boolean isIncomingRecipientValid(final String recipient) {
                                 LOGGER.debug("isIncomingRecipientValid called with recipient: {}", recipient);
-                                return true;
+                                return recipient.contains("NestedRecipientToRa");
+                            }
+
+                            @Override
+                            public String getRecipient() {
+                                return "CN=NestedRecipientToLra";
                             }
                         };
                     }
