@@ -32,7 +32,9 @@ import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
 import com.siemens.pki.cmpracomponent.test.framework.SignatureValidationCredentials;
+import com.siemens.pki.cmpracomponent.util.FileTracer;
 import java.math.BigInteger;
+import java.nio.file.Files;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -47,6 +49,12 @@ public class TestRrWithPolling extends DelayedEnrollmentTescaseBase {
     @Before
     public void setUp() throws Exception {
         launchDelayedCmpCaAndRa(ConfigurationFactory.buildSignatureBasedDownstreamConfiguration());
+    }
+
+    @Test
+    public void testRrWithPollingAndDump() throws Exception {
+        FileTracer.init(Files.createTempDirectory("dump").toFile().getAbsolutePath(), "pem,txt,der,asn1,json,yaml");
+        testRrWithPolling();
     }
 
     /**
