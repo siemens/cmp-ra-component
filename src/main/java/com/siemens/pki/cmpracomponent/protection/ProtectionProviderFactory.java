@@ -20,6 +20,7 @@ package com.siemens.pki.cmpracomponent.protection;
 import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.SharedSecretCredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
+import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
 import com.siemens.pki.cmpracomponent.util.ConfigLogger;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -48,19 +49,13 @@ public class ProtectionProviderFactory {
                     interfaceName,
                     "SharedSecretCredentialContext.getPasswordBasedMacAlgorithm()",
                     ssConfig::getPasswordBasedMacAlgorithm);
-            switch (passwordBasedMacAlgorithm.toLowerCase()) {
-                case "1.2.840.113533.7.66.13":
-                case "id-passwordbasedmac":
-                case "passwordbasedmac":
-                case "pbm":
+            switch (AlgorithmHelper.getPasswordBesedMacAlg(passwordBasedMacAlgorithm)) {
+                case PasswordBasedMac:
                     return new PasswordBasedMacProtection(ssConfig, interfaceName);
-                case "1.2.840.113549.1.5.14":
-                case "id-pbmac1":
-                case "pbmac1":
+                case PBMAC1:
                     return new PBMAC1Protection(ssConfig, interfaceName);
-                default:
-                    throw new NoSuchAlgorithmException(passwordBasedMacAlgorithm);
             }
+            ;
         }
         if (config instanceof SignatureCredentialContext) {
             return new SignatureBasedProtection((SignatureCredentialContext) config, interfaceName);

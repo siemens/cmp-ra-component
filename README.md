@@ -133,6 +133,14 @@ between CMP RA component, downstream interface and upstream interface:
 
 ![Sequence diagram for PKCS#10/X.509](doc/Sequence_instantiateP10X509CmpRaComponent.png) 
 
+1.	The "Configuration Interface" activates the "Downstream Interface" when instantiating the "RA Component" by calling the instantiateP10X509CmpRaComponent() method.
+2.	The "Downstream Interface" sends a DER-encoded CMP p10cr as a byte array to the "RA Component" by calling the Function<byte[], byte[]> method.
+3.	The "RA Component" activates the "Upstream Interface" by calling the upstreamP10X509Exchange method with a byte array containing a DER-encoded PKCS#10 CSR and a certificate profile.
+4.	The "Upstream Interface" processes the request, returning a byte array containing an X.509 certificate response to the "RA Component."
+5.	The "RA Component" then responds to the Function<byte[], byte[]> method call of the "Downstream Interface" in step 2 with a byte array response containing an CMP cp message.
+Overall, the diagram details the method calls and message exchanges involved in the interaction between the "Configuration Interface," "Downstream Interface," "RA Component," and "Upstream Interface" for certificate management operations.
+
+
 ### Dynamic message exchange behavior for downstream and upstream CMP interface
 
 In this case the upstream CMP communication (towards the CA)
@@ -143,6 +151,16 @@ gives an overview about instantiation and message exchange
 between CMP RA component, downstream interface, and upstream interface:
 
 ![Sequence diagram for CMP](doc/Sequence_instantiateCmpRaComponent.png)
+
+The diagram outlines an interaction between components in a system, involving the "Configuration Interface", "Downstream Interface", "RA Component", and "Upstream Interface". Here's a detailed breakdown of the steps involved:
+1.	The "Configuration Interface" activates the "Downstream Interface" to instantiate the "RA Component" by calling the instantiateCmpRaComponent() method.
+2.	The "Downstream Interface" sends a DER-encoded CMP request to the "RA Component" using the processRequest() method.
+3.	The "RA Component" activates the "Upstream Interface" to perform the upstreamExchange operation with a DER-encoded CMP request and a certificate profile.
+4.	If the interaction is synchronous, the "Upstream Interface" directly sends a DER-encoded CMP response to the "RA Component," which then responds to the "Downstream Interface" with a DER-encoded CMP response using the processRequest() method.
+5.	If the interaction is asynchronous with delayed delivery, the "Upstream Interface" sends a null response to the "RA Component" due to the absence of the response. The "RA Component" then responds to the "Downstream Interface" with DER-encoded CMP cr/ir/kur/error response indicating a waiting indication.
+6.	In a loop, the "Downstream Interface" sends a DER-encoded CMP polling request to the "RA Component," which responds with a DER-encoded CMP polling poll response.
+7.	If the "Upstream Interface" got a DER-encoded CMP response by calling gotResponseAtUpstream() the "RA Component" responds DER-encoded CMP response to the "Downstream Interface."
+
 
 
 ## Configuration interface design
@@ -307,6 +325,18 @@ gives an overview about instantiation and message exchange
 between CMP Client component and upstream interface:
 
 ![Sequence diagram for CMP](doc/Sequence_instantiateCmpClientComponent.png)
+
+The diagram describes the interaction between an "Embedding Application" and a "Client Instance" using the "UpstreamExchange interface" to perform actions related to certificate management. Here's a detailed explanation of the steps involved in the interaction:
+1.	The "Embedding Application" activates and interacts with the "Client Instance" to perform certificate management operations.
+2.	The "Client Instance" interacts with the "UpstreamExchange interface" to send and receive messages related to certificate management.
+3.	The "Embedding Application" makes a synchronous call to the "Client Instance" to execute the getCACertificates(), getCertificateRequestTemplate(), getCRLs(), getRootCACertificateUpdate(), invokeEnrollment(), or invokeRevocation() methods.
+4.	The "Embedding Application" sends a request to the "Client Instance" to invoke the CmpClient method.
+5.	The "Client Instance" interacts with the "UpstreamExchange interface" to send and receive messages using the sendReceiveMessage() method. This includes sending a request with specific parameters and receiving a response.
+6.	If the communication is synchronous, the "UpstreamExchange interface" directly sends a response to the "Client Instance". If it's asynchronous, there may be a delayed delivery, and the response includes a waiting indication.
+7.	In the case of asynchronous communication, the "Client Instance" loops back to the "UpstreamExchange interface" to send a poll request and receive a poll response until the response is received.
+8.	After successful enrollment without implicit confirmation, the "Client Instance" sends a certificate confirmation, and the "UpstreamExchange interface" responds with a PKI confirmation.
+9.	The "Client Instance" then sends the response of the method call back to the "Embedding Application".
+
 
 ## Configuration interface design
 

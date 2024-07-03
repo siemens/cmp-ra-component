@@ -192,11 +192,9 @@ public class PersistencyContextManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PersistencyContextManager.class);
 
-    private static final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
+    private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
     private static final IvParameterSpec iv = new IvParameterSpec("The IV for PrivK".getBytes());
-
-    final SimpleModule simpleModule = new SimpleModule("BCModule", new Version(1, 0, 0, null, null, null));
 
     private final PersistencyInterface wrappedInterface;
 
@@ -208,6 +206,7 @@ public class PersistencyContextManager {
      */
     public PersistencyContextManager(final PersistencyInterface wrappedInterface) {
         this.wrappedInterface = wrappedInterface;
+        final SimpleModule simpleModule = new SimpleModule("BCModule", new Version(1, 0, 0, null, null, null));
         final SecretKeySpec secretKey = new SecretKeySpec(wrappedInterface.getAesKeyForKeyWrapping(), "AES");
         simpleModule.addSerializer(new Asn1ObjectSerializer());
         simpleModule.addSerializer(new KeySerializer(secretKey));
