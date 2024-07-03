@@ -107,7 +107,9 @@ import org.slf4j.LoggerFactory;
  */
 class RaDownstream {
 
-    protected static final String INTERFACE_NAME = "downstream";
+    private static final String INTERFACE_NAME = "downstream";
+
+    private static final String NESTED_INTERFACE_NAME = "nested " + INTERFACE_NAME;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RaDownstream.class);
 
@@ -182,7 +184,7 @@ class RaDownstream {
                         INTERFACE_NAME,
                         "Configuration.getDownstreamConfiguration",
                         config::getDownstreamConfiguration,
-                        ifNotNull(persistencyContext, PersistencyContext::getCertProfile),
+                        persistencyContext.getCertProfile(),
                         bodyType),
                 INTERFACE_NAME,
                 persistencyContext);
@@ -388,74 +390,33 @@ class RaDownstream {
      */
     PKIMessage handleInputMessage(final PKIMessage in) {
         PersistencyContext persistencyContext = null;
+        int responseBodyType = PKIBody.TYPE_ERROR;
         int retryAfterTime = 0;
         try {
-            int responseBodyType = PKIBody.TYPE_ERROR;
             try {
-                final int inBodyType = in.getBody().getType();
-                if (inBodyType == PKIBody.TYPE_NESTED) {
-                    final CmpMessageInterface downstreamConfiguration = ConfigLogger.log(
+                byte[] transactionId =
+                        ifNotNull(in, m -> m.getHeader().getTransactionID().getEncoded());
+                if (transactionId == null) {
+                    MsgOutputProtector protector = new MsgOutputProtector(
+                            ConfigLogger.log(
+                                    INTERFACE_NAME,
+                                    "Configuration.getDownstreamConfiguration",
+                                    config::getDownstreamConfiguration,
+                                    null,
+                                    PKIBody.TYPE_ERROR),
                             INTERFACE_NAME,
-                            "Configuration.getDownstreamConfiguration",
-                            config::getDownstreamConfiguration,
-                            null,
-                            inBodyType);
-                    final NestedEndpointContext nestedEndpointContext = ConfigLogger.logOptional(
-                            INTERFACE_NAME,
-                            "CmpMessageInterface.getNestedEndpointContext()",
-                            downstreamConfiguration::getNestedEndpointContext);
-                    if (nestedEndpointContext != null) {
-                        final String NESTED_INTERFACE_NAME = "nested " + INTERFACE_NAME;
-                        final MessageHeaderValidator nestedHeaderValidator =
-                                new MessageHeaderValidator(NESTED_INTERFACE_NAME);
-                        nestedHeaderValidator.validate(in);
-                        final ProtectionValidator nestedProtectionValidator = new ProtectionValidator(
-                                NESTED_INTERFACE_NAME,
-                                ConfigLogger.logOptional(
-                                        NESTED_INTERFACE_NAME,
-                                        "NestedEndpointContext.getInputVerification()",
-                                        nestedEndpointContext::getInputVerification));
-                        nestedProtectionValidator.validate(in);
-                        PKIHeader inHeader = in.getHeader();
-                        if (!ConfigLogger.log(
-                                NESTED_INTERFACE_NAME,
-                                "NestedEndpointContext.isIncomingRecipientValid()",
-                                () -> nestedEndpointContext.isIncomingRecipientValid(
-                                        inHeader.getRecipient().getName().toString()))) {
-                            persistencyContext = persistencyContextManager.loadCreatePersistencyContext(
-                                    inHeader.getTransactionID().getEncoded());
-                            return upstreamHandler.handleRequest(in, persistencyContext);
-                        }
-                        final PKIMessage[] embeddedMessages = PKIMessages.getInstance(
-                                        in.getBody().getContent())
-                                .toPKIMessageArray();
-                        if (embeddedMessages == null || embeddedMessages.length == 0) {
-                            throw new CmpProcessingException(
-                                    NESTED_INTERFACE_NAME,
-                                    PKIFailureInfo.badMessageCheck,
-                                    "no embedded messages inside NESTED message");
-                        }
-                        if (embeddedMessages.length == 1) {
-                            return handleInputMessage(embeddedMessages[0]);
-                        }
-                        final PKIMessage[] responses = Arrays.stream(embeddedMessages)
-                                .map(this::handleInputMessage)
-                                .toArray(PKIMessage[]::new);
-                        return getOutputProtector(persistencyContext, PKIBody.TYPE_NESTED)
-                                .generateAndProtectResponseTo(
-                                        in, new PKIBody(PKIBody.TYPE_NESTED, new PKIMessages(responses)));
-                    }
+                            null);
+                    return protector.generateAndProtectResponseTo(
+                            in,
+                            PkiMessageGenerator.generateErrorBody(
+                                    PKIFailureInfo.badDataFormat, "transactionId missing"));
                 }
-                final InputValidator inputValidator = new InputValidator(
-                        INTERFACE_NAME,
-                        config::getDownstreamConfiguration,
-                        config::isRaVerifiedAcceptable,
-                        supportedMessageTypes,
-                        persistencyContextManager::loadCreatePersistencyContext);
-                persistencyContext = inputValidator.validate(in);
-                final PKIMessage responseFromUpstream = handleValidatedRequest(in, persistencyContext);
-                // apply downstream protection
-                final List<CMPCertificate> issuingChain;
+                persistencyContext = persistencyContextManager.loadCreatePersistencyContext(
+                        in.getHeader().getTransactionID().getOctets());
+
+                PKIMessage responseFromUpstream = handleInputRequest(in, persistencyContext);
+                // apply downstream protection and nesting
+                List<CMPCertificate> issuingChain = null;
                 responseBodyType = responseFromUpstream.getBody().getType();
                 switch (responseBodyType) {
                     case PKIBody.TYPE_INIT_REP:
@@ -468,12 +429,11 @@ class RaDownstream {
                                         responseFromUpstream.getBody().getContent())
                                 .getCheckAfter(0)
                                 .intPositiveValueExact();
-                        issuingChain = null;
                         break;
                     default:
-                        issuingChain = null;
                 }
-                return getOutputProtector(persistencyContext, responseBodyType)
+
+                PKIMessage protectedResponse = getOutputProtector(persistencyContext, responseBodyType)
                         .protectOutgoingMessage(
                                 new PKIMessage(
                                         responseFromUpstream.getHeader(),
@@ -481,14 +441,34 @@ class RaDownstream {
                                         responseFromUpstream.getProtection(),
                                         responseFromUpstream.getExtraCerts()),
                                 issuingChain);
+                if (responseBodyType == PKIBody.TYPE_NESTED) {
+                    // never nest a nested message
+                    return protectedResponse;
+                }
+                final CmpMessageInterface downstreamConfiguration = ConfigLogger.log(
+                        INTERFACE_NAME,
+                        "Configuration.getDownstreamConfiguration",
+                        config::getDownstreamConfiguration,
+                        null,
+                        responseBodyType);
+                final NestedEndpointContext nestedEndpointContext = ConfigLogger.logOptional(
+                        INTERFACE_NAME,
+                        "CmpMessageInterface.getNestedEndpointContext()",
+                        downstreamConfiguration::getNestedEndpointContext);
+                if (nestedEndpointContext == null) {
+                    // no nesting required
+                    return protectedResponse;
+                }
+                return new MsgOutputProtector(nestedEndpointContext, NESTED_INTERFACE_NAME)
+                        .createOutgoingMessage(
+                                PkiMessageGenerator.buildForwardingHeaderProvider(protectedResponse),
+                                new PKIBody(PKIBody.TYPE_NESTED, new PKIMessages(protectedResponse)));
             } catch (final BaseCmpException e) {
                 final PKIBody errorBody = e.asErrorBody();
-                responseBodyType = errorBody.getType();
                 return getOutputProtector(persistencyContext, responseBodyType)
                         .generateAndProtectResponseTo(in, errorBody);
             } catch (final RuntimeException ex) {
                 final PKIBody errorBody = new CmpProcessingException(INTERFACE_NAME, ex).asErrorBody();
-                responseBodyType = errorBody.getType();
                 return getOutputProtector(persistencyContext, responseBodyType)
                         .generateAndProtectResponseTo(in, errorBody);
             } finally {
@@ -511,6 +491,73 @@ class RaDownstream {
             LOGGER.error("fatal exception at " + INTERFACE_NAME, ex);
             throw new RuntimeException("fatal exception at " + INTERFACE_NAME, ex);
         }
+    }
+
+    private PKIMessage handleInputRequest(final PKIMessage in, final PersistencyContext persistencyContext)
+            throws Exception {
+
+        final int inBodyType = in.getBody().getType();
+        if (inBodyType == PKIBody.TYPE_NESTED) {
+            final CmpMessageInterface downstreamConfiguration = ConfigLogger.log(
+                    INTERFACE_NAME,
+                    "Configuration.getDownstreamConfiguration",
+                    config::getDownstreamConfiguration,
+                    null,
+                    PKIBody.TYPE_NESTED);
+            final NestedEndpointContext nestedEndpointContext = ConfigLogger.logOptional(
+                    INTERFACE_NAME,
+                    "CmpMessageInterface.getNestedEndpointContext()",
+                    downstreamConfiguration::getNestedEndpointContext);
+            if (nestedEndpointContext != null) {
+                final MessageHeaderValidator nestedHeaderValidator = new MessageHeaderValidator(NESTED_INTERFACE_NAME);
+                nestedHeaderValidator.validate(in);
+                final ProtectionValidator nestedProtectionValidator = new ProtectionValidator(
+                        NESTED_INTERFACE_NAME,
+                        ConfigLogger.logOptional(
+                                NESTED_INTERFACE_NAME,
+                                "NestedEndpointContext.getInputVerification()",
+                                nestedEndpointContext::getInputVerification));
+                nestedProtectionValidator.validate(in);
+                PKIHeader inHeader = in.getHeader();
+                boolean isIncomingRecipientValid = ConfigLogger.log(
+                        NESTED_INTERFACE_NAME,
+                        "NestedEndpointContext.isIncomingRecipientValid()",
+                        () -> nestedEndpointContext.isIncomingRecipientValid(
+                                inHeader.getRecipient().getName().toString()));
+                if (!isIncomingRecipientValid) {
+                    return upstreamHandler.handleRequest(in, persistencyContext);
+                }
+                final PKIMessage[] embeddedMessages =
+                        PKIMessages.getInstance(in.getBody().getContent()).toPKIMessageArray();
+                if (embeddedMessages == null || embeddedMessages.length == 0) {
+                    throw new CmpProcessingException(
+                            NESTED_INTERFACE_NAME,
+                            PKIFailureInfo.badMessageCheck,
+                            "no embedded messages inside NESTED message");
+                }
+                // wrapped protection case
+                if (embeddedMessages.length == 1) {
+                    return handleInputMessage(embeddedMessages[0]);
+                }
+                // batching
+                final PKIMessage[] responses = Arrays.stream(embeddedMessages)
+                        .map(this::handleInputMessage)
+                        .toArray(PKIMessage[]::new);
+                // batched responses needs to be wrapped in a new NESTED response
+                MsgOutputProtector nestedOutputProtector =
+                        new MsgOutputProtector(nestedEndpointContext, INTERFACE_NAME);
+                return nestedOutputProtector.generateAndProtectResponseTo(
+                        in, new PKIBody(PKIBody.TYPE_NESTED, new PKIMessages(responses)));
+            }
+        }
+        final InputValidator inputValidator = new InputValidator(
+                INTERFACE_NAME,
+                config::getDownstreamConfiguration,
+                config::isRaVerifiedAcceptable,
+                supportedMessageTypes,
+                persistencyContext);
+        inputValidator.validate(in);
+        return handleValidatedRequest(in, persistencyContext);
     }
 
     private PKIMessage handleP10CertificateRequest(

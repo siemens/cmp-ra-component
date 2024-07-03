@@ -21,7 +21,6 @@ import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import com.siemens.pki.cmpracomponent.util.ConfigLogger;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
-import com.siemens.pki.cmpracomponent.util.NullUtil.ExFunction;
 import java.util.Collection;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
@@ -31,13 +30,13 @@ import org.bouncycastle.asn1.cmp.PKIMessage;
 /**
  * validator for an incoming message
  */
-public class InputValidator implements ValidatorIF<PersistencyContext> {
+public class InputValidator implements ValidatorIF<Void> {
 
     private final Collection<Integer> supportedMessageTypes;
     private final String interfaceName;
     private final BiPredicate<String, Integer> isRaVerifiedAcceptable;
     private final BiFunction<String, Integer, CmpMessageInterface> config;
-    private final ExFunction<byte[], PersistencyContext, Exception> persistencyContextCreator;
+    private PersistencyContext persistencyContext;
 
     /**
      * ctor
@@ -46,7 +45,7 @@ public class InputValidator implements ValidatorIF<PersistencyContext> {
      * @param config                    specific configuration
      * @param isRaVerifiedAcceptable    should raVerified accepted for POPO?
      * @param supportedMessageTypes     acceptable CMP message types
-     * @param persistencyContextCreator function to (re-)create a
+     * @param persistencyContext function to (re-)create a
      *                                  {@link PersistencyContext} out of a
      *                                  transaction id
      */
@@ -55,13 +54,13 @@ public class InputValidator implements ValidatorIF<PersistencyContext> {
             final BiFunction<String, Integer, CmpMessageInterface> config,
             final BiPredicate<String, Integer> isRaVerifiedAcceptable,
             final Collection<Integer> supportedMessageTypes,
-            final ExFunction<byte[], PersistencyContext, Exception> persistencyContextCreator) {
+            final PersistencyContext persistencyContext) {
 
         this.config = config;
         this.interfaceName = interfaceName;
         this.supportedMessageTypes = supportedMessageTypes;
         this.isRaVerifiedAcceptable = isRaVerifiedAcceptable;
-        this.persistencyContextCreator = persistencyContextCreator;
+        this.persistencyContext = persistencyContext;
     }
 
     /**
@@ -69,10 +68,11 @@ public class InputValidator implements ValidatorIF<PersistencyContext> {
      * message types
      *
      * @param in message to validate
+     * @return nothing
      * @throws CmpProcessingException if validation failed
      */
     @Override
-    public PersistencyContext validate(final PKIMessage in) throws BaseCmpException {
+    public Void validate(final PKIMessage in) throws BaseCmpException {
         if (!supportedMessageTypes.contains(in.getBody().getType())) {
             throw new CmpValidationException(
                     interfaceName,
@@ -81,8 +81,6 @@ public class InputValidator implements ValidatorIF<PersistencyContext> {
         }
         String certProfile = new MessageHeaderValidator(interfaceName).validate(in);
         try {
-            final PersistencyContext persistencyContext = persistencyContextCreator.apply(
-                    in.getHeader().getTransactionID().getOctets());
             persistencyContext.setCertProfile(certProfile);
             certProfile = persistencyContext.getCertProfile();
             final CmpMessageInterface cmpInterface = ConfigLogger.log(
@@ -100,7 +98,7 @@ public class InputValidator implements ValidatorIF<PersistencyContext> {
                             "CmpMessageInterface.getInputVerification()",
                             cmpInterface::getInputVerification));
             protectionValidator.validate(in);
-            return persistencyContext;
+            return null;
         } catch (final BaseCmpException ce) {
             throw ce;
         } catch (final Exception e) {
