@@ -44,7 +44,7 @@ public class PersistencyContext {
     private String certProfile;
     private PrivateKey newGeneratedPrivateKey;
     private Set<CMPCertificate> alreadySentExtraCerts;
-    private PKIMessage initialRequest;
+    private PKIMessage delayedInitialRequest;
     private PKIMessage pendingDelayedResponse;
     private LastTransactionState lastTransactionState;
     private ASN1OctetString lastSenderNonce;
@@ -59,7 +59,6 @@ public class PersistencyContext {
     private PersistencyContextManager contextManager;
 
     private int certificateRequestType;
-    private boolean delayedDeliveryInProgress;
 
     /**
      * ctor used by jackson
@@ -113,8 +112,9 @@ public class PersistencyContext {
      * is the transaction delayed (polling)?
      * @return true if delayed
      */
-    public boolean getDelayedDeliveryInProgress() {
-        return delayedDeliveryInProgress;
+    @JsonIgnore
+    public boolean isDelayedDeliveryInProgress() {
+        return delayedInitialRequest != null;
     }
 
     /**
@@ -137,8 +137,8 @@ public class PersistencyContext {
      * get first request of the transaction
      * @return first request
      */
-    public PKIMessage getInitialRequest() {
-        return initialRequest;
+    public PKIMessage getDelayedInitialRequest() {
+        return delayedInitialRequest;
     }
 
     /**
@@ -240,14 +240,6 @@ public class PersistencyContext {
     }
 
     /**
-     * mark transaction as delayed
-     * @param delayedDeliveryInProgress true if transaction is delayed
-     */
-    public void setDelayedDeliveryInProgress(final boolean delayedDeliveryInProgress) {
-        this.delayedDeliveryInProgress = delayedDeliveryInProgress;
-    }
-
-    /**
      * set digestToConfirm
      * @param digestToConfirm the digestToConfirm
      */
@@ -272,11 +264,13 @@ public class PersistencyContext {
     }
 
     /**
-     * set initialRequest
-     * @param initialRequest the initialRequest
+     * mark transaction as delayed delivery, store initial request
+     * @param delayedInitialRequest the initial request triggering delayed delivery
      */
-    public void setInitialRequest(final PKIMessage initialRequest) {
-        this.initialRequest = initialRequest;
+    public void setDelayedInitialRequest(final PKIMessage delayedInitialRequest) {
+        if (this.delayedInitialRequest == null) {
+            this.delayedInitialRequest = delayedInitialRequest;
+        }
     }
 
     /**

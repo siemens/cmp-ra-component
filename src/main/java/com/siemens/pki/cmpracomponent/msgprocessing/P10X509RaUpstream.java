@@ -66,8 +66,6 @@ public class P10X509RaUpstream implements RaUpstream {
                             PkiMessageGenerator.generatePkiConfirmBody());
 
                 case PKIBody.TYPE_P10_CERT_REQ:
-                    pesistencyContext.setInitialRequest(in);
-
                     final CertificationRequest certificationRequest =
                             (CertificationRequest) in.getBody().getContent();
                     final CMPCertificate responseFromUpstream = upstreamMsgHandler.apply(
