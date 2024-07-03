@@ -75,6 +75,13 @@ public class TrustCredentialAdapter {
         this.interfaceName = interfaceName;
     }
 
+    /**
+     * additional check for intermediate certificates in chain. This method is
+     * called for each intermediate certificate after chain building.
+     *
+     * @param cert the certificate to check
+     * @return <code>true</code> if the certificate is acceptable
+     */
     public boolean isIntermediateCertAcceptable(X509Certificate cert) {
         return ConfigLogger.log(
                 interfaceName,

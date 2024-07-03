@@ -59,23 +59,42 @@ public class FileTracer {
 
     private static boolean enableAsn1Dump;
 
+    private static boolean enableJsonDump;
+
+    private static boolean enableYamlDump;
+
     static {
         final String dumpDirName = System.getProperty("dumpdir");
-        if (dumpDirName != null) {
-            msgDumpDirectory = new File(dumpDirName);
-            if (!msgDumpDirectory.isDirectory() || !msgDumpDirectory.canWrite()) {
-                LOGGER.error(msgDumpDirectory + " is not writable, disable dump");
-                msgDumpDirectory = null;
-            } else {
-                LOGGER.info("dump transactions below " + msgDumpDirectory);
-            }
-        }
-        // "pem+txt+der+asn1"
-        final String dumpFormat = System.getProperty("dumpformat", "txt").toLowerCase();
+        // "pem+txt+der+asn1+json+yaml"
+        final String dumpFormat = System.getProperty("dumpformat", "yaml").toLowerCase();
+        init(dumpDirName, dumpFormat);
+    }
+
+    /**
+     * (re-)intialize the {@link FileTracer}
+     * @param dumpDirName directory to dump to
+     * @param dumpFormat  dump format to use, one or more of
+     *                    "pem,txt,der,asn1,json,yaml" concatinated in one string
+     */
+    public static void init(final String dumpDirName, final String dumpFormat) {
         enablePemDump = dumpFormat.contains("pem");
         enableTxtDump = dumpFormat.contains("txt");
         enableDerDump = dumpFormat.contains("der");
         enableAsn1Dump = dumpFormat.contains("asn");
+        enableJsonDump = dumpFormat.contains("json");
+        enableYamlDump = dumpFormat.contains("yaml");
+
+        if (dumpDirName == null) {
+            msgDumpDirectory = null;
+            return;
+        }
+        msgDumpDirectory = new File(dumpDirName);
+        if (!msgDumpDirectory.isDirectory() || !msgDumpDirectory.canWrite()) {
+            LOGGER.error(msgDumpDirectory + " is not writable, disable dump");
+            msgDumpDirectory = null;
+        } else {
+            LOGGER.info("dump transactions below " + msgDumpDirectory);
+        }
     }
 
     private static final AtomicLong messagecounter = new AtomicLong(0);
@@ -85,38 +104,31 @@ public class FileTracer {
      *
      * @param msg           message to dump
      * @param interfaceName file name prefix to use
+     * @return directory where the log goes in
      */
-    public static void logMessage(final PKIMessage msg, final String interfaceName) {
-        if (msgDumpDirectory == null
-                || msg == null
-                || !enablePemDump && !enableTxtDump && !enableDerDump && !enableAsn1Dump) {
-            return;
+    public static File logMessage(final PKIMessage msg, final String interfaceName) {
+        if (!dumpEnabled(msg)) {
+            return null;
         }
         try {
-            final String tidAsString = defaultIfNull(
-                    ifNotNull(
-                            msg.getHeader().getTransactionID(),
-                            tid -> B64_ENCODER_WITHOUT_PADDING.encodeToString(tid.getOctets())),
-                    "null");
-            final String subDirName = "trans_" + tidAsString;
-            final File subDir = new File(msgDumpDirectory, subDirName);
-            if (!subDir.isDirectory()) {
-                subDir.mkdirs();
-            }
+            final File subDir = getCreateTransactionDirectory(msg);
             final String fileprefix = String.format(
                     "%03d_%s_%s", messagecounter.incrementAndGet(), interfaceName, MessageDumper.msgTypeAsString(msg));
-            final byte[] encodedMessage = enableDerDump || enablePemDump ? msg.getEncoded(ASN1Encoding.DER) : null;
-            if (enableDerDump) {
-                try (final FileOutputStream binOut = new FileOutputStream(new File(subDir, fileprefix + ".PKI"))) {
-                    binOut.write(encodedMessage);
+            if (isPemOrDerOutEnabled()) {
+                final byte[] encodedMessage = msg.getEncoded(ASN1Encoding.DER);
+                if (enableDerDump) {
+                    try (final FileOutputStream binOut = new FileOutputStream(new File(subDir, fileprefix + ".PKI"))) {
+                        binOut.write(encodedMessage);
+                    }
+                }
+                if (enablePemDump) {
+                    try (final PemWriter pemOut =
+                            new PemWriter(new FileWriter(new File(subDir, fileprefix + ".pem")))) {
+                        pemOut.writeObject(new PemObject("PKIXCMP", encodedMessage));
+                    }
                 }
             }
-            if (enablePemDump) {
-                try (final PemWriter pemOut = new PemWriter(new FileWriter(new File(subDir, fileprefix + ".pem")))) {
-                    pemOut.writeObject(new PemObject("PKIXCMP", encodedMessage));
-                }
-            }
-            if (enableAsn1Dump || enableTxtDump) {
+            if (isTxtOutEnabled()) {
                 try (final FileWriter txtOut = new FileWriter(new File(subDir, fileprefix + ".txt"))) {
                     if (enableTxtDump) {
                         txtOut.write(MessageDumper.dumpPkiMessage(msg));
@@ -126,9 +138,48 @@ public class FileTracer {
                     }
                 }
             }
+            if (enableJsonDump) {
+                try (final FileWriter txtOut = new FileWriter(new File(subDir, fileprefix + ".json"))) {
+                    txtOut.write(JsonYamlMessageDumper.dumpPkiMessageAsJson(msg));
+                }
+            }
+            if (enableYamlDump) {
+                try (final FileWriter txtOut = new FileWriter(new File(subDir, fileprefix + ".yaml"))) {
+                    txtOut.write(JsonYamlMessageDumper.dumpPkiMessageAsYaml(msg));
+                }
+            }
+            return subDir;
         } catch (final Exception e) {
             LOGGER.error("error writing dump", e);
+            return null;
         }
+    }
+
+    private static boolean dumpEnabled(final PKIMessage msg) {
+        if (msgDumpDirectory == null || msg == null) {
+            return false;
+        }
+        return isPemOrDerOutEnabled() || isTxtOutEnabled() || enableJsonDump || enableYamlDump;
+    }
+
+    private static File getCreateTransactionDirectory(final PKIMessage msg) {
+        final String transactionId = ifNotNull(
+                msg.getHeader().getTransactionID(), tid -> B64_ENCODER_WITHOUT_PADDING.encodeToString(tid.getOctets()));
+        final String tidAsString = defaultIfNull(transactionId, "null");
+        final String subDirName = "trans_" + tidAsString;
+        final File subDir = new File(msgDumpDirectory, subDirName);
+        if (!subDir.isDirectory()) {
+            subDir.mkdirs();
+        }
+        return subDir;
+    }
+
+    private static boolean isTxtOutEnabled() {
+        return enableAsn1Dump || enableTxtDump;
+    }
+
+    private static boolean isPemOrDerOutEnabled() {
+        return enableDerDump || enablePemDump;
     }
 
     // utility class
