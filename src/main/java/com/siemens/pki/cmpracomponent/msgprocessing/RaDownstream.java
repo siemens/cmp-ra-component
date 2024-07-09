@@ -187,7 +187,14 @@ class RaDownstream {
         return new KeyTransportEncryptor(ckgConfiguration, recipientCert, initialRequestType, interfaceName);
     }
 
-    // special handling for CR, IR, KUR
+    /**
+     * special handling for CR, IR, KUR
+     *
+     * @param incomingCertificateRequest
+     * @param outputProtector
+     * @return handled message
+     * @throws Exception in case of error
+     */
     private PKIMessage handleCrmfCertificateRequest(
             final PKIMessage incomingCertificateRequest, final PersistencyContext persistencyContext)
             throws BaseCmpException, GeneralSecurityException, IOException {
@@ -451,6 +458,10 @@ class RaDownstream {
                                         responseFromUpstream.getProtection(),
                                         responseFromUpstream.getExtraCerts()),
                                 issuingChain);
+                if (responseBodyType == PKIBody.TYPE_NESTED) {
+                    // never nest a nested message
+                    return protectedResponse;
+                }
 
                 final NestedEndpointContext nestedEndpointContext = ConfigLogger.logOptional(
                         INTERFACE_NAME,
@@ -518,46 +529,47 @@ class RaDownstream {
                 INTERFACE_NAME,
                 "CmpMessageInterface.getNestedEndpointContext()",
                 downstreamConfiguration::getNestedEndpointContext);
-        if (nestedEndpointContext == null) {
-            return upstreamHandler.handleRequest(in, persistencyContext);
-        }
-        final MessageHeaderValidator nestedHeaderValidator = new MessageHeaderValidator(NESTED_INTERFACE_NAME);
-        nestedHeaderValidator.validate(in);
-        final ProtectionValidator nestedProtectionValidator = new ProtectionValidator(
-                NESTED_INTERFACE_NAME,
-                ConfigLogger.logOptional(
-                        NESTED_INTERFACE_NAME,
-                        "NestedEndpointContext.getInputVerification()",
-                        nestedEndpointContext::getInputVerification));
-        nestedProtectionValidator.validate(in);
-        PKIHeader inHeader = in.getHeader();
-        boolean isIncomingRecipientValid = ConfigLogger.log(
-                NESTED_INTERFACE_NAME,
-                "NestedEndpointContext.isIncomingRecipientValid()",
-                () -> nestedEndpointContext.isIncomingRecipientValid(
-                        inHeader.getRecipient().getName().toString()));
-        if (!isIncomingRecipientValid) {
-            return upstreamHandler.handleRequest(in, persistencyContext);
-        }
-        final PKIMessage[] embeddedMessages =
-                PKIMessages.getInstance(in.getBody().getContent()).toPKIMessageArray();
-        if (embeddedMessages == null || embeddedMessages.length == 0) {
-            throw new CmpProcessingException(
+        if (nestedEndpointContext != null) {
+            final MessageHeaderValidator nestedHeaderValidator = new MessageHeaderValidator(NESTED_INTERFACE_NAME);
+            nestedHeaderValidator.validate(in);
+            final ProtectionValidator nestedProtectionValidator = new ProtectionValidator(
                     NESTED_INTERFACE_NAME,
-                    PKIFailureInfo.badMessageCheck,
-                    "no embedded messages inside NESTED message");
+                    ConfigLogger.logOptional(
+                            NESTED_INTERFACE_NAME,
+                            "NestedEndpointContext.getInputVerification()",
+                            nestedEndpointContext::getInputVerification));
+            nestedProtectionValidator.validate(in);
+            PKIHeader inHeader = in.getHeader();
+            boolean isIncomingRecipientValid = ConfigLogger.log(
+                    NESTED_INTERFACE_NAME,
+                    "NestedEndpointContext.isIncomingRecipientValid()",
+                    () -> nestedEndpointContext.isIncomingRecipientValid(
+                            inHeader.getRecipient().getName().toString()));
+            if (!isIncomingRecipientValid) {
+                return upstreamHandler.handleRequest(in, persistencyContext);
+            }
+            final PKIMessage[] embeddedMessages =
+                    PKIMessages.getInstance(in.getBody().getContent()).toPKIMessageArray();
+            if (embeddedMessages == null || embeddedMessages.length == 0) {
+                throw new CmpProcessingException(
+                        NESTED_INTERFACE_NAME,
+                        PKIFailureInfo.badMessageCheck,
+                        "no embedded messages inside NESTED message");
+            }
+            // wrapped protection case
+            if (embeddedMessages.length == 1) {
+                return handleInputMessage(embeddedMessages[0]);
+            }
+            // batching
+            final PKIMessage[] responses = Arrays.stream(embeddedMessages)
+                    .map(this::handleInputMessage)
+                    .toArray(PKIMessage[]::new);
+            // batched responses needs to be wrapped in a new NESTED response
+            MsgOutputProtector nestedOutputProtector = new MsgOutputProtector(nestedEndpointContext, INTERFACE_NAME);
+            return nestedOutputProtector.generateAndProtectResponseTo(
+                    in, new PKIBody(PKIBody.TYPE_NESTED, new PKIMessages(responses)));
         }
-        // wrapped protection case
-        if (embeddedMessages.length == 1) {
-            return handleInputMessage(embeddedMessages[0]);
-        }
-        // batching
-        final PKIMessage[] responses =
-                Arrays.stream(embeddedMessages).map(this::handleInputMessage).toArray(PKIMessage[]::new);
-        // batched responses needs to be wrapped in a new NESTED response
-        MsgOutputProtector nestedOutputProtector = new MsgOutputProtector(nestedEndpointContext, INTERFACE_NAME);
-        return nestedOutputProtector.generateAndProtectResponseTo(
-                in, new PKIBody(PKIBody.TYPE_NESTED, new PKIMessages(responses)));
+        return upstreamHandler.handleRequest(in, persistencyContext);
     }
 
     private PKIMessage handleP10CertificateRequest(
