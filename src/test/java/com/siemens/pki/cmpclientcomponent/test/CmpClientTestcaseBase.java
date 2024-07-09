@@ -37,6 +37,7 @@ import com.siemens.pki.cmpracomponent.test.framework.ConfigFileLoader;
 import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
 import com.siemens.pki.cmpracomponent.test.framework.PasswordValidationCredentials;
 import com.siemens.pki.cmpracomponent.test.framework.SignatureValidationCredentials;
+import com.siemens.pki.cmpracomponent.test.framework.TrustChainAndPrivateKey;
 import java.io.File;
 import java.io.IOException;
 import java.security.Security;
@@ -44,7 +45,8 @@ import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import org.junit.BeforeClass;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;
 
 public class CmpClientTestcaseBase {
 
@@ -52,6 +54,7 @@ public class CmpClientTestcaseBase {
 
     static {
         ConfigFileLoader.setConfigFileBase(CONFIG_DIRECTORY);
+        Security.addProvider(CertUtility.getBouncyCastleProvider());
     }
 
     protected static CmpMessageInterface getPasswordBasedUpstreamconfiguration(
@@ -161,11 +164,6 @@ public class CmpClientTestcaseBase {
         };
     }
 
-    @BeforeClass
-    public static void setUpBeforeClass() throws Exception {
-        Security.addProvider(CertUtility.getBouncyCastleProvider());
-    }
-
     protected UpstreamExchange upstreamExchange;
 
     protected CmpClient getPasswordBasedCmpClient(
@@ -194,11 +192,17 @@ public class CmpClientTestcaseBase {
         return upstreamExchange;
     }
 
-    protected UpstreamExchange launchCmpCaAndRa(final Configuration config) throws Exception {
+    protected UpstreamExchange launchCmpCaAndRa(final Configuration raConfig) throws Exception {
         return launchCmpRa(
-                config,
+                raConfig,
                 new CmpCaMock("credentials/ENROLL_Keystore.p12", "credentials/CMP_CA_Keystore.p12")
                         ::sendReceiveMessage);
+    }
+
+    protected UpstreamExchange launchCmpCaAndRa(
+            TrustChainAndPrivateKey enrollmentCredential, final Configuration raConfig) throws Exception {
+        return launchCmpRa(
+                raConfig, new CmpCaMock(enrollmentCredential, "credentials/CMP_CA_Keystore.p12")::sendReceiveMessage);
     }
 
     protected UpstreamExchange launchCmpCaAndRaAndLra(final Configuration raConfig, final Configuration lraConfig)

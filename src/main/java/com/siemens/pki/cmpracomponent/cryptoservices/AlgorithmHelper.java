@@ -22,6 +22,7 @@ import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 import java.security.Key;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.Signature;
 import java.util.HashMap;
 import java.util.Map;
 import javax.crypto.Mac;
@@ -245,6 +246,7 @@ public class AlgorithmHelper {
 
     /**
      * convert shared secrets from byte[] to char[]
+     *
      * @param sharedSecret sharedSecret as byte[]
      * @return sharedSecret as char[]
      */
@@ -261,6 +263,7 @@ public class AlgorithmHelper {
 
     /**
      * get AlgorithmIdentifier for MessageDigest
+     *
      * @param dig digest
      * @return AlgorithmIdentifier
      */
@@ -295,6 +298,7 @@ public class AlgorithmHelper {
 
     /**
      * get OID for name of KEK algorithm
+     *
      * @param id name of KEK algorithm
      * @return KEK OID
      * @throws NoSuchAlgorithmException if id is unknown
@@ -305,6 +309,7 @@ public class AlgorithmHelper {
 
     /**
      * get OID for key agreement algorithm name
+     *
      * @param id name of key agreement algorithm
      * @return key agreement OID
      * @throws NoSuchAlgorithmException if id is unknown
@@ -315,6 +320,7 @@ public class AlgorithmHelper {
 
     /**
      * get OID for key encryption algorithm name
+     *
      * @param id name of key encryption algorithm
      * @return key encryption OID
      * @throws NoSuchAlgorithmException if id is unknown
@@ -324,7 +330,8 @@ public class AlgorithmHelper {
     }
 
     /**
-     * get OID for MAC name
+     * get MAC for name or OID
+     *
      * @param macId name of MAC
      * @return mac
      * @throws NoSuchAlgorithmException if macId is unknown
@@ -334,7 +341,19 @@ public class AlgorithmHelper {
     }
 
     /**
+     * get Signature for name or OID
+     *
+     * @param signatureId name of Signature
+     * @return signature
+     * @throws NoSuchAlgorithmException if signatureId is unknown
+     */
+    public static Signature getSignature(String signatureId) throws NoSuchAlgorithmException {
+        return Signature.getInstance(signatureId, CertUtility.getBouncyCastleProvider());
+    }
+
+    /**
      * get MessageDigest for MessageDigest name
+     *
      * @param id MessageDigest name
      * @return MessageDigest instance
      * @throws NoSuchAlgorithmException if nothing found
@@ -345,6 +364,7 @@ public class AlgorithmHelper {
 
     /**
      * get OID for mac algorithm name
+     *
      * @param macAlg mac algorithm
      * @return OID for mac
      */
@@ -358,6 +378,7 @@ public class AlgorithmHelper {
 
     /**
      * get PRF for id of PRF
+     *
      * @param id id of PRF
      * @return PRF
      * @throws NoSuchAlgorithmException if id is unknown
@@ -384,6 +405,7 @@ public class AlgorithmHelper {
 
     /**
      * get AlgorithmIdentifier of preferred signature algorithm for a key
+     *
      * @param key the key
      * @return AlgorithmIdentifier of preferred signature algorithm
      */
@@ -393,14 +415,17 @@ public class AlgorithmHelper {
 
     /**
      * get AlgorithmIdentifier for keyAlgorithm name
+     *
      * @param keyAlgorithm name
      * @return AlgorithmIdentifier
      */
     public static AlgorithmIdentifier getSigningAlgIdFromKeyAlg(final String keyAlgorithm) {
         return DEFAULT_SIGNATURE_ALGORITHM_IDENTIFIER_FINDER.find(getSigningAlgNameFromKeyAlg(keyAlgorithm));
     }
+
     /**
      * get AlgorithmIdentifier for signatureAlgorithmName
+     *
      * @param signatureAlgorithmName the name
      * @return AlgorithmIdentifier
      */
@@ -427,15 +452,15 @@ public class AlgorithmHelper {
      *         key uses algorithms beside RSA, EC or EdDSA
      */
     public static String getSigningAlgNameFromKeyAlg(final String keyAlgorithm) {
-        if (keyAlgorithm.startsWith("Ed")) {
-            // EdDSA key
-            return keyAlgorithm;
-        }
-        if ("EC".equals(keyAlgorithm)) {
+        if (keyAlgorithm.startsWith("EC")) {
             // EC key
             return "SHA256withECDSA";
         }
-        return "SHA256with" + keyAlgorithm;
+        if (keyAlgorithm.startsWith("RSA")) {
+            return "SHA256with" + keyAlgorithm;
+        }
+
+        return keyAlgorithm;
     }
 
     /**
@@ -454,6 +479,7 @@ public class AlgorithmHelper {
 
     /**
      * get an Password-based message authentication code (MAC) algorithms
+     *
      * @param passwordBasedMacAlgorithm id of Password-Based MAC used for protection
      * @return related {@link PasswordBasedMacAlg}
      * @throws NoSuchAlgorithmException if id is unknown
