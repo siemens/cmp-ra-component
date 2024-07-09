@@ -140,3 +140,6 @@ feat: add logging while accessing configuration data
 
 fix: handling of NestedEndpointContext.isIncomingRecipientValid
 
+### 4.1.4 (Jul 23 2024)
+
+fix: again fix protection of NESTED responses

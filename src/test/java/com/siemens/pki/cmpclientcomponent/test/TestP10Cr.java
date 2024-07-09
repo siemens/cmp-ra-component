@@ -136,7 +136,7 @@ public class TestP10Cr extends EnrollmentTestcaseBase {
 
             @Override
             public int getDownstreamTimeout(final String certProfile, final int bodyType) {
-                return 10;
+                return 0;
             }
 
             @Override

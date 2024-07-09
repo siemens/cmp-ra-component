@@ -31,6 +31,7 @@ import java.util.Date;
 import java.util.function.Function;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.DERSequence;
 import org.bouncycastle.asn1.cmp.*;
@@ -81,16 +82,7 @@ public class TestSupportMessages extends CmpTestcaseBase {
                 new HeaderProviderForTest("CrlUpdateRetrieval"),
                 ConfigurationFactory.getEeSignaturebasedProtectionProvider(),
                 genmBody);
-        if (LOGGER.isDebugEnabled()) {
-            // avoid unnecessary call of MessageDumper.dumpPkiMessage, if debug isn't
-            // enabled
-            LOGGER.debug("send" + MessageDumper.dumpPkiMessage(genm));
-        }
         final PKIMessage genr = eeCmpClient.apply(genm);
-        if (LOGGER.isDebugEnabled()) {
-            // avoid unnecessary string processing, if debug isn't enabled
-            LOGGER.debug("got" + MessageDumper.dumpPkiMessage(genr));
-        }
         assertEquals("message type", PKIBody.TYPE_GEN_REP, genr.getBody().getType());
         final GenRepContent content = (GenRepContent) genr.getBody().getContent();
         final InfoTypeAndValue[] itav = content.toInfoTypeAndValueArray();
@@ -137,6 +129,37 @@ public class TestSupportMessages extends CmpTestcaseBase {
         // }
         final ASN1Sequence value = (ASN1Sequence) itav[0].getInfoValue();
         assertEquals("number of returned certificates", 20, value.size());
+    }
+
+    /*
+     * Get CA certificates without transaction Id
+     */
+    @Test
+    public void testGetCaCertsWithoutTransactionId() throws Exception {
+        final ASN1ObjectIdentifier getCaCertOid = new ASN1ObjectIdentifier("1.3.6.1.5.5.7.4.17");
+        final PKIBody genmBody =
+                new PKIBody(PKIBody.TYPE_GEN_MSG, new GenMsgContent(new InfoTypeAndValue(getCaCertOid)));
+        final PKIMessage genm = PkiMessageGenerator.generateAndProtectMessage(
+                new HeaderProviderForTest("GetCaCertsCertProfile") {
+                    @Override
+                    public ASN1OctetString getTransactionID() {
+                        return null;
+                    }
+                },
+                ConfigurationFactory.getEeSignaturebasedProtectionProvider(),
+                genmBody);
+        if (LOGGER.isDebugEnabled()) {
+            // avoid unnecessary call of MessageDumper.dumpPkiMessage, if debug isn't
+            // enabled
+            LOGGER.debug("send" + MessageDumper.dumpPkiMessage(genm));
+        }
+        final PKIMessage genr = getEeClient().apply(genm);
+        if (LOGGER.isDebugEnabled()) {
+            // avoid unnecessary call of MessageDumper.dumpPkiMessage, if debug isn't
+            // enabled
+            LOGGER.debug("got" + MessageDumper.dumpPkiMessage(genr));
+        }
+        assertEquals("message type", PKIBody.TYPE_ERROR, genr.getBody().getType());
     }
 
     /*

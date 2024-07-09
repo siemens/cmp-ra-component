@@ -20,6 +20,8 @@ package com.siemens.pki.cmpracomponent.protection;
 import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
 import com.siemens.pki.cmpracomponent.cryptoservices.BaseCredentialService;
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.security.Signature;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -76,7 +78,8 @@ public class SignatureBasedProtection extends BaseCredentialService implements P
     }
 
     @Override
-    public DERBitString getProtectionFor(final ProtectedPart protectedPart) throws Exception {
+    public DERBitString getProtectionFor(final ProtectedPart protectedPart)
+            throws GeneralSecurityException, IOException {
         final Signature sig = Signature.getInstance(getSignatureAlgorithmName());
         sig.initSign(getPrivateKey());
         sig.update(protectedPart.getEncoded(ASN1Encoding.DER));

@@ -23,6 +23,8 @@ import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 import com.siemens.pki.cmpracomponent.configuration.SharedSecretCredentialContext;
 import com.siemens.pki.cmpracomponent.cryptoservices.WrappedMac;
 import com.siemens.pki.cmpracomponent.util.ConfigLogger;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.List;
 import org.bouncycastle.asn1.ASN1Encoding;
 import org.bouncycastle.asn1.DERBitString;
@@ -61,7 +63,8 @@ public abstract class MacProtection implements ProtectionProvider {
     }
 
     @Override
-    public synchronized DERBitString getProtectionFor(final ProtectedPart protectedPart) throws Exception {
+    public synchronized DERBitString getProtectionFor(final ProtectedPart protectedPart)
+            throws GeneralSecurityException, IOException {
         return new DERBitString(protectingMac.calculateMac(protectedPart.getEncoded(ASN1Encoding.DER)));
     }
 
