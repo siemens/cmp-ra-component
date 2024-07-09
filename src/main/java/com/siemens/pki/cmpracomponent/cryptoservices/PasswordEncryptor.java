@@ -58,13 +58,9 @@ public class PasswordEncryptor extends CmsEncryptorBase {
                 "CkgPasswordContext.getEncryptionCredentials()",
                 passwordContext::getEncryptionCredentials);
         addRecipientInfoGenerator(new JcePasswordRecipientInfoGenerator(
-                        AlgorithmHelper.getKeyEncryptionOID(ConfigLogger.log(
-                                interfaceName, "CkgPasswordContext.getKekAlg()", passwordContext::getKekAlg)),
-                        AlgorithmHelper.convertSharedSecretToPassword(ConfigLogger.log(
-                                interfaceName,
-                                "SharedSecretCredentialContext.getSharedSecret()",
-                                encryptionCredentials::getSharedSecret)))
-                .setProvider(CertUtility.getBouncyCastleProvider())
+                        AlgorithmHelper.getKeyEncryptionOID(passwordContext.getKekAlg()),
+                        AlgorithmHelper.convertSharedSecretToPassword(encryptionCredentials.getSharedSecret()))
+                .setProvider(getProvider())
                 .setPasswordConversionScheme(PasswordRecipient.PKCS5_SCHEME2_UTF8)
                 .setPRF(AlgorithmHelper.getPrf(ConfigLogger.log(
                         interfaceName, "SharedSecretCredentialContext.getPrf()", encryptionCredentials::getPrf)))

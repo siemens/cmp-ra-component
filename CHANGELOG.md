@@ -128,7 +128,7 @@ feat: implement configurable recipient
 
 fix: extension processing in CMP client
 
-### 4.1.0 (Dec 14 2023)
+### 4.1.0 (Dec 14 2024)
 
 feat: revocation checking via inventory interface
 
