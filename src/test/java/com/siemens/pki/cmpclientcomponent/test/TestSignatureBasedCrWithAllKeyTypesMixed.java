@@ -23,6 +23,7 @@ import java.security.GeneralSecurityException;
 import java.security.KeyPairGenerator;
 import java.util.Arrays;
 import org.bouncycastle.asn1.bc.BCObjectIdentifiers;
+import org.bouncycastle.asn1.misc.MiscObjectIdentifiers;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -40,9 +41,13 @@ public class TestSignatureBasedCrWithAllKeyTypesMixed extends SignatureBasedCrWi
         KeyPairGenerator rsaKpg = KeyPairGeneratorFactory.getRsaKeyPairGenerator(1024);
         KeyPairGenerator ecKpg = KeyPairGeneratorFactory.getEcKeyPairGenerator("secp256r1");
         KeyPairGenerator edKpg = KeyPairGeneratorFactory.getEdDsaKeyPairGenerator("Ed448");
+        KeyPairGenerator compKpg =
+                KeyPairGeneratorFactory.getGenericKeyPairGenerator(MiscObjectIdentifiers.id_MLDSA44_ECDSA_P256_SHA256);
 
         return Arrays.asList(new Object[][] {
             //
+            {"EC-COMP-RSA", new KeyPairGenerator[] {ecKpg, compKpg, rsaKpg}},
+            {"EC-ED-COMP", new KeyPairGenerator[] {ecKpg, edKpg, compKpg}},
             {"PQ-RSA-EC", new KeyPairGenerator[] {pqKpg, rsaKpg, ecKpg}},
             {"RSA-PQ-EC", new KeyPairGenerator[] {rsaKpg, pqKpg, ecKpg}},
             {"ED-PQ-EC", new KeyPairGenerator[] {edKpg, pqKpg, ecKpg}},
@@ -50,6 +55,9 @@ public class TestSignatureBasedCrWithAllKeyTypesMixed extends SignatureBasedCrWi
     }
 
     public TestSignatureBasedCrWithAllKeyTypesMixed(String description, KeyPairGenerator... kps) throws Exception {
-        super(new TrustChainAndPrivateKey("CLIENT", kps), new TrustChainAndPrivateKey("RA_DOWN", kps));
+        super(
+                new TrustChainAndPrivateKey("CLIENT", false, kps),
+                new TrustChainAndPrivateKey("RA_DOWN", false, kps),
+                new TrustChainAndPrivateKey("ENROLL_", true, kps));
     }
 }

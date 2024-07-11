@@ -33,7 +33,10 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class TestSignatureBasedCrWithAllKeyTypesUnique extends SignatureBasedCrWithAllKeyTypesBase {
     public TestSignatureBasedCrWithAllKeyTypesUnique(String description, KeyPairGenerator kp) throws Exception {
-        super(new TrustChainAndPrivateKey("CLIENT", kp, kp, kp), new TrustChainAndPrivateKey("RA_DOWN", kp, kp, kp));
+        super(
+                new TrustChainAndPrivateKey("CLIENT", false, kp, kp, kp),
+                new TrustChainAndPrivateKey("RA_DOWN", false, kp, kp, kp),
+                new TrustChainAndPrivateKey("ENROLL", true, kp, kp, kp));
     }
 
     @Parameters(name = "{0}")

@@ -42,8 +42,9 @@ public class CmsEncryptorBase {
 
     private final CMSEnvelopedDataGenerator envGen = new CMSEnvelopedDataGenerator();
     private final CkgContext config;
+
     @SuppressWarnings("unused")
-	private final String interfaceName;
+    private final String interfaceName;
 
     protected CmsEncryptorBase(final CkgContext config, String interfaceName) {
         this.config = config;

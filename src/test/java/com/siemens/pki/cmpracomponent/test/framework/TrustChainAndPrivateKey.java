@@ -77,13 +77,15 @@ public class TrustChainAndPrivateKey implements SignatureCredentialContext, Veri
      * create a new cert chain
      *
      * @param subjectPrefix prefix fur all common names
+     * @param withoutEndCert TODO
      * @param kpg           generator to use for key generation
      * @param chainLength   length from root to end to generate
-     *
+     * param withoutEndCert if <code>true</code>, generate unfinished chain without end certificate
      * @throws Exception in case of error
      */
-    public TrustChainAndPrivateKey(String subjectPrefix, KeyPairGenerator... kpg) throws Exception {
-        int chainLength = kpg.length;
+    public TrustChainAndPrivateKey(String subjectPrefix, boolean withoutEndCert, KeyPairGenerator... kpg)
+            throws Exception {
+        final int finalChainLength = withoutEndCert ? kpg.length + 1 : kpg.length;
         final long now = System.currentTimeMillis();
         // generate trusted root
         KeyPair rootKeypair = kpg[0].generateKeyPair();
@@ -99,7 +101,7 @@ public class TrustChainAndPrivateKey implements SignatureCredentialContext, Veri
         final JcaX509ExtensionUtils extUtils = new JcaX509ExtensionUtils();
         v3CertBldr.addExtension(
                 Extension.subjectKeyIdentifier, false, extUtils.createSubjectKeyIdentifier(privateRootKey));
-        v3CertBldr.addExtension(Extension.basicConstraints, true, new BasicConstraints(chainLength));
+        v3CertBldr.addExtension(Extension.basicConstraints, true, new BasicConstraints(finalChainLength));
         JcaContentSignerBuilder signerBuilder = tryWithAllProviders(p -> {
             return new JcaContentSignerBuilder(AlgorithmHelper.getSigningAlgNameFromKey(rootKeypair.getPrivate()))
                     .setProvider(p);
@@ -110,10 +112,13 @@ public class TrustChainAndPrivateKey implements SignatureCredentialContext, Veri
         trustAnchors.add(lastCert);
         trustChain.addLast(lastCert);
         privateKeyOfEndCertififcate = rootKeypair.getPrivate();
-        if (chainLength <= 1) {
+        if (finalChainLength <= 1) {
             return;
         }
-        int certsStillToGenerate = chainLength - 1;
+        if (finalChainLength == 2 && withoutEndCert) {
+            return;
+        }
+        int certsStillToGenerate = finalChainLength - 1;
         for (int i = 1; ; i++) {
             X500Principal nextIssuer = certsStillToGenerate > 1
                     ? new X500Principal("CN=" + subjectPrefix + "_INTERMEDIATE_" + certsStillToGenerate)
@@ -150,6 +155,9 @@ public class TrustChainAndPrivateKey implements SignatureCredentialContext, Veri
             privateKeyOfEndCertififcate = nextKeyPair.getPrivate();
             certsStillToGenerate--;
             if (certsStillToGenerate <= 0) {
+                return;
+            }
+            if (withoutEndCert && certsStillToGenerate <= 1) {
                 return;
             }
             lastIssuer = nextIssuer;

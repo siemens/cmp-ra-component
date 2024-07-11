@@ -30,6 +30,7 @@ import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.PKIFailureInfo;
 import org.bouncycastle.asn1.cmp.PKIMessage;
+import org.bouncycastle.operator.OperatorCreationException;
 
 /**
  * holder for all persistent data
@@ -48,7 +49,7 @@ public class PersistencyContext {
     private PKIMessage pendingDelayedResponse;
     private LastTransactionState lastTransactionState;
     private ASN1OctetString lastSenderNonce;
-    private byte[] digestToConfirm;
+    private CMPCertificate enrolledCertificate;
     private boolean implicitConfirmGranted;
     private byte[] requestedPublicKey;
 
@@ -121,11 +122,11 @@ public class PersistencyContext {
     }
 
     /**
-     * get certificate digest to confirm
+     * get certificate to confirm
      * @return certificate digest or <code>null</code>
      */
-    public byte[] getDigestToConfirm() {
-        return digestToConfirm;
+    public CMPCertificate getEnrolledCertificate() {
+        return enrolledCertificate;
     }
 
     /**
@@ -243,11 +244,11 @@ public class PersistencyContext {
     }
 
     /**
-     * set digestToConfirm
-     * @param digestToConfirm the digestToConfirm
+     * set enrolledCertificate
+     * @param enrolledCertificate the enrolledCertificate
      */
-    public void setDigestToConfirm(final byte[] digestToConfirm) {
-        this.digestToConfirm = digestToConfirm;
+    public void setEnrolledCertficate(final CMPCertificate enrolledCertificate) {
+        this.enrolledCertificate = enrolledCertificate;
     }
 
     /**
@@ -344,8 +345,9 @@ public class PersistencyContext {
      * @param msg message to process
      * @throws BaseCmpException in case of CMP relate error
      * @throws IOException in case of general error
+     * @throws OperatorCreationException
      */
-    public void trackMessage(final PKIMessage msg) throws BaseCmpException, IOException {
+    public void trackMessage(final PKIMessage msg) throws BaseCmpException, IOException, OperatorCreationException {
         transactionStateTracker.trackMessage(msg);
     }
 

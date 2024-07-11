@@ -34,8 +34,6 @@ import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
 import com.siemens.pki.cmpracomponent.configuration.SupportMessageHandlerInterface;
 import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
-import com.siemens.pki.cmpracomponent.test.framework.SignatureValidationCredentials;
-import com.siemens.pki.cmpracomponent.test.framework.TestUtils;
 import com.siemens.pki.cmpracomponent.test.framework.TrustChainAndPrivateKey;
 import java.security.KeyPair;
 import java.security.cert.X509Certificate;
@@ -50,20 +48,21 @@ import org.junit.Test;
 public class SignatureBasedCrWithAllKeyTypesBase extends EnrollmentTestcaseBase {
 
     protected SignatureBasedCrWithAllKeyTypesBase(
-            TrustChainAndPrivateKey fromClientToRa, TrustChainAndPrivateKey fromRaToClient) {
+            TrustChainAndPrivateKey fromClientToRa,
+            TrustChainAndPrivateKey fromRaToClient,
+            TrustChainAndPrivateKey enrollmentCredentials) {
         this.fromClientToRa = fromClientToRa;
         this.fromRaToClient = fromRaToClient;
+        this.enrollmentCredentials = enrollmentCredentials;
     }
 
     private final TrustChainAndPrivateKey fromClientToRa;
     private final TrustChainAndPrivateKey fromRaToClient;
-
-    private final SignatureValidationCredentials enrollmentCredentials =
-            new SignatureValidationCredentials("credentials/ENROLL_Keystore.p12", TestUtils.PASSWORD_AS_CHAR_ARRAY);
+    private final TrustChainAndPrivateKey enrollmentCredentials;
 
     @Before
     public void setUp() throws Exception {
-        launchCmpCaAndRa(new Configuration() {
+        launchCmpCaAndRa(enrollmentCredentials, new Configuration() {
 
             @Override
             public boolean isRaVerifiedAcceptable(String certProfile, int bodyType) {

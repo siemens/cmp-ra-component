@@ -47,6 +47,7 @@ import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.DERBitString;
+import org.bouncycastle.asn1.DERNull;
 import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.DERSequence;
 import org.bouncycastle.asn1.cmp.CMPCertificate;
@@ -84,6 +85,7 @@ import org.bouncycastle.asn1.crmf.POPOPrivKey;
 import org.bouncycastle.asn1.crmf.POPOSigningKey;
 import org.bouncycastle.asn1.crmf.ProofOfPossession;
 import org.bouncycastle.asn1.crmf.SubsequentMessage;
+import org.bouncycastle.asn1.nist.NISTObjectIdentifiers;
 import org.bouncycastle.asn1.x500.RDN;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
@@ -91,7 +93,7 @@ import org.bouncycastle.asn1.x509.Certificate;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.ExtensionsGenerator;
 import org.bouncycastle.asn1.x509.GeneralName;
-import org.bouncycastle.cert.cmp.CMPException;
+import org.bouncycastle.asn1.x9.X9ObjectIdentifiers;
 import org.bouncycastle.cms.CMSAlgorithm;
 import org.bouncycastle.cms.CMSEnvelopedData;
 import org.bouncycastle.cms.CMSEnvelopedDataGenerator;
@@ -330,16 +332,20 @@ public class PkiMessageGenerator {
      * @throws Exception in case of error
      */
     public static PKIBody generateCertConfBody(final CMPCertificate certificate) throws Exception {
-        final AlgorithmIdentifier digAlg =
-                DIG_ALG_FINDER.find(certificate.getX509v3PKCert().getSignatureAlgorithm());
-        if (digAlg == null) {
-            throw new CMPException("cannot find algorithm for digest from signature");
-        }
-
-        final DigestCalculator digester = BC_DIGEST_CALCULATOR_PROVIDER.get(digAlg);
+        final AlgorithmIdentifier signatureAlgorithm =
+                certificate.getX509v3PKCert().getSignatureAlgorithm();
+        final AlgorithmIdentifier digAlgFromCert =
+                ifNotNull(signatureAlgorithm, x -> DIG_ALG_FINDER.find(signatureAlgorithm));
+        final AlgorithmIdentifier digAlgForHash =
+                computeDefaultIfNull(digAlgFromCert, () -> new AlgorithmIdentifier(NISTObjectIdentifiers.id_sha256));
+        final DigestCalculator digester = BC_DIGEST_CALCULATOR_PROVIDER.get(digAlgForHash);
         digester.getOutputStream().write(certificate.getEncoded(ASN1Encoding.DER));
         final ASN1Sequence content = new DERSequence(new CertStatus[] {
-            new CertStatus(digester.getDigest(), BigInteger.ZERO, new PKIStatusInfo(PKIStatus.granted))
+            new CertStatus(
+                    digester.getDigest(),
+                    BigInteger.ZERO,
+                    new PKIStatusInfo(PKIStatus.granted),
+                    digAlgFromCert != null ? null : digAlgForHash)
         });
         return new PKIBody(PKIBody.TYPE_CERT_CONFIRM, CertConfirmContent.getInstance(content));
     }
@@ -425,9 +431,27 @@ public class PkiMessageGenerator {
     public static PKIBody generateEncryptedIpCpKupBody(final int bodyType, X509Certificate certificateToEncrypt)
             throws CertificateEncodingException, CMSException {
         // encrypt certificate
+        // KDF2
+        AlgorithmIdentifier kdfAlgorithm = new AlgorithmIdentifier(
+                X9ObjectIdentifiers.id_kdf_kdf2,
+                new AlgorithmIdentifier(NISTObjectIdentifiers.id_sha256, DERNull.INSTANCE));
+        // KDF3
+        //        AlgorithmIdentifier kdfAlgorithm = new AlgorithmIdentifier(
+        //                X9ObjectIdentifiers.id_kdf_kdf3,
+        //                new AlgorithmIdentifier(NISTObjectIdentifiers.id_sha256, DERNull.INSTANCE));
+        // SHAKE256
+        //        AlgorithmIdentifier kdfAlgorithm = new AlgorithmIdentifier(NISTObjectIdentifiers.id_shake256);
+
         CMSEnvelopedDataGenerator envGen = new CMSEnvelopedDataGenerator();
-        envGen.addRecipientInfoGenerator(
-                new JceKEMRecipientInfoGenerator(certificateToEncrypt, CMSAlgorithm.AES256_WRAP));
+        // Issuer + serialnumber
+        //        JceKEMRecipientInfoGenerator recipientInfoGenerator = new
+        // JceKEMRecipientInfoGenerator(certificateToEncrypt, CMSAlgorithm.AES256_WRAP);
+        // Subject Pulic Key
+        JceKEMRecipientInfoGenerator recipientInfoGenerator = new JceKEMRecipientInfoGenerator(
+                certificateToEncrypt.getPublicKey().getEncoded(),
+                certificateToEncrypt.getPublicKey(),
+                CMSAlgorithm.AES256_WRAP);
+        envGen.addRecipientInfoGenerator(recipientInfoGenerator.setKDF(kdfAlgorithm));
         CMSProcessableByteArray content = new CMSProcessableByteArray(certificateToEncrypt.getEncoded());
         final CMSEnvelopedData cmsEnvData = tryWithAllProviders(p -> envGen.generate(
                 content,

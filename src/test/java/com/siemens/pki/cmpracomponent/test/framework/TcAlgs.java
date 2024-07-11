@@ -141,7 +141,8 @@ public class TcAlgs {
 
     public static List<Object[]> getKemAlgorithms() throws GeneralSecurityException, NoSuchAlgorithmException {
         return Arrays.asList(new Object[][] {
-            {"KYBER", KeyPairGeneratorFactory.getGenericKeyPairGenerator(BCObjectIdentifiers.kyber512)},
+            {"KYBER512", KeyPairGeneratorFactory.getGenericKeyPairGenerator(BCObjectIdentifiers.kyber512)},
+            {"KYBER1024", KeyPairGeneratorFactory.getGenericKeyPairGenerator(BCObjectIdentifiers.kyber1024)},
         });
     }
 

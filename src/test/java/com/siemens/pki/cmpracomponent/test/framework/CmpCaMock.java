@@ -88,8 +88,14 @@ public class CmpCaMock implements CmpRaComponent.UpstreamExchange {
         this.enrollmentCredentials =
                 new TrustChainAndPrivateKey(enrollmentCredentials, TestUtils.PASSWORD_AS_CHAR_ARRAY);
         caProtectionProvider = new SignatureBasedProtection(
-                new TrustChainAndPrivateKey(protectionCredentials, TestUtils.PASSWORD_AS_CHAR_ARRAY),
-                "CMP TEST Client");
+                new TrustChainAndPrivateKey(protectionCredentials, TestUtils.PASSWORD_AS_CHAR_ARRAY), "CMP TEST CA");
+    }
+
+    public CmpCaMock(TrustChainAndPrivateKey enrollmentCredentials, final String protectionCredentials)
+            throws Exception {
+        this.enrollmentCredentials = enrollmentCredentials;
+        caProtectionProvider = new SignatureBasedProtection(
+                new TrustChainAndPrivateKey(protectionCredentials, TestUtils.PASSWORD_AS_CHAR_ARRAY), "CMP TEST CA");
     }
 
     private CMPCertificate createCertificate(
