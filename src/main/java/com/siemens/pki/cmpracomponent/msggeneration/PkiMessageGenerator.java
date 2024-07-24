@@ -29,6 +29,7 @@ import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.security.Signature;
 import java.util.Collections;
@@ -257,7 +258,8 @@ public class PkiMessageGenerator {
      * @param issuingChain       chain of enrolled certificate to append at the
      *                           extraCerts
      * @return a fully build and protected message
-     * @throws Exception in case of error
+     * @throws GeneralSecurityException in case of error
+     * @throws IOException in case of encoding error
      */
     public static PKIMessage generateAndProtectMessage(
             final HeaderProvider headerProvider,
@@ -265,7 +267,7 @@ public class PkiMessageGenerator {
             GeneralName newRecipient,
             final PKIBody body,
             final List<CMPCertificate> issuingChain)
-            throws Exception {
+            throws GeneralSecurityException, IOException {
         synchronized (protectionProvider) {
             final GeneralName recipient = computeDefaultIfNull(newRecipient, headerProvider::getRecipient);
             final GeneralName sender = computeDefaultIfNull(protectionProvider.getSender(), headerProvider::getSender);
@@ -422,11 +424,12 @@ public class PkiMessageGenerator {
      * @param privateKey   private key to build the POPO, if set to null, POPO is
      *                     set to raVerified
      * @return a IR, CR or KUR body
-     * @throws Exception in case of error
+     * @throws GeneralSecurityException in case of error
+     * @throws IOException in case of encoding error
      */
     public static PKIBody generateIrCrKurBody(
             final int bodyType, final CertTemplate certTemplate, final Controls controls, final PrivateKey privateKey)
-            throws Exception {
+            throws GeneralSecurityException, IOException {
         final CertRequest certReq = new CertRequest(CERT_REQ_ID_0, certTemplate, controls);
         if (privateKey == null) {
             return new PKIBody(bodyType, new CertReqMessages(new CertReqMsg(certReq, new ProofOfPossession(), null)));
@@ -542,10 +545,11 @@ public class PkiMessageGenerator {
      * @param headerProvider PKI header
      * @param body           message body
      * @return a fully build and not protected message
-     * @throws Exception in case of error
+     * @throws GeneralSecurityException in case of error
+     * @throws IOException in case of encoding error
      */
     public static PKIMessage generateUnprotectMessage(final HeaderProvider headerProvider, final PKIBody body)
-            throws Exception {
+            throws GeneralSecurityException, IOException {
         return generateAndProtectMessage(headerProvider, ProtectionProvider.NO_PROTECTION, null, body, null);
     }
 

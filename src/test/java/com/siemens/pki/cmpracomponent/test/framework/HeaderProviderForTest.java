@@ -37,7 +37,7 @@ import org.bouncycastle.asn1.x509.GeneralName;
 /**
  *
  */
-public final class HeaderProviderForTest implements HeaderProvider {
+public class HeaderProviderForTest implements HeaderProvider {
     final ASN1OctetString transactionId;
     final ASN1OctetString senderNonce = new DEROctetString(CertUtility.generateRandomBytes(16));
 

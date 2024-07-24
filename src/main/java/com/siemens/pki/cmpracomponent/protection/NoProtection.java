@@ -17,6 +17,8 @@
  */
 package com.siemens.pki.cmpracomponent.protection;
 
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.List;
 import org.bouncycastle.asn1.DERBitString;
 import org.bouncycastle.asn1.DEROctetString;
@@ -46,7 +48,8 @@ public class NoProtection implements ProtectionProvider {
     }
 
     @Override
-    public DERBitString getProtectionFor(final ProtectedPart protectedPart) throws Exception {
+    public DERBitString getProtectionFor(final ProtectedPart protectedPart)
+            throws GeneralSecurityException, IOException {
         return null;
     }
 

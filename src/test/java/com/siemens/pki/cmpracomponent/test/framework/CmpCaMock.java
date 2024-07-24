@@ -117,7 +117,6 @@ public class CmpCaMock implements CmpRaComponent.UpstreamExchange {
                 try {
                     v3CertBldr.addExtension(extensionsFromTemplate.getExtension(oid));
                 } catch (final CertIOException e) {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
             });

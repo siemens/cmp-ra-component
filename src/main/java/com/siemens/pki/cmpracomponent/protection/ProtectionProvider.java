@@ -17,6 +17,9 @@
  */
 package com.siemens.pki.cmpracomponent.protection;
 
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.security.cert.CertificateException;
 import java.util.List;
 import org.bouncycastle.asn1.DERBitString;
 import org.bouncycastle.asn1.DEROctetString;
@@ -39,9 +42,10 @@ public interface ProtectionProvider {
     /**
      * get extra certs used for protection
      * @return extra certs used for protection
-     * @throws Exception in case of error
+     * @throws CertificateException in case of error
+     * @throws GeneralSecurityException in case of error
      */
-    List<CMPCertificate> getProtectingExtraCerts() throws Exception;
+    List<CMPCertificate> getProtectingExtraCerts() throws GeneralSecurityException;
 
     /**
      * get protection algorithm
@@ -54,9 +58,10 @@ public interface ProtectionProvider {
      *
      * @param protectedPart message part covered by protection
      * @return the protection string
-     * @throws Exception in case of error
+     * @throws IOException in case of encoding error
+     * @throws GeneralSecurityException in case of error
      */
-    DERBitString getProtectionFor(ProtectedPart protectedPart) throws Exception;
+    DERBitString getProtectionFor(ProtectedPart protectedPart) throws GeneralSecurityException, IOException;
 
     /**
      * get  sender to use for protected message

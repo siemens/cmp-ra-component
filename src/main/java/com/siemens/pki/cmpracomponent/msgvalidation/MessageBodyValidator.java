@@ -189,15 +189,17 @@ public class MessageBodyValidator implements ValidatorIF<String> {
     @Override
     public String validate(final PKIMessage message) throws BaseCmpException {
         try {
-            final ASN1GeneralizedTime messageTime = message.getHeader().getMessageTime();
-            if (messageTime != null) {
-                final long diffInMillis = messageTime.getDate().getTime() - new Date().getTime();
-                if (!ConfigLogger.log(
-                        interfaceName,
-                        "CmpMessageInterface.isMessageTimeDeviationAllowed(long)",
-                        () -> cmpInterfaceConfig.isMessageTimeDeviationAllowed(diffInMillis / 1000L))) {
-                    throw new CmpValidationException(
-                            interfaceName, PKIFailureInfo.badTime, "message time out of allowed range");
+            if (cmpInterfaceConfig != null) {
+                final ASN1GeneralizedTime messageTime = message.getHeader().getMessageTime();
+                if (messageTime != null) {
+                    final long diffInMillis = messageTime.getDate().getTime() - new Date().getTime();
+                    if (!ConfigLogger.log(
+                            interfaceName,
+                            "CmpMessageInterface.isMessageTimeDeviationAllowed(long)",
+                            () -> cmpInterfaceConfig.isMessageTimeDeviationAllowed(diffInMillis / 1000L))) {
+                        throw new CmpValidationException(
+                                interfaceName, PKIFailureInfo.badTime, "message time out of allowed range");
+                    }
                 }
             }
 
@@ -301,6 +303,7 @@ public class MessageBodyValidator implements ValidatorIF<String> {
         final CertRequest certReq = certReqMsg.getCertReq();
         assertEnrollmentEqual(enrollmentType, certReq.getCertReqId(), ASN1INTEGER_0, CERT_REQ_ID_MUST_BE_0);
         final CertTemplate certTemplate = certReq.getCertTemplate();
+        assertEnrollmentValueNotNull(enrollmentType, certTemplate, PKIFailureInfo.badCertTemplate, "cert template");
         final int versionInTemplate = certTemplate.getVersion();
         if (versionInTemplate != -1 && versionInTemplate != 2) {
             throw new CmpEnrollmentException(

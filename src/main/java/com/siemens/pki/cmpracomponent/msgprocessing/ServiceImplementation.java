@@ -76,7 +76,7 @@ class ServiceImplementation {
      * @param config specific configuration
      * @throws Exception in case of error
      */
-    ServiceImplementation(final Configuration config) throws Exception {
+    ServiceImplementation(final Configuration config) {
         this.config = config;
     }
 

@@ -29,6 +29,7 @@ import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProviderFactory;
 import com.siemens.pki.cmpracomponent.util.ConfigLogger;
+import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -123,9 +124,11 @@ public class MsgOutputProtector {
      * @param headerProvider the header to use
      * @param body body of new message
      * @return new message
-     * @throws Exception in case of error
+     * @throws IOException in case of encoding problem
+     * @throws GeneralSecurityException in case of error
      */
-    public PKIMessage createOutgoingMessage(final HeaderProvider headerProvider, PKIBody body) throws Exception {
+    public PKIMessage createOutgoingMessage(final HeaderProvider headerProvider, PKIBody body)
+            throws GeneralSecurityException, IOException {
         switch (reprotectMode) {
             case reprotect:
             case keep:
@@ -145,9 +148,11 @@ public class MsgOutputProtector {
      * @param request request to answer
      * @param body    body of new message
      * @return new message
-     * @throws Exception in case of error
+     * @throws GeneralSecurityException in case of error
+     * @throws IOException in case of encoding error
      */
-    public PKIMessage generateAndProtectResponseTo(PKIMessage request, final PKIBody body) throws Exception {
+    public PKIMessage generateAndProtectResponseTo(PKIMessage request, final PKIBody body)
+            throws GeneralSecurityException, IOException {
         return stripRedundantExtraCerts(PkiMessageGenerator.generateAndProtectMessage(
                 PkiMessageGenerator.buildRespondingHeaderProvider(request), protector, recipient, body, null));
     }
@@ -166,10 +171,11 @@ public class MsgOutputProtector {
      * @param issuingChain trust chain of issued certificate to add to extracerts or
      *                     <code>null</code>
      * @return protected message ready to send
-     * @throws Exception in case of processing error
+     * @throws IOException in case of encoding problem
+     * @throws GeneralSecurityException in case of processing error
      */
     public PKIMessage protectOutgoingMessage(final PKIMessage in, final List<CMPCertificate> issuingChain)
-            throws Exception {
+            throws GeneralSecurityException, IOException {
         switch (reprotectMode) {
             case reprotect:
                 return stripRedundantExtraCerts(PkiMessageGenerator.generateAndProtectMessage(

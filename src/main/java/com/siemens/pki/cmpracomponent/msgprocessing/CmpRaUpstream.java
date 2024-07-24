@@ -32,6 +32,8 @@ import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContextManager;
 import com.siemens.pki.cmpracomponent.util.CmpFuncEx;
 import com.siemens.pki.cmpracomponent.util.ConfigLogger;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -76,19 +78,17 @@ class CmpRaUpstream implements RaUpstream {
      * @param persistencyContextManager persistency interface
      * @param config                    specific configuration
      * @param upstreamExchange          upstream function
-     * @throws Exception in case of error
      */
     CmpRaUpstream(
             final PersistencyContextManager persistencyContextManager,
             final Configuration config,
-            final CmpFuncEx<PKIMessage, PKIMessage> upstreamExchange)
-            throws Exception {
+            final CmpFuncEx<PKIMessage, PKIMessage> upstreamExchange) {
         this.persistencyContextManager = persistencyContextManager;
         this.config = config;
         this.upstreamMsgHandler = upstreamExchange;
     }
 
-    void gotResponseAtUpstream(final PKIMessage responseMessage) throws Exception {
+    void gotResponseAtUpstream(final PKIMessage responseMessage) throws IOException, CmpProcessingException {
         final PersistencyContext persistencyContext = persistencyContextManager.loadPersistencyContext(
                 responseMessage.getHeader().getTransactionID().getOctets());
         if (persistencyContext == null) {
@@ -162,7 +162,7 @@ class CmpRaUpstream implements RaUpstream {
                         PkiMessageGenerator.generateResponseBodyWithWaiting(sentMessage.getBody(), INTERFACE_NAME));
             }
             // synchronous transfer
-            if (receivedMessage.getBody().getType() == PKIBody.TYPE_NESTED) {
+            if (receivedMessage.getBody().getType() == PKIBody.TYPE_NESTED && nestedEndpointContext != null) {
                 final MessageHeaderValidator nestedHeaderValidator = new MessageHeaderValidator(NESTED_INTERFACE_NAME);
                 nestedHeaderValidator.validate(receivedMessage);
                 final ProtectionValidator nestedProtectionValidator = new ProtectionValidator(
@@ -220,7 +220,7 @@ class CmpRaUpstream implements RaUpstream {
     }
 
     private PKIMessage handlePollReq(final PKIMessage in, final PersistencyContext persistencyContext)
-            throws Exception {
+            throws BaseCmpException, GeneralSecurityException, IOException {
         final PKIMessage delayedResponse = persistencyContext.getPendingDelayedResponse();
         if (delayedResponse != null) {
             final InputValidator inputValidator = new InputValidator(

@@ -41,13 +41,24 @@ import com.siemens.pki.cmpracomponent.test.framework.SignatureValidationCredenti
 import com.siemens.pki.cmpracomponent.test.framework.TestUtils;
 import com.siemens.pki.cmpracomponent.test.framework.TrustChainAndPrivateKey;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
+import java.io.IOException;
 import java.math.BigInteger;
+import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
+import org.bouncycastle.asn1.ASN1Encodable;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.DERBitString;
+import org.bouncycastle.asn1.DERSequence;
 import org.bouncycastle.asn1.cmp.PKIBody;
+import org.bouncycastle.asn1.edec.EdECObjectIdentifiers;
+import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
+import org.bouncycastle.asn1.sec.SECObjectIdentifiers;
+import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
+import org.bouncycastle.asn1.x9.X9ObjectIdentifiers;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -67,52 +78,67 @@ public class TestCentralKeyGenerationWithKeyAgreement extends EnrollmentTestcase
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TestCentralKeyGenerationWithKeyAgreement.class);
     public static Object[][] inputList = {
+        {
+            DEFAULT_KEY_AGREEMENT,
+            DEFAULT_KEY_ENCRYPTION,
+            X9ObjectIdentifiers.id_ecPublicKey.getId(),
+            SECObjectIdentifiers.secp256r1.getId()
+        },
+        {DEFAULT_KEY_AGREEMENT, DEFAULT_KEY_ENCRYPTION, EdECObjectIdentifiers.id_Ed448.getId(), null},
         //
-        {DEFAULT_KEY_AGREEMENT, DEFAULT_KEY_ENCRYPTION},
+        {DEFAULT_KEY_AGREEMENT, DEFAULT_KEY_ENCRYPTION, EdECObjectIdentifiers.id_Ed25519.getId(), null},
         //
-        {DEFAULT_KEY_AGREEMENT, "2.16.840.1.101.3.4.1.5"},
+        {DEFAULT_KEY_AGREEMENT, DEFAULT_KEY_ENCRYPTION, PKCSObjectIdentifiers.rsaEncryption.getId(), null},
         //
-        {DEFAULT_KEY_AGREEMENT, "2.16.840.1.101.3.4.1.25"},
+        {DEFAULT_KEY_AGREEMENT, DEFAULT_KEY_ENCRYPTION, null, null},
         //
-        {DEFAULT_KEY_AGREEMENT, "2.16.840.1.101.3.4.1.45"},
+        {DEFAULT_KEY_AGREEMENT, "2.16.840.1.101.3.4.1.5", null, null},
         //
+        {DEFAULT_KEY_AGREEMENT, "2.16.840.1.101.3.4.1.25", null, null},
         //
-        {"1.3.132.1.11.0", DEFAULT_KEY_ENCRYPTION},
-        //
-        {"1.3.132.1.11.1", DEFAULT_KEY_ENCRYPTION},
-        //
-        {"1.3.132.1.11.2", DEFAULT_KEY_ENCRYPTION},
-        //
-        {"1.3.132.1.11.3", DEFAULT_KEY_ENCRYPTION},
-        //
-        //
-        {"1.3.132.1.14.0", DEFAULT_KEY_ENCRYPTION},
-        //
-        {"1.3.132.1.14.1", DEFAULT_KEY_ENCRYPTION},
-        //
-        {"1.3.132.1.14.2", DEFAULT_KEY_ENCRYPTION},
-        //
-        {"1.3.132.1.14.3", DEFAULT_KEY_ENCRYPTION},
+        {DEFAULT_KEY_AGREEMENT, "2.16.840.1.101.3.4.1.45", null, null},
         //
         //
-        {"1.3.132.1.15.0", DEFAULT_KEY_ENCRYPTION},
+        {"1.3.132.1.11.0", DEFAULT_KEY_ENCRYPTION, null, null},
         //
-        {"1.3.132.1.15.1", DEFAULT_KEY_ENCRYPTION},
+        {"1.3.132.1.11.1", DEFAULT_KEY_ENCRYPTION, null, null},
         //
-        {"1.3.132.1.15.2", DEFAULT_KEY_ENCRYPTION},
+        {"1.3.132.1.11.2", DEFAULT_KEY_ENCRYPTION, null, null},
         //
-        {"1.3.132.1.15.3", DEFAULT_KEY_ENCRYPTION},
+        {"1.3.132.1.11.3", DEFAULT_KEY_ENCRYPTION, null, null},
+        //
+        //
+        {"1.3.132.1.14.0", DEFAULT_KEY_ENCRYPTION, null, null},
+        //
+        {"1.3.132.1.14.1", DEFAULT_KEY_ENCRYPTION, null, null},
+        //
+        {"1.3.132.1.14.2", DEFAULT_KEY_ENCRYPTION, null, null},
+        //
+        {"1.3.132.1.14.3", DEFAULT_KEY_ENCRYPTION, null, null},
+        //
+        //
+        {"1.3.132.1.15.0", DEFAULT_KEY_ENCRYPTION, null, null},
+        //
+        {"1.3.132.1.15.1", DEFAULT_KEY_ENCRYPTION, null, null},
+        //
+        {"1.3.132.1.15.2", DEFAULT_KEY_ENCRYPTION, null, null},
+        //
+        {"1.3.132.1.15.3", DEFAULT_KEY_ENCRYPTION, null, null},
         //
         //
     };
 
-    @Parameters(name = "{index}: keyAgreement=>{0}, keyEncryption=>{1}")
+    @Parameters(name = "{index}: keyAgreement=>{0}, keyEncryption=>{1}, EnrollmentKeyType=>{2}")
     public static List<Object[]> data() {
         final List<Object[]> ret = new ArrayList<>(inputList.length);
         for (final Object[] aktInput : inputList) {
             final Object keyAgreement = aktInput[0];
             final Object keyEncryption = aktInput[1];
-            ret.add(new Object[] {keyAgreement, keyEncryption, keyAgreement, keyEncryption});
+            final Object keyType = aktInput[2];
+            final Object keyParam = aktInput[3];
+            ret.add(new Object[] {
+                keyAgreement, keyEncryption, keyType, keyParam, keyAgreement, keyEncryption, keyType, keyParam
+            });
         }
         return ret;
     }
@@ -122,13 +148,53 @@ public class TestCentralKeyGenerationWithKeyAgreement extends EnrollmentTestcase
 
     private TrustChainAndPrivateKey raCredentials;
 
+    private final KeyPair keyPair;
+
     public TestCentralKeyGenerationWithKeyAgreement(
             final String keyAgreementAsString,
             final String keyEncryptionAsString,
+            final String keyTypeAsString,
+            final String keyParamAsString,
             final String keyAgreementOID,
-            final String keyEncryptionOID) {
+            final String keyEncryptionOID,
+            final String keyTypeOID,
+            final String keyParamOID) {
         this.keyAgreementAlg = keyAgreementOID;
         this.keyEncryptionAlg = keyEncryptionOID;
+        if (keyTypeOID != null) {
+            PublicKey pubKey = new PublicKey() {
+                private static final long serialVersionUID = 1L;
+
+                @Override
+                public byte[] getEncoded() {
+                    try {
+                        return new DERSequence(new ASN1Encodable[] {
+                                    new AlgorithmIdentifier(
+                                            new ASN1ObjectIdentifier(keyTypeOID),
+                                            keyParamOID == null ? null : new ASN1ObjectIdentifier(keyParamOID)),
+                                    new DERBitString(new byte[0])
+                                })
+                                .getEncoded();
+                    } catch (IOException e) {
+                        fail(e.getLocalizedMessage());
+                        return null;
+                    }
+                }
+
+                @Override
+                public String getAlgorithm() {
+                    return null;
+                }
+
+                @Override
+                public String getFormat() {
+                    return null;
+                }
+            };
+            this.keyPair = new KeyPair(pubKey, null);
+        } else {
+            this.keyPair = null;
+        }
     }
 
     private Configuration buildSignatureBasedDownstreamConfiguration() throws Exception {
@@ -459,7 +525,7 @@ public class TestCentralKeyGenerationWithKeyAgreement extends EnrollmentTestcase
     public void testCrWithKeyAgreement() throws Exception {
         final EnrollmentResult ret = getSignatureBasedCmpClient(
                         "theCertProfileForOnlineEnrollment",
-                        getClientContext(PKIBody.TYPE_CERT_REQ, null, null),
+                        getClientContext(PKIBody.TYPE_CERT_REQ, keyPair, null),
                         UPSTREAM_TRUST_PATH)
                 .invokeEnrollment();
         assertNotNull(ret);

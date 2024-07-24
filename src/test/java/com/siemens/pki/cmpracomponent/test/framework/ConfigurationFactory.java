@@ -436,6 +436,7 @@ public class ConfigurationFactory {
                                 case "certProfileForKur":
                                 case "certProfileForRr":
                                 case "refuseMeRr":
+                                case "refuseMeWithExceptionRR":
                                     return enrollmentTrust;
                             }
                         }
@@ -508,6 +509,14 @@ public class ConfigurationFactory {
                         certProfile,
                         MessageDumper.msgTypeAsString(bodyType));
 
+                if ("refuseMeWithException".equals(certProfile)) {
+                    throw new RuntimeException("intended inventory config error");
+                }
+
+                if ("refuseMeWithExceptionRR".equals(certProfile)) {
+                    throw new RuntimeException("intended inventory config error");
+                }
+
                 if ("refuseMeCr".equals(certProfile)) {
                     return new InventoryInterface() {
 
@@ -528,6 +537,32 @@ public class ConfigurationFactory {
                                 @Override
                                 public boolean isGranted() {
                                     return false;
+                                }
+                            };
+                        }
+                    };
+                }
+
+                if ("updateTemplateCr".equals(certProfile)) {
+                    return new InventoryInterface() {
+
+                        @Override
+                        public CheckAndModifyResult checkAndModifyCertRequest(
+                                byte[] transactionID,
+                                String requesterDn,
+                                byte[] certTemplate,
+                                String requestedSubjectDn,
+                                byte[] pkiMessage) {
+                            return new CheckAndModifyResult() {
+
+                                @Override
+                                public byte[] getUpdatedCertTemplate() {
+                                    return certTemplate;
+                                }
+
+                                @Override
+                                public boolean isGranted() {
+                                    return true;
                                 }
                             };
                         }

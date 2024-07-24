@@ -20,6 +20,8 @@ package com.siemens.pki.cmpracomponent.test.framework;
 import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
 import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.security.Key;
 import java.security.KeyStore;
 import java.security.PrivateKey;
@@ -91,7 +93,7 @@ public class TrustChainAndPrivateKey implements SignatureCredentialContext {
         return new ProtectionProvider() {
 
             @Override
-            public List<CMPCertificate> getProtectingExtraCerts() throws Exception {
+            public List<CMPCertificate> getProtectingExtraCerts() throws GeneralSecurityException {
                 final List<CMPCertificate> ret = new ArrayList<>(trustChain.size());
                 ret.add(certificate);
                 for (final X509Certificate aktCert : trustChain) {
@@ -110,7 +112,8 @@ public class TrustChainAndPrivateKey implements SignatureCredentialContext {
             }
 
             @Override
-            public DERBitString getProtectionFor(final ProtectedPart protectedPart) throws Exception {
+            public DERBitString getProtectionFor(final ProtectedPart protectedPart)
+                    throws GeneralSecurityException, IOException {
                 final Signature sig = Signature.getInstance(AlgorithmHelper.getSigningAlgNameFromKey(privateKey));
                 sig.initSign(privateKey);
                 sig.update(protectedPart.getEncoded(ASN1Encoding.DER));

@@ -18,7 +18,7 @@
 package com.siemens.pki.cmpclientcomponent.test;
 
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 import com.siemens.pki.cmpclientcomponent.configuration.ClientContext;
@@ -42,7 +42,7 @@ import org.bouncycastle.asn1.cmp.PKIBody;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestRefusingInventory extends EnrollmentTestcaseBase {
+public class TestUpdateByInventory extends EnrollmentTestcaseBase {
 
     private static final String UPSTREAM_TRUST_PATH = "credentials/CMP_CA_and_LRA_DOWNSTREAM_Root.pem";
 
@@ -54,37 +54,14 @@ public class TestRefusingInventory extends EnrollmentTestcaseBase {
     @Test
     public void testCr() throws Exception {
         final EnrollmentResult ret = getSignatureBasedCmpClient(
-                        "refuseMeCr",
+                        "updateTemplateCr",
                         getClientContext(
                                 PKIBody.TYPE_CERT_REQ,
                                 ConfigurationFactory.getKeyGenerator().generateKeyPair(),
                                 null),
                         UPSTREAM_TRUST_PATH)
                 .invokeEnrollment();
-        assertNull(ret);
-    }
-
-    @Test
-    public void testCrWithException() throws Exception {
-        final EnrollmentResult ret = getSignatureBasedCmpClient(
-                        "refuseMeWithException",
-                        getClientContext(
-                                PKIBody.TYPE_CERT_REQ,
-                                ConfigurationFactory.getKeyGenerator().generateKeyPair(),
-                                null),
-                        UPSTREAM_TRUST_PATH)
-                .invokeEnrollment();
-        assertNull(ret);
-    }
-
-    @Test
-    public void testRrRefuse() throws Exception {
-        testRr("refuseMeRr");
-    }
-
-    @Test
-    public void testRrException() throws Exception {
-        testRr("refuseMeWithExceptionRR");
+        assertNotNull(ret);
     }
 
     /**
@@ -92,7 +69,8 @@ public class TestRefusingInventory extends EnrollmentTestcaseBase {
      *
      * @throws Exception
      */
-    private void testRr(String certProfile) throws Exception {
+    @Test
+    public void testRr() throws Exception {
         final CmpClient crClient = getSignatureBasedCmpClient(
                 "theCertProfileForOnlineEnrollment",
                 getClientContext(
@@ -181,7 +159,7 @@ public class TestRefusingInventory extends EnrollmentTestcaseBase {
                 return deviation < 10;
             }
         };
-        final CmpClient rrClient = new CmpClient(certProfile, getUpstreamExchange(), rrUpstream, rrClientContext);
+        final CmpClient rrClient = new CmpClient("refuseMeRr", getUpstreamExchange(), rrUpstream, rrClientContext);
         assertFalse(rrClient.invokeRevocation());
     }
 }
