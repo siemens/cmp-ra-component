@@ -28,6 +28,8 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,6 +43,7 @@ import java.util.Set;
 import javax.security.auth.x500.X500Principal;
 
 import org.bouncycastle.asn1.ASN1Encoding;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.DERBitString;
 import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.cmp.CMPCertificate;
@@ -50,17 +53,21 @@ import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.GeneralName;
-import org.bouncycastle.cert.X509v3CertificateBuilder;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.cert.CertIOException;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
 import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
+import com.siemens.pki.cmpracomponent.cryptoservices.KeyPairGeneratorFactory;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
+import com.siemens.pki.cmpracomponent.util.NullUtil;
 
 import static com.siemens.pki.cmpracomponent.cryptoservices.ProviderWrapper.tryWithAllProviders;
 
@@ -72,46 +79,46 @@ public class TrustChainAndPrivateKey implements SignatureCredentialContext, Veri
     private final Set<X509Certificate> trustAnchors = new HashSet<>();
 
     private PrivateKey privateKeyOfEndCertififcate = null;
+    private PrivateKey altPrivateKeyOfEndCertififcate = null;
 
     /**
      * create a new cert chain
      *
      * @param subjectPrefix prefix fur all common names
      * @param withoutEndCert TODO
+     * @param altSigningAlg TODO
      * @param kpg           generator to use for key generation
      * @param chainLength   length from root to end to generate
      * param withoutEndCert if <code>true</code>, generate unfinished chain without end certificate
      * @throws Exception in case of error
      */
-    public TrustChainAndPrivateKey(String subjectPrefix, boolean withoutEndCert, KeyPairGenerator... kpg)
+    public TrustChainAndPrivateKey(
+            String subjectPrefix, boolean withoutEndCert, ASN1ObjectIdentifier altSigningAlg, KeyPairGenerator... kpg)
             throws Exception {
         final int finalChainLength = withoutEndCert ? kpg.length + 1 : kpg.length;
         final long now = System.currentTimeMillis();
+        final JcaX509ExtensionUtils extUtils = new JcaX509ExtensionUtils();
+
+        KeyPairGenerator altKpg =
+                NullUtil.ifNotNull(altSigningAlg, s -> KeyPairGeneratorFactory.getGenericKeyPairGenerator(s));
+
         // generate trusted root
         KeyPair rootKeypair = kpg[0].generateKeyPair();
+        privateKeyOfEndCertififcate = rootKeypair.getPrivate();
+        KeyPair altKeypair = NullUtil.ifNotNull(altKpg, k -> k.generateKeyPair());
+        altPrivateKeyOfEndCertififcate = NullUtil.ifNotNull(altKeypair, k -> k.getPrivate());
         X500Principal lastIssuer = new X500Principal("CN=" + subjectPrefix + "_ROOT");
-        PublicKey privateRootKey = rootKeypair.getPublic();
-        final X509v3CertificateBuilder v3CertBldr = new JcaX509v3CertificateBuilder(
+        X509Certificate lastCert = generateCert(
                 lastIssuer,
-                BigInteger.valueOf(now),
-                new Date(now - 60 * 60 * 1000L),
-                new Date(now + 100 * 60 * 60 * 1000L),
+                null,
                 lastIssuer,
-                privateRootKey);
-        final JcaX509ExtensionUtils extUtils = new JcaX509ExtensionUtils();
-        v3CertBldr.addExtension(
-                Extension.subjectKeyIdentifier, false, extUtils.createSubjectKeyIdentifier(privateRootKey));
-        v3CertBldr.addExtension(Extension.basicConstraints, true, new BasicConstraints(finalChainLength));
-        JcaContentSignerBuilder signerBuilder = tryWithAllProviders(p -> {
-            return new JcaContentSignerBuilder(AlgorithmHelper.getSigningAlgNameFromKey(rootKeypair.getPrivate()))
-                    .setProvider(p);
-        });
-        X509Certificate lastCert = tryWithAllProviders(p -> new JcaX509CertificateConverter()
-                .setProvider(p)
-                .getCertificate(v3CertBldr.build(signerBuilder.build(rootKeypair.getPrivate()))));
+                rootKeypair.getPublic(),
+                NullUtil.ifNotNull(altKeypair, k -> k.getPublic()),
+                now,
+                extUtils,
+                finalChainLength);
         trustAnchors.add(lastCert);
         trustChain.addLast(lastCert);
-        privateKeyOfEndCertififcate = rootKeypair.getPrivate();
         if (finalChainLength <= 1) {
             return;
         }
@@ -120,39 +127,23 @@ public class TrustChainAndPrivateKey implements SignatureCredentialContext, Veri
         }
         int certsStillToGenerate = finalChainLength - 1;
         for (int i = 1; ; i++) {
+            KeyPair nextKeyPair = kpg[i].generateKeyPair();
+            altKeypair = NullUtil.ifNotNull(altKpg, k -> k.generateKeyPair());
             X500Principal nextIssuer = certsStillToGenerate > 1
                     ? new X500Principal("CN=" + subjectPrefix + "_INTERMEDIATE_" + certsStillToGenerate)
                     : new X500Principal("CN=" + subjectPrefix + "_END");
-            KeyPair nextKeyPair = kpg[i].generateKeyPair();
-            JcaX509v3CertificateBuilder nextV3CertBldr = new JcaX509v3CertificateBuilder(
+            lastCert = generateCert(
                     lastIssuer,
-                    BigInteger.valueOf(now),
-                    new Date(now - 60 * 60 * 1000L),
-                    new Date(now + 100 * 60 * 60 * 1000L),
+                    lastCert,
                     nextIssuer,
-                    nextKeyPair.getPublic());
-            nextV3CertBldr.addExtension(
-                    Extension.subjectKeyIdentifier,
-                    false,
-                    extUtils.createSubjectKeyIdentifier(nextKeyPair.getPublic()));
-            nextV3CertBldr.addExtension(
-                    Extension.authorityKeyIdentifier, false, extUtils.createAuthorityKeyIdentifier(lastCert));
-            nextV3CertBldr.addExtension(
-                    Extension.basicConstraints,
-                    true,
-                    certsStillToGenerate > 1
-                            ? new BasicConstraints(certsStillToGenerate - 1)
-                            : new BasicConstraints(false));
-            PrivateKey signingKey = privateKeyOfEndCertififcate;
-            ContentSigner build = tryWithAllProviders(
-                    pi -> new JcaContentSignerBuilder(AlgorithmHelper.getSigningAlgNameFromKey(signingKey))
-                            .setProvider(pi)
-                            .build(signingKey));
-            lastCert = tryWithAllProviders(po -> {
-                return new JcaX509CertificateConverter().setProvider(po).getCertificate(nextV3CertBldr.build(build));
-            });
+                    nextKeyPair.getPublic(),
+                    NullUtil.ifNotNull(altKeypair, k -> k.getPublic()),
+                    now,
+                    extUtils,
+                    certsStillToGenerate);
             trustChain.addFirst(lastCert);
             privateKeyOfEndCertififcate = nextKeyPair.getPrivate();
+            altPrivateKeyOfEndCertififcate = NullUtil.ifNotNull(altKeypair, k -> k.getPrivate());
             certsStillToGenerate--;
             if (certsStillToGenerate <= 0) {
                 return;
@@ -162,6 +153,64 @@ public class TrustChainAndPrivateKey implements SignatureCredentialContext, Veri
             }
             lastIssuer = nextIssuer;
         }
+    }
+
+    private X509Certificate generateCert(
+            X500Principal lastIssuer,
+            X509Certificate lastCert,
+            X500Principal nextIssuer,
+            final PublicKey nextPublic,
+            PublicKey nextAltPublic,
+            final long now,
+            final JcaX509ExtensionUtils extUtils,
+            int certsStillToGenerate)
+            throws CertIOException, CertificateEncodingException, OperatorCreationException, CertificateException {
+        JcaX509v3CertificateBuilder nextV3CertBldr = new JcaX509v3CertificateBuilder(
+                lastIssuer,
+                BigInteger.valueOf(now),
+                new Date(now - 60 * 60 * 1000L),
+                new Date(now + 100 * 60 * 60 * 1000L),
+                nextIssuer,
+                nextPublic);
+        nextV3CertBldr.addExtension(
+                Extension.subjectKeyIdentifier, false, extUtils.createSubjectKeyIdentifier(nextPublic));
+        if (nextAltPublic != null) {
+            nextV3CertBldr.addExtension(
+                    Extension.subjectAltPublicKeyInfo,
+                    false,
+                    SubjectPublicKeyInfo.getInstance(nextAltPublic.getEncoded()));
+        }
+        if (lastCert != null) {
+            nextV3CertBldr.addExtension(
+                    Extension.authorityKeyIdentifier, false, extUtils.createAuthorityKeyIdentifier(lastCert));
+        } else {
+            nextV3CertBldr.addExtension(
+                    Extension.authorityKeyIdentifier, false, extUtils.createAuthorityKeyIdentifier(nextPublic));
+        }
+        nextV3CertBldr.addExtension(
+                Extension.basicConstraints,
+                true,
+                certsStillToGenerate > 1
+                        ? new BasicConstraints(certsStillToGenerate - 1)
+                        : new BasicConstraints(false));
+        ContentSigner certSigner = tryWithAllProviders(
+                pi -> new JcaContentSignerBuilder(AlgorithmHelper.getSigningAlgNameFromKey(privateKeyOfEndCertififcate))
+                        .setProvider(pi)
+                        .build(privateKeyOfEndCertififcate));
+        if (altPrivateKeyOfEndCertififcate != null) {
+            ContentSigner altCertSigner = tryWithAllProviders(pi -> new JcaContentSignerBuilder(
+                            AlgorithmHelper.getSigningAlgNameFromKey(altPrivateKeyOfEndCertififcate))
+                    .setProvider(pi)
+                    .build(altPrivateKeyOfEndCertififcate));
+            return tryWithAllProviders(po -> {
+                return new JcaX509CertificateConverter()
+                        .setProvider(po)
+                        .getCertificate(nextV3CertBldr.build(certSigner, false, altCertSigner));
+            });
+        }
+        return tryWithAllProviders(po -> {
+            return new JcaX509CertificateConverter().setProvider(po).getCertificate(nextV3CertBldr.build(certSigner));
+        });
     }
 
     /**
@@ -218,6 +267,11 @@ public class TrustChainAndPrivateKey implements SignatureCredentialContext, Veri
     @Override
     public PrivateKey getPrivateKey() {
         return privateKeyOfEndCertififcate;
+    }
+
+    @Override
+    public PrivateKey getAlternativePrivateKey() {
+        return altPrivateKeyOfEndCertififcate;
     }
 
     public ProtectionProvider setEndEntityToProtect(final CMPCertificate certificate, final PrivateKey privateKey)

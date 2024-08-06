@@ -24,6 +24,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -34,6 +35,7 @@ import org.bouncycastle.asn1.cms.CMSObjectIdentifiers;
 import org.bouncycastle.asn1.cms.ContentInfo;
 import org.bouncycastle.asn1.cms.SignedData;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
+import org.bouncycastle.cert.CertException;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cms.CMSException;
 import org.bouncycastle.cms.CMSSignedData;
@@ -42,6 +44,7 @@ import org.bouncycastle.cms.SignerInformation;
 import org.bouncycastle.cms.SignerInformationStore;
 import org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoVerifierBuilder;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
+import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.util.Store;
 
 /**
@@ -107,7 +110,8 @@ public class DataSignVerifier extends TrustCredentialAdapter {
     }
 
     private boolean validate(final X509CertificateHolder cert, final List<X509Certificate> allCerts)
-            throws CertificateException, IOException, NoSuchProviderException {
+            throws IOException, OperatorCreationException, CertException, CertificateEncodingException,
+                    NoSuchProviderException, CertificateException {
         return validateCertAgainstTrust(CertUtility.asX509Certificate(cert.getEncoded()), allCerts) != null;
     }
 

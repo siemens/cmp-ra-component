@@ -20,6 +20,7 @@ package com.siemens.pki.cmpracomponent.test.framework;
 import static org.junit.Assert.assertTrue;
 
 import java.math.BigInteger;
+import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -52,6 +53,7 @@ import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
+import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.slf4j.Logger;
@@ -130,13 +132,32 @@ public class CmpCaMock implements CmpRaComponent.UpstreamExchange {
                 Extension.authorityKeyIdentifier, false, extUtils.createAuthorityKeyIdentifier(issuingCert));
         v3CertBldr.addExtension(Extension.basicConstraints, true, new BasicConstraints(false));
 
-        final JcaContentSignerBuilder signerBuilder = tryWithAllProviders(p -> new JcaContentSignerBuilder(
-                        AlgorithmHelper.getSigningAlgNameFromKey(enrollmentCredentials.getPrivateKey()))
-                .setProvider(p));
+        final PrivateKey signingPrivKey = enrollmentCredentials.getPrivateKey();
 
-        return tryWithAllProviders(p -> TestCertUtility.cmpCertificateFromCertificate(new JcaX509CertificateConverter()
-                .setProvider(p)
-                .getCertificate(v3CertBldr.build(signerBuilder.build(enrollmentCredentials.getPrivateKey())))));
+        final PrivateKey altPrivKey = enrollmentCredentials.getAlternativePrivateKey();
+
+        final ContentSigner certSigner = tryWithAllProviders(p -> {
+            return new JcaContentSignerBuilder(AlgorithmHelper.getSigningAlgNameFromKey(signingPrivKey))
+                    .setProvider(p)
+                    .build(signingPrivKey);
+        });
+
+        if (altPrivKey != null) {
+            final ContentSigner altSigner = tryWithAllProviders(p -> {
+                return new JcaContentSignerBuilder(AlgorithmHelper.getSigningAlgNameFromKey(altPrivKey))
+                        .setProvider(p)
+                        .build(altPrivKey);
+            });
+            return tryWithAllProviders(p -> {
+                return TestCertUtility.cmpCertificateFromCertificate(new JcaX509CertificateConverter()
+                        .setProvider(p)
+                        .getCertificate(v3CertBldr.build(certSigner, false, altSigner)));
+            });
+        }
+        return tryWithAllProviders(p -> {
+            return TestCertUtility.cmpCertificateFromCertificate(
+                    new JcaX509CertificateConverter().setProvider(p).getCertificate(v3CertBldr.build(certSigner)));
+        });
     }
 
     private PKIMessage generateError(final PKIMessage receivedMessage, final String errorDetails) throws Exception {

@@ -22,6 +22,7 @@ import com.siemens.pki.cmpracomponent.test.framework.TrustChainAndPrivateKey;
 import java.security.GeneralSecurityException;
 import java.security.KeyPairGenerator;
 import java.util.Arrays;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.bc.BCObjectIdentifiers;
 import org.bouncycastle.asn1.misc.MiscObjectIdentifiers;
 import org.junit.runner.RunWith;
@@ -46,18 +47,37 @@ public class TestSignatureBasedCrWithAllKeyTypesMixed extends SignatureBasedCrWi
 
         return Arrays.asList(new Object[][] {
             //
-            {"EC-COMP-RSA", new KeyPairGenerator[] {ecKpg, compKpg, rsaKpg}},
-            {"EC-ED-COMP", new KeyPairGenerator[] {ecKpg, edKpg, compKpg}},
-            {"PQ-RSA-EC", new KeyPairGenerator[] {pqKpg, rsaKpg, ecKpg}},
-            {"RSA-PQ-EC", new KeyPairGenerator[] {rsaKpg, pqKpg, ecKpg}},
-            {"ED-PQ-EC", new KeyPairGenerator[] {edKpg, pqKpg, ecKpg}},
+            {"EC-COMP-RSA", null, new KeyPairGenerator[] {ecKpg, compKpg, rsaKpg}},
+            {"EC-ED-COMP", null, new KeyPairGenerator[] {ecKpg, edKpg, compKpg}},
+            {"PQ-RSA-EC", null, new KeyPairGenerator[] {pqKpg, rsaKpg, ecKpg}},
+            {"RSA-PQ-EC", null, new KeyPairGenerator[] {rsaKpg, pqKpg, ecKpg}},
+            {"ED-PQ-EC", null, new KeyPairGenerator[] {edKpg, pqKpg, ecKpg}},
+            {
+                "EC-COMP-RSA (Alt: FALCON)",
+                BCObjectIdentifiers.falcon_512,
+                new KeyPairGenerator[] {ecKpg, compKpg, rsaKpg}
+            },
+            {"EC-ED-COMP (Alt: FALCON)", BCObjectIdentifiers.falcon_1024, new KeyPairGenerator[] {ecKpg, edKpg, compKpg}
+            },
+            {
+                "PQ-RSA-EC (Alt: SPHINCS+)",
+                BCObjectIdentifiers.sphincsPlus_sha2_128f,
+                new KeyPairGenerator[] {pqKpg, rsaKpg, ecKpg}
+            },
+            {"RSA-PQ-EC (Alt: FALCON)", BCObjectIdentifiers.falcon_512, new KeyPairGenerator[] {rsaKpg, pqKpg, ecKpg}},
+            {
+                "ED-PQ-EC (Alt: COMP)",
+                MiscObjectIdentifiers.id_MLDSA44_ECDSA_P256_SHA256,
+                new KeyPairGenerator[] {edKpg, pqKpg, ecKpg}
+            },
         });
     }
 
-    public TestSignatureBasedCrWithAllKeyTypesMixed(String description, KeyPairGenerator... kps) throws Exception {
+    public TestSignatureBasedCrWithAllKeyTypesMixed(
+            String description, ASN1ObjectIdentifier altSigningAlg, KeyPairGenerator... kps) throws Exception {
         super(
-                new TrustChainAndPrivateKey("CLIENT", false, kps),
-                new TrustChainAndPrivateKey("RA_DOWN", false, kps),
-                new TrustChainAndPrivateKey("ENROLL_", true, kps));
+                new TrustChainAndPrivateKey("CLIENT", false, altSigningAlg, kps),
+                new TrustChainAndPrivateKey("RA_DOWN", false, altSigningAlg, kps),
+                new TrustChainAndPrivateKey("ENROLL_", true, altSigningAlg, kps));
     }
 }

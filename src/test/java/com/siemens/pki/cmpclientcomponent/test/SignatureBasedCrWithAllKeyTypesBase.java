@@ -33,11 +33,14 @@ import com.siemens.pki.cmpracomponent.configuration.InventoryInterface;
 import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
 import com.siemens.pki.cmpracomponent.configuration.SupportMessageHandlerInterface;
 import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
+import com.siemens.pki.cmpracomponent.cryptoservices.KeyPairGeneratorFactory;
 import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
 import com.siemens.pki.cmpracomponent.test.framework.TrustChainAndPrivateKey;
+import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.cert.X509Certificate;
 import java.util.List;
+import org.bouncycastle.asn1.bc.BCObjectIdentifiers;
 import org.bouncycastle.asn1.cmp.PKIBody;
 import org.junit.Before;
 import org.junit.Test;
@@ -166,6 +169,76 @@ public class SignatureBasedCrWithAllKeyTypesBase extends EnrollmentTestcaseBase 
                                     public KeyPair getCertificateKeypair() {
                                         return ConfigurationFactory.getKeyGenerator()
                                                 .generateKeyPair();
+                                    }
+
+                                    @Override
+                                    public byte[] getCertificationRequest() {
+                                        return null;
+                                    }
+
+                                    @Override
+                                    public VerificationContext getEnrollmentTrust() {
+                                        return enrollmentCredentials;
+                                    }
+
+                                    @Override
+                                    public int getEnrollmentType() {
+                                        return PKIBody.TYPE_CERT_REQ;
+                                    }
+
+                                    @Override
+                                    public List<TemplateExtension> getExtensions() {
+                                        return null;
+                                    }
+
+                                    @Override
+                                    public X509Certificate getOldCert() {
+                                        return null;
+                                    }
+
+                                    @Override
+                                    public boolean getRequestImplictConfirm() {
+                                        return false;
+                                    }
+
+                                    @Override
+                                    public String getSubject() {
+                                        return "CN=Subject";
+                                    }
+                                };
+                            }
+
+                            @Override
+                            public RevocationContext getRevocationContext() {
+                                fail("getRevocationContext");
+                                return null;
+                            }
+                        },
+                        ConfigurationFactory.createSignatureBasedCmpMessageInterface(fromClientToRa, fromRaToClient))
+                .invokeEnrollment();
+        assertNotNull(ret);
+    }
+
+    @Test
+    public void testKemCr() throws Exception {
+        final EnrollmentResult ret = getCmpClient(
+                        "theCertProfileForOnlineEnrollment",
+                        new ClientContext() {
+
+                            @Override
+                            public EnrollmentContext getEnrollmentContext() {
+                                return new EnrollmentContext() {
+
+                                    @Override
+                                    public KeyPair getCertificateKeypair() {
+                                        try {
+                                            return KeyPairGeneratorFactory.getGenericKeyPairGenerator(
+                                                            BCObjectIdentifiers.kyber512)
+                                                    .generateKeyPair();
+                                        } catch (GeneralSecurityException e) {
+                                            fail(e.getLocalizedMessage());
+                                            return null;
+                                        }
                                     }
 
                                     @Override

@@ -653,7 +653,7 @@ class RaDownstream {
 
     private PKIMessage handleValidatedRequest(
             final PKIMessage incomingRequest, final PersistencyContext persistencyContext)
-            throws BaseCmpException, IOException {
+            throws BaseCmpException, IOException, OperatorCreationException {
         // request pre processing
         // by default there is no pre processing
         PKIMessage preprocessedRequest = incomingRequest;
