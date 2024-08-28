@@ -132,9 +132,8 @@ class CmpRaUpstream implements RaUpstream {
                 // never re-protect a KUR
                 sentMessage = in;
             } else {
-                final MsgOutputProtector outputProtector =
-                        new MsgOutputProtector(upstreamConfiguration, INTERFACE_NAME,
-                                new MessageContext(persistencyContext, null));
+                final MsgOutputProtector outputProtector = new MsgOutputProtector(
+                        upstreamConfiguration, INTERFACE_NAME, new MessageContext(persistencyContext, null));
                 sentMessage = outputProtector.protectOutgoingMessage(in, null);
             }
             final NestedEndpointContext nestedEndpointContext = ConfigLogger.logOptional(

@@ -17,6 +17,8 @@
  */
 package com.siemens.pki.cmpclientcomponent.main;
 
+import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
+
 import com.siemens.pki.cmpclientcomponent.configuration.ClientContext;
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
 import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
@@ -36,6 +38,9 @@ import com.siemens.pki.cmpracomponent.msgvalidation.ValidatorIF;
 import com.siemens.pki.cmpracomponent.util.ConfigLogger;
 import com.siemens.pki.cmpracomponent.util.FileTracer;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
+import java.security.GeneralSecurityException;
+import java.util.ArrayList;
+import java.util.Objects;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.DERNull;
 import org.bouncycastle.asn1.DEROctetString;
@@ -55,12 +60,6 @@ import org.bouncycastle.asn1.cmp.PollRepContent;
 import org.bouncycastle.asn1.x509.GeneralName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.security.GeneralSecurityException;
-import java.util.ArrayList;
-import java.util.Objects;
-
-import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
 /**
  *

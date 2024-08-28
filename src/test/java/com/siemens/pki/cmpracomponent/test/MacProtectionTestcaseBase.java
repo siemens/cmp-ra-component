@@ -17,6 +17,8 @@
  */
 package com.siemens.pki.cmpracomponent.test;
 
+import static org.junit.Assert.assertEquals;
+
 import com.siemens.pki.cmpracomponent.configuration.Configuration;
 import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
 import com.siemens.pki.cmpracomponent.protection.MacProtection;
@@ -25,6 +27,8 @@ import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
 import com.siemens.pki.cmpracomponent.test.framework.EnrollmentResult;
 import com.siemens.pki.cmpracomponent.test.framework.HeaderProviderForTest;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
+import java.security.KeyPair;
+import java.util.function.Function;
 import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.CertRepMessage;
 import org.bouncycastle.asn1.cmp.PKIBody;
@@ -35,11 +39,6 @@ import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.security.KeyPair;
-import java.util.function.Function;
-
-import static org.junit.Assert.assertEquals;
 
 public class MacProtectionTestcaseBase extends OnlineEnrollmentTestcaseBase {
 

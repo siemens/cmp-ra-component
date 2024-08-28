@@ -325,21 +325,21 @@ class RaDownstream {
                             certTemplateWithPublicKey,
                             controlsInRequest,
                             ConfigLogger.log(
-                                    INTERFACE_NAME,
-                                    "Configuration.getForceRaVerifyOnUpstream",
-                                    config::getForceRaVerifyOnUpstream,
-                                    persistencyContext.getCertProfile(),
-                                    requestBodyType)
+                                            INTERFACE_NAME,
+                                            "Configuration.getForceRaVerifyOnUpstream",
+                                            config::getForceRaVerifyOnUpstream,
+                                            persistencyContext.getCertProfile(),
+                                            requestBodyType)
                                     ? null
                                     : privateKey));
         }
         final ProofOfPossession popo = certReqMsg.getPop();
         if (ConfigLogger.log(
-                INTERFACE_NAME,
-                "Configuration.getForceRaVerifyOnUpstream",
-                config::getForceRaVerifyOnUpstream,
-                persistencyContext.getCertProfile(),
-                requestBodyType)
+                        INTERFACE_NAME,
+                        "Configuration.getForceRaVerifyOnUpstream",
+                        config::getForceRaVerifyOnUpstream,
+                        persistencyContext.getCertProfile(),
+                        requestBodyType)
                 || popo == null
                 || popo.getType() == ProofOfPossession.TYPE_RA_VERIFIED) {
             // popo invalid or raVerified, regenerate body
@@ -433,7 +433,7 @@ class RaDownstream {
                         break;
                     case PKIBody.TYPE_POLL_REP:
                         retryAfterTime = ((PollRepContent)
-                                responseFromUpstream.getBody().getContent())
+                                        responseFromUpstream.getBody().getContent())
                                 .getCheckAfter(0)
                                 .intPositiveValueExact();
                         break;
@@ -446,7 +446,7 @@ class RaDownstream {
                         ifNotNull(persistencyContext, PersistencyContext::getCertProfile),
                         responseBodyType);
                 PKIMessage protectedResponse = new MsgOutputProtector(
-                        downstreamConfiguration, INTERFACE_NAME, messageContext)
+                                downstreamConfiguration, INTERFACE_NAME, messageContext)
                         .protectOutgoingMessage(
                                 new PKIMessage(
                                         responseFromUpstream.getHeader(),
@@ -463,7 +463,8 @@ class RaDownstream {
                     // no nesting required
                     return protectedResponse;
                 }
-                return new MsgOutputProtector(nestedEndpointContext, NESTED_INTERFACE_NAME, messageContext.getCredentialContext())
+                return new MsgOutputProtector(
+                                nestedEndpointContext, NESTED_INTERFACE_NAME, messageContext.getCredentialContext())
                         .createOutgoingMessage(
                                 PkiMessageGenerator.buildForwardingHeaderProvider(protectedResponse),
                                 new PKIBody(PKIBody.TYPE_NESTED, new PKIMessages(protectedResponse)));
@@ -558,8 +559,8 @@ class RaDownstream {
         final PKIMessage[] responses =
                 Arrays.stream(embeddedMessages).map(this::handleInputMessage).toArray(PKIMessage[]::new);
         // batched responses needs to be wrapped in a new NESTED response
-        MsgOutputProtector nestedOutputProtector = new MsgOutputProtector(nestedEndpointContext, INTERFACE_NAME,
-                credentialContext);
+        MsgOutputProtector nestedOutputProtector =
+                new MsgOutputProtector(nestedEndpointContext, INTERFACE_NAME, credentialContext);
         return nestedOutputProtector.generateAndProtectResponseTo(
                 in, new PKIBody(PKIBody.TYPE_NESTED, new PKIMessages(responses)));
     }
@@ -655,8 +656,7 @@ class RaDownstream {
         return incomingRequest;
     }
 
-    private PKIMessage handleValidatedRequest(
-            final PKIMessage incomingRequest, final MessageContext messageContext)
+    private PKIMessage handleValidatedRequest(final PKIMessage incomingRequest, final MessageContext messageContext)
             throws BaseCmpException, IOException {
         // request pre processing
         // by default there is no pre processing
@@ -687,8 +687,8 @@ class RaDownstream {
             case PKIBody.TYPE_GEN_MSG:
                 // try to handle locally
                 persistencyContext.setRequestType(incomingRequest.getBody().getType());
-                final PKIMessage genmResponse = new ServiceImplementation(config)
-                        .handleValidatedInputMessage(incomingRequest, messageContext);
+                final PKIMessage genmResponse =
+                        new ServiceImplementation(config).handleValidatedInputMessage(incomingRequest, messageContext);
                 if (genmResponse != null) {
                     return genmResponse;
                 }

@@ -128,9 +128,9 @@ public class TrustCredentialAdapter {
             final boolean[] leafKeyUsage = cert.getKeyUsage();
             if (leafKeyUsage != null && !leafKeyUsage[0] // digitalSignature
                     || !ConfigLogger.log(
-                    interfaceName,
-                    "VerificationContext.isLeafCertAcceptable(X509Certificate)",
-                    () -> config.isLeafCertAcceptable(cert))) {
+                            interfaceName,
+                            "VerificationContext.isLeafCertAcceptable(X509Certificate)",
+                            () -> config.isLeafCertAcceptable(cert))) {
                 return null;
             }
             // initial state
