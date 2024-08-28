@@ -54,6 +54,8 @@ class CmpRaUpstream implements RaUpstream {
 
     private static final String INTERFACE_NAME = "CMP upstream";
 
+    private static final String NESTED_INTERFACE_NAME = "nested " + INTERFACE_NAME;
+
     private static final Logger LOGGER = LoggerFactory.getLogger(CmpRaUpstream.class);
 
     private static final Collection<Integer> supportedMessageTypes = new HashSet<>(Arrays.asList(
@@ -141,7 +143,7 @@ class CmpRaUpstream implements RaUpstream {
                     upstreamConfiguration::getNestedEndpointContext);
             if (nestedEndpointContext != null) {
                 final MsgOutputProtector nestedProtector =
-                        new MsgOutputProtector(nestedEndpointContext, "NESTED CMP upstream");
+                        new MsgOutputProtector(nestedEndpointContext, "NESTED CMP upstream", null);
                 // wrap into nested message
                 sentMessage = nestedProtector.protectOutgoingMessage(
                         new PKIMessage(

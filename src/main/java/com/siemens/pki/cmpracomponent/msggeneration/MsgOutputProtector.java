@@ -17,9 +17,6 @@
  */
 package com.siemens.pki.cmpracomponent.msggeneration;
 
-import static com.siemens.pki.cmpracomponent.util.NullUtil.defaultIfNull;
-import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
-
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface.ReprotectMode;
 import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
@@ -31,14 +28,6 @@ import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProviderFactory;
 import com.siemens.pki.cmpracomponent.util.ConfigLogger;
-import java.io.IOException;
-import java.security.GeneralSecurityException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Stream;
 import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.PKIBody;
 import org.bouncycastle.asn1.cmp.PKIFailureInfo;
@@ -47,6 +36,18 @@ import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.GeneralName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Stream;
+
+import static com.siemens.pki.cmpracomponent.util.NullUtil.defaultIfNull;
+import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
 /**
  * the {@link MsgOutputProtector} sets the right protection for outgoing
@@ -115,7 +116,7 @@ public class MsgOutputProtector {
      * @throws CmpProcessingException   in case of inconsistent configuration
      * @throws GeneralSecurityException in case of broken configuration
      */
-    public MsgOutputProtector(final NestedEndpointContext config, final String interfaceName)
+    public MsgOutputProtector(final NestedEndpointContext config, final String interfaceName, final CredentialContext credentialContext)
             throws CmpProcessingException, GeneralSecurityException {
         this.persistencyContext = null;
         suppressRedundantExtraCerts = false;
@@ -123,8 +124,12 @@ public class MsgOutputProtector {
         recipient = ifNotNull(
                 ConfigLogger.logOptional(interfaceName, "NestedEndpointContext.getRecipient()", config::getRecipient),
                 rec -> new GeneralName(new X500Name(rec)));
-        protectionCredentials = ConfigLogger.logOptional(
-                interfaceName, "NestedEndpointContext.getOutputCredentials()", config::getOutputCredentials);
+        if (credentialContext instanceof SharedSecretCredentialContext) {
+            protectionCredentials = credentialContext;
+        } else {
+            protectionCredentials = ConfigLogger.logOptional(
+                    interfaceName, "NestedEndpointContext.getOutputCredentials()", config::getOutputCredentials);
+        }
         protector = ProtectionProviderFactory.createProtectionProvider(protectionCredentials, interfaceName);
     }
 
