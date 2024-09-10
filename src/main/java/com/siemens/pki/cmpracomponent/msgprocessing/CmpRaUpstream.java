@@ -26,6 +26,7 @@ import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpValidationException;
 import com.siemens.pki.cmpracomponent.msgvalidation.InputValidator;
+import com.siemens.pki.cmpracomponent.msgvalidation.MessageContext;
 import com.siemens.pki.cmpracomponent.msgvalidation.MessageHeaderValidator;
 import com.siemens.pki.cmpracomponent.msgvalidation.ProtectionValidator;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
@@ -131,8 +132,8 @@ class CmpRaUpstream implements RaUpstream {
                 // never re-protect a KUR
                 sentMessage = in;
             } else {
-                final MsgOutputProtector outputProtector =
-                        new MsgOutputProtector(upstreamConfiguration, INTERFACE_NAME, persistencyContext);
+                final MsgOutputProtector outputProtector = new MsgOutputProtector(
+                        upstreamConfiguration, INTERFACE_NAME, new MessageContext(persistencyContext, null));
                 sentMessage = outputProtector.protectOutgoingMessage(in, null);
             }
             final NestedEndpointContext nestedEndpointContext = ConfigLogger.logOptional(
@@ -141,7 +142,7 @@ class CmpRaUpstream implements RaUpstream {
                     upstreamConfiguration::getNestedEndpointContext);
             if (nestedEndpointContext != null) {
                 final MsgOutputProtector nestedProtector =
-                        new MsgOutputProtector(nestedEndpointContext, "NESTED CMP upstream");
+                        new MsgOutputProtector(nestedEndpointContext, "NESTED CMP upstream", null);
                 // wrap into nested message
                 sentMessage = nestedProtector.protectOutgoingMessage(
                         new PKIMessage(

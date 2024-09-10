@@ -17,10 +17,12 @@
  */
 package com.siemens.pki.cmpracomponent.msgvalidation;
 
+import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
 import com.siemens.pki.cmpracomponent.cryptoservices.WrappedMac;
 import com.siemens.pki.cmpracomponent.cryptoservices.WrappedMacFactory;
+import com.siemens.pki.cmpracomponent.protection.OutputSharedSecretCredentials;
 import java.util.Arrays;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
@@ -50,7 +52,7 @@ public class PBMAC1ProtectionValidator extends MacValidator {
     }
 
     @Override
-    public Void validate(final PKIMessage message) throws BaseCmpException {
+    public CredentialContext validate(final PKIMessage message) throws BaseCmpException {
         try {
             final PKIHeader header = message.getHeader();
             final byte[] passwordAsBytes = getSharedSecret(header);
@@ -81,12 +83,16 @@ public class PBMAC1ProtectionValidator extends MacValidator {
                 throw new CmpValidationException(
                         getInterfaceName(), PKIFailureInfo.badMessageCheck, "PBMAC1 protection check failed");
             }
+            return new OutputSharedSecretCredentials(
+                    params,
+                    pbmac1Params.getMessageAuthScheme().getAlgorithm().getId(),
+                    header.getSenderKID().getOctets(),
+                    passwordAsBytes);
         } catch (final BaseCmpException cex) {
             throw cex;
         } catch (final Exception ex) {
             throw new CmpProcessingException(
                     getInterfaceName(), PKIFailureInfo.badMessageCheck, ex.getLocalizedMessage());
         }
-        return null;
     }
 }

@@ -83,7 +83,7 @@ class ClientRequestHandler {
         public ValidatorAndProtector(NestedEndpointContext nestedEndpoint)
                 throws GeneralSecurityException, CmpProcessingException {
             headerValidator = new MessageHeaderValidator(NESTED_INTERFACE_NAME);
-            outputProtection = new MsgOutputProtector(nestedEndpoint, NESTED_INTERFACE_NAME);
+            outputProtection = new MsgOutputProtector(nestedEndpoint, NESTED_INTERFACE_NAME, null);
             this.inputVerification = ConfigLogger.logOptional(
                     NESTED_INTERFACE_NAME,
                     "NestedEndpointContext.getInputVerification()",

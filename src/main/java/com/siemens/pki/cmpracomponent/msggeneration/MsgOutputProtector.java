@@ -24,7 +24,9 @@ import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface.ReprotectMode;
 import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
+import com.siemens.pki.cmpracomponent.configuration.SharedSecretCredentialContext;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
+import com.siemens.pki.cmpracomponent.msgvalidation.MessageContext;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProviderFactory;
@@ -61,6 +63,8 @@ public class MsgOutputProtector {
     private final ProtectionProvider protector;
     private final PersistencyContext persistencyContext;
 
+    private final CredentialContext protectionCredentials;
+
     private final boolean suppressRedundantExtraCerts;
 
     private final GeneralName recipient;
@@ -69,15 +73,15 @@ public class MsgOutputProtector {
      * ctor
      * @param config             specific configuration
      * @param interfaceName      name of interface used in logging messages
-     * @param persistencyContext reference to transaction specific
-     *                           {@link PersistencyContext}
+     * @param messageContext     reference to transaction specific
+     *                           {@link MessageContext}
      * @throws CmpProcessingException   in case of inconsistent configuration
      * @throws GeneralSecurityException in case of broken configuration
      */
     public MsgOutputProtector(
-            final CmpMessageInterface config, final String interfaceName, final PersistencyContext persistencyContext)
+            final CmpMessageInterface config, final String interfaceName, final MessageContext messageContext)
             throws CmpProcessingException, GeneralSecurityException {
-        this.persistencyContext = persistencyContext;
+        persistencyContext = ifNotNull(messageContext, MessageContext::getPersistencyContext);
         suppressRedundantExtraCerts = ConfigLogger.log(
                 interfaceName,
                 "CmpMessageInterface.getSuppressRedundantExtraCerts()",
@@ -87,15 +91,21 @@ public class MsgOutputProtector {
         recipient = ifNotNull(
                 ConfigLogger.logOptional(interfaceName, "CmpMessageInterface.getRecipient()", config::getRecipient),
                 rec -> new GeneralName(new X500Name(rec)));
-        final CredentialContext outputCredentials = ConfigLogger.logOptional(
-                interfaceName, "CmpMessageInterface.getOutputCredentials()", config::getOutputCredentials);
-        if (reprotectMode == ReprotectMode.reprotect && outputCredentials == null) {
-            throw new CmpProcessingException(
-                    interfaceName,
-                    PKIFailureInfo.wrongAuthority,
-                    "reprotectMode is reprotect, but no output credentials are given");
+        final CredentialContext verificationCredentials =
+                ifNotNull(messageContext, MessageContext::getCredentialContext);
+        if (verificationCredentials instanceof SharedSecretCredentialContext) {
+            protectionCredentials = verificationCredentials;
+        } else {
+            protectionCredentials = ConfigLogger.logOptional(
+                    interfaceName, "CmpMessageInterface.getOutputCredentials()", config::getOutputCredentials);
+            if (reprotectMode == ReprotectMode.reprotect && protectionCredentials == null) {
+                throw new CmpProcessingException(
+                        interfaceName,
+                        PKIFailureInfo.wrongAuthority,
+                        "reprotectMode is reprotect, but no output credentials are given");
+            }
         }
-        protector = ProtectionProviderFactory.createProtectionProvider(outputCredentials, interfaceName);
+        protector = ProtectionProviderFactory.createProtectionProvider(protectionCredentials, interfaceName);
     }
 
     /**
@@ -105,7 +115,8 @@ public class MsgOutputProtector {
      * @throws CmpProcessingException   in case of inconsistent configuration
      * @throws GeneralSecurityException in case of broken configuration
      */
-    public MsgOutputProtector(final NestedEndpointContext config, final String interfaceName)
+    public MsgOutputProtector(
+            final NestedEndpointContext config, final String interfaceName, final CredentialContext credentialContext)
             throws CmpProcessingException, GeneralSecurityException {
         this.persistencyContext = null;
         suppressRedundantExtraCerts = false;
@@ -113,10 +124,13 @@ public class MsgOutputProtector {
         recipient = ifNotNull(
                 ConfigLogger.logOptional(interfaceName, "NestedEndpointContext.getRecipient()", config::getRecipient),
                 rec -> new GeneralName(new X500Name(rec)));
-        protector = ProtectionProviderFactory.createProtectionProvider(
-                ConfigLogger.logOptional(
-                        interfaceName, "NestedEndpointContext.getOutputCredentials()", config::getOutputCredentials),
-                interfaceName);
+        if (credentialContext instanceof SharedSecretCredentialContext) {
+            protectionCredentials = credentialContext;
+        } else {
+            protectionCredentials = ConfigLogger.logOptional(
+                    interfaceName, "NestedEndpointContext.getOutputCredentials()", config::getOutputCredentials);
+        }
+        protector = ProtectionProviderFactory.createProtectionProvider(protectionCredentials, interfaceName);
     }
 
     /**

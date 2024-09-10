@@ -23,6 +23,7 @@ import com.siemens.pki.cmpracomponent.configuration.CheckAndModifyResult;
 import com.siemens.pki.cmpracomponent.configuration.CkgContext;
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
 import com.siemens.pki.cmpracomponent.configuration.Configuration;
+import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.InventoryInterface;
 import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
 import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
@@ -41,6 +42,7 @@ import com.siemens.pki.cmpracomponent.msgvalidation.CmpEnrollmentException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpValidationException;
 import com.siemens.pki.cmpracomponent.msgvalidation.InputValidator;
+import com.siemens.pki.cmpracomponent.msgvalidation.MessageContext;
 import com.siemens.pki.cmpracomponent.msgvalidation.MessageHeaderValidator;
 import com.siemens.pki.cmpracomponent.msgvalidation.ProtectionValidator;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
@@ -377,6 +379,7 @@ class RaDownstream {
      */
     PKIMessage handleInputMessage(final PKIMessage in) {
         PersistencyContext persistencyContext = null;
+        MessageContext messageContext = null;
         int responseBodyType = PKIBody.TYPE_ERROR;
         int retryAfterTime = 0;
         try {
@@ -412,9 +415,9 @@ class RaDownstream {
                         config::isRaVerifiedAcceptable,
                         supportedMessageTypes,
                         persistencyContext);
-                inputValidator.validate(in);
+                messageContext = inputValidator.validate(in);
 
-                PKIMessage responseFromUpstream = handleValidatedRequest(in, persistencyContext);
+                PKIMessage responseFromUpstream = handleValidatedRequest(in, messageContext);
                 // apply downstream protection and nesting
                 List<CMPCertificate> issuingChain = null;
                 responseBodyType = responseFromUpstream.getBody().getType();
@@ -443,7 +446,7 @@ class RaDownstream {
                         ifNotNull(persistencyContext, PersistencyContext::getCertProfile),
                         responseBodyType);
                 PKIMessage protectedResponse = new MsgOutputProtector(
-                                downstreamConfiguration, INTERFACE_NAME, persistencyContext)
+                                downstreamConfiguration, INTERFACE_NAME, messageContext)
                         .protectOutgoingMessage(
                                 new PKIMessage(
                                         responseFromUpstream.getHeader(),
@@ -460,7 +463,8 @@ class RaDownstream {
                     // no nesting required
                     return protectedResponse;
                 }
-                return new MsgOutputProtector(nestedEndpointContext, NESTED_INTERFACE_NAME)
+                return new MsgOutputProtector(
+                                nestedEndpointContext, NESTED_INTERFACE_NAME, messageContext.getCredentialContext())
                         .createOutgoingMessage(
                                 PkiMessageGenerator.buildForwardingHeaderProvider(protectedResponse),
                                 new PKIBody(PKIBody.TYPE_NESTED, new PKIMessages(protectedResponse)));
@@ -472,7 +476,7 @@ class RaDownstream {
                         config::getDownstreamConfiguration,
                         ifNotNull(persistencyContext, PersistencyContext::getCertProfile),
                         errorBody.getType());
-                return new MsgOutputProtector(downstreamConfiguration, INTERFACE_NAME, persistencyContext)
+                return new MsgOutputProtector(downstreamConfiguration, INTERFACE_NAME, messageContext)
                         .generateAndProtectResponseTo(in, errorBody);
             } catch (final RuntimeException ex) {
                 final PKIBody errorBody = new CmpProcessingException(INTERFACE_NAME, ex).asErrorBody();
@@ -482,7 +486,7 @@ class RaDownstream {
                         config::getDownstreamConfiguration,
                         ifNotNull(persistencyContext, PersistencyContext::getCertProfile),
                         errorBody.getType());
-                return new MsgOutputProtector(downstreamConfiguration, INTERFACE_NAME, persistencyContext)
+                return new MsgOutputProtector(downstreamConfiguration, INTERFACE_NAME, messageContext)
                         .generateAndProtectResponseTo(in, errorBody);
             } finally {
                 if (persistencyContext != null) {
@@ -529,7 +533,7 @@ class RaDownstream {
                         NESTED_INTERFACE_NAME,
                         "NestedEndpointContext.getInputVerification()",
                         nestedEndpointContext::getInputVerification));
-        nestedProtectionValidator.validate(in);
+        CredentialContext credentialContext = nestedProtectionValidator.validate(in);
         PKIHeader inHeader = in.getHeader();
         boolean isIncomingRecipientValid = ConfigLogger.log(
                 NESTED_INTERFACE_NAME,
@@ -555,7 +559,8 @@ class RaDownstream {
         final PKIMessage[] responses =
                 Arrays.stream(embeddedMessages).map(this::handleInputMessage).toArray(PKIMessage[]::new);
         // batched responses needs to be wrapped in a new NESTED response
-        MsgOutputProtector nestedOutputProtector = new MsgOutputProtector(nestedEndpointContext, INTERFACE_NAME);
+        MsgOutputProtector nestedOutputProtector =
+                new MsgOutputProtector(nestedEndpointContext, INTERFACE_NAME, credentialContext);
         return nestedOutputProtector.generateAndProtectResponseTo(
                 in, new PKIBody(PKIBody.TYPE_NESTED, new PKIMessages(responses)));
     }
@@ -651,12 +656,12 @@ class RaDownstream {
         return incomingRequest;
     }
 
-    private PKIMessage handleValidatedRequest(
-            final PKIMessage incomingRequest, final PersistencyContext persistencyContext)
+    private PKIMessage handleValidatedRequest(final PKIMessage incomingRequest, final MessageContext messageContext)
             throws BaseCmpException, IOException {
         // request pre processing
         // by default there is no pre processing
         PKIMessage preprocessedRequest = incomingRequest;
+        final PersistencyContext persistencyContext = messageContext.getPersistencyContext();
         switch (incomingRequest.getBody().getType()) {
             case PKIBody.TYPE_INIT_REQ:
             case PKIBody.TYPE_CERT_REQ:
@@ -682,8 +687,8 @@ class RaDownstream {
             case PKIBody.TYPE_GEN_MSG:
                 // try to handle locally
                 persistencyContext.setRequestType(incomingRequest.getBody().getType());
-                final PKIMessage genmResponse = new ServiceImplementation(config)
-                        .handleValidatedInputMessage(incomingRequest, persistencyContext);
+                final PKIMessage genmResponse =
+                        new ServiceImplementation(config).handleValidatedInputMessage(incomingRequest, messageContext);
                 if (genmResponse != null) {
                     return genmResponse;
                 }

@@ -25,6 +25,7 @@ public class PasswordEnrollmentTestcasebase extends OnlineEnrollmentTestcaseBase
 
     @Before
     public void setUp() throws Exception {
+        ConfigurationFactory.resetConfiguration();
         final Configuration config = ConfigurationFactory.buildPasswordbasedDownstreamConfiguration();
         launchCmpCaAndRa(config);
     }

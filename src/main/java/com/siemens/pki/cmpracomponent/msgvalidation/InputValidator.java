@@ -18,6 +18,7 @@
 package com.siemens.pki.cmpracomponent.msgvalidation;
 
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
+import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import com.siemens.pki.cmpracomponent.util.ConfigLogger;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
@@ -30,7 +31,7 @@ import org.bouncycastle.asn1.cmp.PKIMessage;
 /**
  * validator for an incoming message
  */
-public class InputValidator implements ValidatorIF<Void> {
+public class InputValidator implements ValidatorIF<MessageContext> {
 
     private final Collection<Integer> supportedMessageTypes;
     private final String interfaceName;
@@ -68,11 +69,11 @@ public class InputValidator implements ValidatorIF<Void> {
      * message types
      *
      * @param in message to validate
-     * @return nothing
+     * @return a message context
      * @throws CmpProcessingException if validation failed
      */
     @Override
-    public Void validate(final PKIMessage in) throws BaseCmpException {
+    public MessageContext validate(final PKIMessage in) throws BaseCmpException {
         if (!supportedMessageTypes.contains(in.getBody().getType())) {
             throw new CmpValidationException(
                     interfaceName,
@@ -97,8 +98,8 @@ public class InputValidator implements ValidatorIF<Void> {
                             interfaceName,
                             "CmpMessageInterface.getInputVerification()",
                             cmpInterface::getInputVerification));
-            protectionValidator.validate(in);
-            return null;
+            CredentialContext protectionCredentials = protectionValidator.validate(in);
+            return new MessageContext(persistencyContext, protectionCredentials);
         } catch (final BaseCmpException ce) {
             throw ce;
         } catch (final Exception e) {

@@ -17,6 +17,7 @@
  */
 package com.siemens.pki.cmpracomponent.msgvalidation;
 
+import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import com.siemens.pki.cmpracomponent.util.ConfigLogger;
 import com.siemens.pki.cmpracomponent.util.NullUtil;
@@ -27,7 +28,7 @@ import org.bouncycastle.asn1.cmp.PKIHeader;
 /**
  * base class for all MAC based validators
  */
-public abstract class MacValidator implements ValidatorIF<Void> {
+public abstract class MacValidator implements ValidatorIF<CredentialContext> {
 
     protected final VerificationContext config;
     private final String interfaceName;

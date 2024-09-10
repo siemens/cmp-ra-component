@@ -17,8 +17,10 @@
  */
 package com.siemens.pki.cmpracomponent.msgvalidation;
 
+import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
+import com.siemens.pki.cmpracomponent.protection.OutputSharedSecretCredentials;
 import java.security.MessageDigest;
 import java.util.Arrays;
 import javax.crypto.Mac;
@@ -48,7 +50,7 @@ public class PasswordBasedMacValidator extends MacValidator {
     }
 
     @Override
-    public Void validate(final PKIMessage message) throws BaseCmpException {
+    public CredentialContext validate(final PKIMessage message) throws BaseCmpException {
         try {
             final PKIHeader header = message.getHeader();
             // Construct the base key according to rfc4210, section 5.1.3.1
@@ -79,12 +81,13 @@ public class PasswordBasedMacValidator extends MacValidator {
                 throw new CmpValidationException(
                         getInterfaceName(), PKIFailureInfo.badMessageCheck, "PasswordBasedMac protection check failed");
             }
+            return new OutputSharedSecretCredentials(
+                    pbmParameter, header.getSenderKID().getOctets(), passwordAsBytes);
         } catch (final BaseCmpException cex) {
             throw cex;
         } catch (final Exception ex) {
             throw new CmpProcessingException(
                     getInterfaceName(), PKIFailureInfo.badMessageCheck, ex.getLocalizedMessage());
         }
-        return null;
     }
 }
