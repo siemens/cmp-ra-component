@@ -432,15 +432,15 @@ public class PkiMessageGenerator {
             throws CertificateEncodingException, CMSException {
         // encrypt certificate
         // KDF2
-        AlgorithmIdentifier kdfAlgorithm = new AlgorithmIdentifier(
-                X9ObjectIdentifiers.id_kdf_kdf2,
-                new AlgorithmIdentifier(NISTObjectIdentifiers.id_sha256, DERNull.INSTANCE));
+//        AlgorithmIdentifier kdfAlgorithm = new AlgorithmIdentifier(
+//                X9ObjectIdentifiers.id_kdf_kdf2,
+//                new AlgorithmIdentifier(NISTObjectIdentifiers.id_sha256, DERNull.INSTANCE));
         // KDF3
         //        AlgorithmIdentifier kdfAlgorithm = new AlgorithmIdentifier(
         //                X9ObjectIdentifiers.id_kdf_kdf3,
         //                new AlgorithmIdentifier(NISTObjectIdentifiers.id_sha256, DERNull.INSTANCE));
-        // SHAKE256
-        //        AlgorithmIdentifier kdfAlgorithm = new AlgorithmIdentifier(NISTObjectIdentifiers.id_shake256);
+         // SHAKE256
+                AlgorithmIdentifier kdfAlgorithm = new AlgorithmIdentifier(NISTObjectIdentifiers.id_shake256);
 
         CMSEnvelopedDataGenerator envGen = new CMSEnvelopedDataGenerator();
         // Issuer + serialnumber
