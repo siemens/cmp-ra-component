@@ -143,3 +143,8 @@ fix: handling of NestedEndpointContext.isIncomingRecipientValid
 ### 4.1.4 (Jul 23 2024)
 
 fix: again fix protection of NESTED responses
+
+### 4.2.0 (Sep 10 2024)
+
+feat: Use same credentials for MAC based protection at Downstream
+
