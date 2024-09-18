@@ -79,7 +79,8 @@ public class SignatureBasedProtection extends BaseCredentialService implements P
     }
 
     @Override
-    public DERBitString getProtectionFor(final ProtectedPart protectedPart) throws GeneralSecurityException, IOException{
+    public DERBitString getProtectionFor(final ProtectedPart protectedPart)
+            throws GeneralSecurityException, IOException {
         final Signature sig = AlgorithmHelper.getSignature(getSignatureAlgorithmName());
         sig.initSign(getPrivateKey());
         sig.update(protectedPart.getEncoded(ASN1Encoding.DER));

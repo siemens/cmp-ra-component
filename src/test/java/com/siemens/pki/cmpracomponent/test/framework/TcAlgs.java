@@ -24,7 +24,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.bouncycastle.asn1.bc.BCObjectIdentifiers;
 import org.bouncycastle.asn1.misc.MiscObjectIdentifiers;
-import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
+import org.bouncycastle.asn1.nist.NISTObjectIdentifiers;
 
 /**
  * provide lists of algoritrhms to test
@@ -35,30 +35,17 @@ public class TcAlgs {
 
     public static List<Object[]> getPqSignatureAlgorithms() throws GeneralSecurityException, NoSuchAlgorithmException {
         return Arrays.asList(new Object[][] {
+            {"id_ml_dsa_44", KeyPairGeneratorFactory.getGenericKeyPairGenerator(NISTObjectIdentifiers.id_ml_dsa_44)},
+            {"id_ml_dsa_65", KeyPairGeneratorFactory.getGenericKeyPairGenerator(NISTObjectIdentifiers.id_ml_dsa_65)},
+            {"id_ml_dsa_87", KeyPairGeneratorFactory.getGenericKeyPairGenerator(NISTObjectIdentifiers.id_ml_dsa_87)},
             {
-                "id_Falcon512_ECDSA_P256_SHA256",
-                KeyPairGeneratorFactory.getGenericKeyPairGenerator(
-                        org.bouncycastle.asn1.misc.MiscObjectIdentifiers.id_Falcon512_ECDSA_P256_SHA256)
-            },
-            {"LMS", KeyPairGeneratorFactory.getGenericKeyPairGenerator("LMS")},
-            {
-                "id-alg-hss-lms-hashsig",
-                KeyPairGeneratorFactory.getGenericKeyPairGenerator(PKCSObjectIdentifiers.id_alg_hss_lms_hashsig)
-            },
-            //
-            {
-                "SPHINCS+-SHA2-128s",
-                KeyPairGeneratorFactory.getGenericKeyPairGenerator(BCObjectIdentifiers.sphincsPlus_sha2_128f)
+                "sphincsPlus_sha2_128s",
+                KeyPairGeneratorFactory.getGenericKeyPairGenerator(BCObjectIdentifiers.sphincsPlus_sha2_128s)
             },
             {
-                "SPHINCS+-SHAKE-256s",
-                KeyPairGeneratorFactory.getGenericKeyPairGenerator(BCObjectIdentifiers.sphincsPlus_shake_256s)
+                "id_slh_dsa_sha2_128s",
+                KeyPairGeneratorFactory.getGenericKeyPairGenerator(NISTObjectIdentifiers.id_slh_dsa_sha2_128s)
             },
-            {"dilithium2", KeyPairGeneratorFactory.getGenericKeyPairGenerator(BCObjectIdentifiers.dilithium2)},
-            {"dilithium3", KeyPairGeneratorFactory.getGenericKeyPairGenerator(BCObjectIdentifiers.dilithium3)},
-            {"dilithium5", KeyPairGeneratorFactory.getGenericKeyPairGenerator(BCObjectIdentifiers.dilithium5)},
-            {"falcon_512", KeyPairGeneratorFactory.getGenericKeyPairGenerator(BCObjectIdentifiers.falcon_512)},
-            {"falcon_1024", KeyPairGeneratorFactory.getGenericKeyPairGenerator(BCObjectIdentifiers.falcon_1024)}
             //
         });
     }
@@ -141,8 +128,14 @@ public class TcAlgs {
 
     public static List<Object[]> getKemAlgorithms() throws GeneralSecurityException, NoSuchAlgorithmException {
         return Arrays.asList(new Object[][] {
-            {"KYBER512", KeyPairGeneratorFactory.getGenericKeyPairGenerator(BCObjectIdentifiers.kyber512)},
-            {"KYBER1024", KeyPairGeneratorFactory.getGenericKeyPairGenerator(BCObjectIdentifiers.kyber1024)},
+            {
+                "id_alg_ml_kem_512",
+                KeyPairGeneratorFactory.getGenericKeyPairGenerator(NISTObjectIdentifiers.id_alg_ml_kem_512)
+            },
+            {
+                "id_alg_ml_kem_1024",
+                KeyPairGeneratorFactory.getGenericKeyPairGenerator(NISTObjectIdentifiers.id_alg_ml_kem_1024)
+            },
         });
     }
 

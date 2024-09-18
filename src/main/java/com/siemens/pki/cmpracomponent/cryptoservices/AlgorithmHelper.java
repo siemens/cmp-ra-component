@@ -389,8 +389,10 @@ public class AlgorithmHelper {
      * @return signature
      * @throws NoSuchAlgorithmException if signatureId is unknown
      */
-    public static Signature getSignature(final String signatureId) throws NoSuchAlgorithmException {
-        return tryWithAllProviders(p -> Signature.getInstance(signatureId, p));
+    public static Signature getSignature(String signatureId) throws NoSuchAlgorithmException {
+        // XXX hack around https://github.com/bcgit/bc-java/issues/1841
+        String internalSigId = signatureId.startsWith("SLH-DSA") ? "SLH-DSA" : signatureId;
+        return tryWithAllProviders(p -> Signature.getInstance(internalSigId, p));
     }
 
     /**

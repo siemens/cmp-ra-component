@@ -17,8 +17,18 @@
  */
 package com.siemens.pki.cmpracomponent.test.framework;
 
+import static com.siemens.pki.cmpracomponent.cryptoservices.ProviderWrapper.tryWithAllProviders;
+import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 import static org.junit.Assert.assertTrue;
 
+import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
+import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
+import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
+import com.siemens.pki.cmpracomponent.main.CmpRaComponent;
+import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
+import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
+import com.siemens.pki.cmpracomponent.protection.SignatureBasedProtection;
+import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.math.BigInteger;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -28,9 +38,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
-
 import javax.security.auth.x500.X500Principal;
-
 import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.PKIBody;
 import org.bouncycastle.asn1.cmp.PKIFailureInfo;
@@ -58,19 +66,6 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
-import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
-import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
-import com.siemens.pki.cmpracomponent.main.CmpRaComponent;
-import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
-import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
-import com.siemens.pki.cmpracomponent.protection.SignatureBasedProtection;
-import com.siemens.pki.cmpracomponent.util.MessageDumper;
-
-import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
-
-import static com.siemens.pki.cmpracomponent.cryptoservices.ProviderWrapper.tryWithAllProviders;
 
 /**
  * a mocked Certificate Authority

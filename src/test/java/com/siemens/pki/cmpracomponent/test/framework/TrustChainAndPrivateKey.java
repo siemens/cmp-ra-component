@@ -17,6 +17,14 @@
  */
 package com.siemens.pki.cmpracomponent.test.framework;
 
+import static com.siemens.pki.cmpracomponent.cryptoservices.ProviderWrapper.tryWithAllProviders;
+
+import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
+import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
+import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
+import com.siemens.pki.cmpracomponent.cryptoservices.KeyPairGeneratorFactory;
+import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
+import com.siemens.pki.cmpracomponent.util.NullUtil;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.GeneralSecurityException;
@@ -39,9 +47,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-
 import javax.security.auth.x500.X500Principal;
-
 import org.bouncycastle.asn1.ASN1Encoding;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.DERBitString;
@@ -61,15 +67,6 @@ import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
-
-import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
-import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
-import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
-import com.siemens.pki.cmpracomponent.cryptoservices.KeyPairGeneratorFactory;
-import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
-import com.siemens.pki.cmpracomponent.util.NullUtil;
-
-import static com.siemens.pki.cmpracomponent.cryptoservices.ProviderWrapper.tryWithAllProviders;
 
 public class TrustChainAndPrivateKey implements SignatureCredentialContext, VerificationContext {
 
@@ -304,7 +301,8 @@ public class TrustChainAndPrivateKey implements SignatureCredentialContext, Veri
             }
 
             @Override
-            public DERBitString getProtectionFor(final ProtectedPart protectedPart) throws GeneralSecurityException, IOException {
+            public DERBitString getProtectionFor(final ProtectedPart protectedPart)
+                    throws GeneralSecurityException, IOException {
                 final Signature sig =
                         AlgorithmHelper.getSignature(AlgorithmHelper.getSigningAlgNameFromKey(privateKey));
                 sig.initSign(privateKey);

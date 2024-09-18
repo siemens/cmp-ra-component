@@ -47,7 +47,6 @@ import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.DERBitString;
-import org.bouncycastle.asn1.DERNull;
 import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.DERSequence;
 import org.bouncycastle.asn1.cmp.CMPCertificate;
@@ -93,7 +92,6 @@ import org.bouncycastle.asn1.x509.Certificate;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.ExtensionsGenerator;
 import org.bouncycastle.asn1.x509.GeneralName;
-import org.bouncycastle.asn1.x9.X9ObjectIdentifiers;
 import org.bouncycastle.cms.CMSAlgorithm;
 import org.bouncycastle.cms.CMSEnvelopedData;
 import org.bouncycastle.cms.CMSEnvelopedDataGenerator;
@@ -432,15 +430,15 @@ public class PkiMessageGenerator {
             throws CertificateEncodingException, CMSException {
         // encrypt certificate
         // KDF2
-//        AlgorithmIdentifier kdfAlgorithm = new AlgorithmIdentifier(
-//                X9ObjectIdentifiers.id_kdf_kdf2,
-//                new AlgorithmIdentifier(NISTObjectIdentifiers.id_sha256, DERNull.INSTANCE));
+        //        AlgorithmIdentifier kdfAlgorithm = new AlgorithmIdentifier(
+        //                X9ObjectIdentifiers.id_kdf_kdf2,
+        //                new AlgorithmIdentifier(NISTObjectIdentifiers.id_sha256, DERNull.INSTANCE));
         // KDF3
         //        AlgorithmIdentifier kdfAlgorithm = new AlgorithmIdentifier(
         //                X9ObjectIdentifiers.id_kdf_kdf3,
         //                new AlgorithmIdentifier(NISTObjectIdentifiers.id_sha256, DERNull.INSTANCE));
-         // SHAKE256
-                AlgorithmIdentifier kdfAlgorithm = new AlgorithmIdentifier(NISTObjectIdentifiers.id_shake256);
+        // SHAKE256
+        AlgorithmIdentifier kdfAlgorithm = new AlgorithmIdentifier(NISTObjectIdentifiers.id_shake256);
 
         CMSEnvelopedDataGenerator envGen = new CMSEnvelopedDataGenerator();
         // Issuer + serialnumber
