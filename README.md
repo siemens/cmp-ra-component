@@ -347,3 +347,6 @@ The diagram describes the interaction between an "Embedding Application" and a "
 
 For configuration interface details see [RA Configuration interface design](#configuration-interface-design) which is partly reused for client configuration.
 
+## Acknowledgements
+
+This work was partly funded by the German Federal Ministry of Education and Research in the project Quoryptan through grant number **16KIS2033**.
