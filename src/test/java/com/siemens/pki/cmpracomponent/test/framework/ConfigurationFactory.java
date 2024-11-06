@@ -34,8 +34,10 @@ import com.siemens.pki.cmpracomponent.configuration.GetRootCaCertificateUpdateHa
 import com.siemens.pki.cmpracomponent.configuration.InventoryInterface;
 import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
 import com.siemens.pki.cmpracomponent.configuration.PersistencyInterface;
+import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.SupportMessageHandlerInterface;
 import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
+import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.cryptoservices.KeyPairGeneratorFactory;
 import com.siemens.pki.cmpracomponent.persistency.DefaultPersistencyImplementation;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
@@ -47,10 +49,7 @@ import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
-import java.security.cert.CRLException;
 import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509CRL;
 import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Collections;
@@ -70,7 +69,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ConfigurationFactory {
 
-    private static final String INTERFACE_NAME = "testclient";
+    private static final String INTERFACE_NAME = "TEST CMP CLient";
     private static final Logger LOGGER = LoggerFactory.getLogger(ConfigurationFactory.class);
     public static ProtectionProvider eeSignaturebasedProtectionProvider;
     public static ProtectionProvider eePbmac1ProtectionProvider;
@@ -140,6 +139,47 @@ public class ConfigurationFactory {
                 upstreamCredentials,
                 upstreamTrust,
                 enrollmentTrust);
+    }
+
+    public static CmpMessageInterface createSignatureBasedCmpMessageInterface(
+            SignatureCredentialContext outgoingProtection, VerificationContext incomingProtection) {
+        return new CmpMessageInterface() {
+
+            @Override
+            public boolean isMessageTimeDeviationAllowed(long deviation) {
+                return Math.abs(deviation) < 100;
+            }
+
+            @Override
+            public boolean isCacheExtraCerts() {
+                return false;
+            }
+
+            @Override
+            public boolean getSuppressRedundantExtraCerts() {
+                return false;
+            }
+
+            @Override
+            public ReprotectMode getReprotectMode() {
+                return ReprotectMode.reprotect;
+            }
+
+            @Override
+            public CredentialContext getOutputCredentials() {
+                return outgoingProtection;
+            }
+
+            @Override
+            public NestedEndpointContext getNestedEndpointContext() {
+                return null;
+            }
+
+            @Override
+            public VerificationContext getInputVerification() {
+                return incomingProtection;
+            }
+        };
     }
 
     public static Configuration buildSignatureBasedDownstreamConfiguration() throws Exception {
@@ -411,10 +451,11 @@ public class ConfigurationFactory {
                                             dpnNameRelativeToCRLIssuer,
                                             issuer,
                                             thisUpdate);
-                                    return Collections.singletonList((X509CRL) CertificateFactory.getInstance("X.509")
-                                            .generateCRL(
-                                                    ConfigFileLoader.getConfigFileAsStream("credentials/CRL.der")));
-                                } catch (CRLException | CertificateException | IOException e) {
+                                    return Collections.singletonList(CertUtility.parseCrl(
+                                            ConfigFileLoader.getConfigFileAsStream("credentials/CRL.der")
+                                                    .readAllBytes()));
+
+                                } catch (GeneralSecurityException | IOException e) {
                                     throw new RuntimeException(e);
                                 }
                             };

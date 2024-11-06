@@ -18,15 +18,26 @@
 package com.siemens.pki.cmpracomponent.test.framework;
 
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.*;
+import java.security.InvalidKeyException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.PublicKey;
+import java.security.SecureRandom;
+import java.security.SignatureException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import org.bouncycastle.asn1.ASN1Encoding;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.DEROctetString;
@@ -39,13 +50,11 @@ import org.slf4j.LoggerFactory;
  */
 public class TestCertUtility {
 
-    public static final Provider BOUNCY_CASTLE_PROVIDER = CertUtility.getBouncyCastleProvider();
     private static final Logger LOGGER = LoggerFactory.getLogger(TestCertUtility.class);
 
     private static final char[] TRUSTSTORE_SECRET = "Unimportant password".toCharArray();
 
     private static final SecureRandom RANDOM = new SecureRandom();
-    private static CertificateFactory certificateFactory;
 
     /**
      * conversion function from CMPCertificate to X509 certificate
@@ -57,22 +66,10 @@ public class TestCertUtility {
      */
     public static X509Certificate certificateFromCmpCertificate(final CMPCertificate cert) throws Exception {
         try {
-            return certificateFromEncoded(cert.getEncoded(ASN1Encoding.DER));
+            return CertUtility.asX509Certificate(cert.getEncoded(ASN1Encoding.DER));
         } catch (final IOException excpt) {
             throw new CertificateException(excpt);
         }
-    }
-
-    /**
-     * conversion function from byte to X509 certificate
-     *
-     * @param encoded byte string to encode
-     * @return converted certificate
-     * @throws CertificateException if certificate could not be converted from
-     *                              encoded
-     */
-    public static X509Certificate certificateFromEncoded(final byte[] encoded) throws Exception {
-        return (X509Certificate) getCertificateFactory().generateCertificate(new ByteArrayInputStream(encoded));
     }
 
     /**
@@ -87,7 +84,7 @@ public class TestCertUtility {
         try {
             final ArrayList<X509Certificate> ret = new ArrayList<>(certs.length);
             for (final CMPCertificate aktCert : certs) {
-                ret.add(certificateFromEncoded(aktCert.getEncoded(ASN1Encoding.DER)));
+                ret.add(CertUtility.asX509Certificate(aktCert.getEncoded(ASN1Encoding.DER)));
             }
             return ret;
         } catch (final IOException excpt) {
@@ -156,21 +153,6 @@ public class TestCertUtility {
     }
 
     /**
-     * Function to retrieve the static certificate factory object
-     *
-     * @return static certificate factory object
-     * @throws CertificateException thrown if the certificate factory could not be
-     *                              instantiated
-     * @throws Exception            in case of an error
-     */
-    public static synchronized CertificateFactory getCertificateFactory() throws Exception {
-        if (certificateFactory == null) {
-            certificateFactory = CertificateFactory.getInstance("X.509", BOUNCY_CASTLE_PROVIDER);
-        }
-        return certificateFactory;
-    }
-
-    /**
      * Checks whether given X.509 certificate is self-signed.
      *
      * @param cert certificate to be checked
@@ -205,7 +187,7 @@ public class TestCertUtility {
     public static synchronized List<X509Certificate> loadCertificatesFromFile(final String filename) throws Exception {
         try (InputStream is = ConfigFileLoader.getConfigFileAsStream(filename)) {
             final List<X509Certificate> ret = new ArrayList<>();
-            final CertificateFactory cf = getCertificateFactory();
+            final CertificateFactory cf = CertificateFactory.getInstance("X509");
             for (final Certificate aktCert : cf.generateCertificates(is)) {
                 ret.add((X509Certificate) aktCert);
             }
@@ -294,7 +276,7 @@ public class TestCertUtility {
             try (InputStream is = ConfigFileLoader.getConfigFileAsStream(filename)) {
                 final KeyStore truststore = KeyStore.getInstance(KeyStore.getDefaultType());
                 truststore.load(null, TRUSTSTORE_SECRET);
-                final CertificateFactory cf = getCertificateFactory();
+                final CertificateFactory cf = CertificateFactory.getInstance("X509");
                 int i = 1;
                 for (final Certificate aktCert : cf.generateCertificates(is)) {
                     truststore.setCertificateEntry("cert_" + i++, aktCert);

@@ -27,15 +27,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.siemens.pki.cmpracomponent.configuration.PersistencyInterface;
+import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
+import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import org.bouncycastle.asn1.ASN1Object;
@@ -138,14 +135,10 @@ public class PersistencyContextManager {
             }
             try {
                 // private key obfuscation
-                final Cipher c = Cipher.getInstance(KEY_WRAP_CIPHER);
+                final Cipher c = Cipher.getInstance(KEY_WRAP_CIPHER, CertUtility.getBouncyCastleProvider());
                 c.init(Cipher.WRAP_MODE, secretKey, iv);
                 jsonGenerator.writeBinary(c.wrap(key));
-            } catch (NoSuchAlgorithmException
-                    | NoSuchPaddingException
-                    | InvalidKeyException
-                    | IllegalBlockSizeException
-                    | InvalidAlgorithmParameterException e) {
+            } catch (GeneralSecurityException e) {
                 throw new IOException(e);
             }
         }
@@ -168,7 +161,7 @@ public class PersistencyContextManager {
                 return null;
             }
             try {
-                final Cipher c = Cipher.getInstance(KEY_WRAP_CIPHER);
+                final Cipher c = Cipher.getInstance(KEY_WRAP_CIPHER, CertUtility.getBouncyCastleProvider());
                 c.init(Cipher.UNWRAP_MODE, secretKey, iv);
                 for (final String keyType : new String[] {"RSA", "EC", "Ed448", "Ed25519"}) {
                     try {
@@ -179,10 +172,7 @@ public class PersistencyContextManager {
                 }
                 LOGGER.error("cold not load private key");
                 return null;
-            } catch (final InvalidKeyException
-                    | NoSuchAlgorithmException
-                    | NoSuchPaddingException
-                    | InvalidAlgorithmParameterException e1) {
+            } catch (final GeneralSecurityException e1) {
                 throw new IOException(e1);
             }
         }

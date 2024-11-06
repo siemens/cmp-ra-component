@@ -27,6 +27,7 @@ import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.InventoryInterface;
 import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
 import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
+import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.cryptoservices.CmsEncryptorBase;
 import com.siemens.pki.cmpracomponent.cryptoservices.DataSigner;
@@ -53,14 +54,12 @@ import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import com.siemens.pki.cmpracomponent.util.NullUtil.ExFunction;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.cert.X509Certificate;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -98,7 +97,6 @@ import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.asn1.x9.X9ObjectIdentifiers;
-import org.bouncycastle.cert.jcajce.JcaX509ContentVerifierProviderBuilder;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCSException;
@@ -125,9 +123,6 @@ class RaDownstream {
     private static final String NESTED_INTERFACE_NAME = "nested " + INTERFACE_NAME;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RaDownstream.class);
-
-    private static final JcaX509ContentVerifierProviderBuilder X509_CVPB =
-            new JcaX509ContentVerifierProviderBuilder().setProvider(CertUtility.getBouncyCastleProvider());
 
     private final Collection<Integer> supportedMessageTypes;
 
@@ -189,7 +184,14 @@ class RaDownstream {
         return new KeyTransportEncryptor(ckgConfiguration, recipientCert, initialRequestType, interfaceName);
     }
 
-    // special handling for CR, IR, KUR
+    /**
+     * special handling for CR, IR, KUR
+     *
+     * @param incomingCertificateRequest
+     * @param outputProtector
+     * @return handled message
+     * @throws Exception in case of error
+     */
     private PKIMessage handleCrmfCertificateRequest(
             final PKIMessage incomingCertificateRequest, final PersistencyContext persistencyContext)
             throws BaseCmpException, GeneralSecurityException, IOException {
@@ -341,7 +343,8 @@ class RaDownstream {
                         persistencyContext.getCertProfile(),
                         requestBodyType)
                 || popo == null
-                || popo.getType() == ProofOfPossession.TYPE_RA_VERIFIED) {
+                || popo.getType() == ProofOfPossession.TYPE_RA_VERIFIED
+                || popo.getType() == ProofOfPossession.TYPE_KEY_ENCIPHERMENT) {
             // popo invalid or raVerified, regenerate body
             return PkiMessageGenerator.generateUnprotectMessage(
                     PkiMessageGenerator.buildForwardingHeaderProvider(incomingCertificateRequest),
@@ -350,12 +353,9 @@ class RaDownstream {
 
         // initial POPO still there and maybe usable again
         final POPOSigningKey popoSigningKey = (POPOSigningKey) popo.getObject();
-        final PublicKey publicKey = KeyFactory.getInstance(
-                        subjectPublicKeyInfo.getAlgorithm().getAlgorithm().toString(),
-                        CertUtility.getBouncyCastleProvider())
-                .generatePublic(new X509EncodedKeySpec(subjectPublicKeyInfo.getEncoded(ASN1Encoding.DER)));
-        final Signature sig = Signature.getInstance(
-                popoSigningKey.getAlgorithmIdentifier().getAlgorithm().getId(), CertUtility.getBouncyCastleProvider());
+        final PublicKey publicKey = CertUtility.parsePublicKey(subjectPublicKeyInfo);
+        final Signature sig = AlgorithmHelper.getSignature(
+                popoSigningKey.getAlgorithmIdentifier().getAlgorithm().getId());
         sig.initVerify(publicKey);
         sig.update(certRequest.getEncoded(ASN1Encoding.DER));
         if (sig.verify(popoSigningKey.getSignature().getBytes())) {
@@ -454,6 +454,10 @@ class RaDownstream {
                                         responseFromUpstream.getProtection(),
                                         responseFromUpstream.getExtraCerts()),
                                 issuingChain);
+                if (responseBodyType == PKIBody.TYPE_NESTED) {
+                    // never nest a nested message
+                    return protectedResponse;
+                }
 
                 final NestedEndpointContext nestedEndpointContext = ConfigLogger.logOptional(
                         INTERFACE_NAME,
@@ -573,7 +577,7 @@ class RaDownstream {
             persistencyContext.setRequestType(body.getType());
             final PKCS10CertificationRequest p10Request =
                     new PKCS10CertificationRequest((CertificationRequest) body.getContent());
-            if (!p10Request.isSignatureValid(X509_CVPB.build(p10Request.getSubjectPublicKeyInfo()))) {
+            if (!CertUtility.validateP10Request(p10Request)) {
                 throw new CmpValidationException(
                         INTERFACE_NAME, PKIFailureInfo.badMessageCheck, "signature of PKCS#10 Request broken");
             }
@@ -626,12 +630,7 @@ class RaDownstream {
         final PKIBody body = incomingRequest.getBody();
         final int requestType = body.getType();
         persistencyContext.setRequestType(requestType);
-        final InventoryInterface inventory = ConfigLogger.logOptional(
-                INTERFACE_NAME,
-                "Configuration.getInventory",
-                config::getInventory,
-                persistencyContext.getCertProfile(),
-                requestType);
+        final InventoryInterface inventory = config.getInventory(persistencyContext.getCertProfile(), requestType);
         if (inventory != null) {
             final CertTemplate revTemplate =
                     ((RevReqContent) body.getContent()).toRevDetailsArray()[0].getCertDetails();
@@ -657,7 +656,8 @@ class RaDownstream {
     }
 
     private PKIMessage handleValidatedRequest(final PKIMessage incomingRequest, final MessageContext messageContext)
-            throws BaseCmpException, IOException {
+            throws BaseCmpException, IOException, OperatorCreationException {
+
         // request pre processing
         // by default there is no pre processing
         PKIMessage preprocessedRequest = incomingRequest;
@@ -795,12 +795,7 @@ class RaDownstream {
             persistencyContext.setIssuingChain(issuingChain);
 
             // update inventory
-            final InventoryInterface inventory = ConfigLogger.logOptional(
-                    INTERFACE_NAME,
-                    "Configuration.getInventory",
-                    config::getInventory,
-                    persistencyContext.getCertProfile(),
-                    responseType);
+            final InventoryInterface inventory = config.getInventory(persistencyContext.getCertProfile(), responseType);
             if (inventory != null) {
                 final byte[] encodedEnrolledCertificate = enrolledCertificate.getEncoded();
                 if (!ConfigLogger.log(
@@ -828,7 +823,13 @@ class RaDownstream {
             final PrivateKey newGeneratedPrivateKey = persistencyContext.getNewGeneratedPrivateKey();
             if (newGeneratedPrivateKey == null) {
                 // no central key generation
-                return responseFromUpstream;
+                if (!persistencyContext.isRespondedCertMustBeEncrypted()) {
+                    return responseFromUpstream;
+                }
+                return PkiMessageGenerator.generateUnprotectMessage(
+                        PkiMessageGenerator.buildForwardingHeaderProvider(PKIHeader.CMP_2021, responseFromUpstream),
+                        PkiMessageGenerator.generateEncryptedIpCpKupBody(
+                                responseFromUpstream.getBody().getType(), enrolledCertificateAsX509));
             }
 
             // central key generation, respond the private key too

@@ -112,6 +112,7 @@ public class MsgOutputProtector {
      * ctor
      * @param config             specific configuration
      * @param interfaceName      name of interface used in logging messages
+     * @param credentialContext protection credentials to use
      * @throws CmpProcessingException   in case of inconsistent configuration
      * @throws GeneralSecurityException in case of broken configuration
      */
