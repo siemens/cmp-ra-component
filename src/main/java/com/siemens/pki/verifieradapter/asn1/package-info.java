@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -16,8 +16,6 @@
  *  SPDX-License-Identifier: Apache-2.0
  */
 /**
- * implementation of "Remote Attestation with Certificate Signing Requests" as
- * specified in
- * https://datatracker.ietf.org/doc/draft-ietf-lamps-csr-attestation/
+ * ASN.1 types used in RAT
  */
-package com.siemens.pki.cmpracomponent.remoteattestation;
+package com.siemens.pki.verifieradapter.asn1;

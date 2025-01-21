@@ -27,15 +27,15 @@ import com.siemens.pki.cmpracomponent.configuration.GetFreshRatNonceHandler;
 import com.siemens.pki.cmpracomponent.configuration.GetRootCaCertificateUpdateHandler;
 import com.siemens.pki.cmpracomponent.configuration.GetRootCaCertificateUpdateHandler.RootCaCertificateUpdateResponse;
 import com.siemens.pki.cmpracomponent.configuration.SupportMessageHandlerInterface;
+import com.siemens.pki.cmpracomponent.configuration.VerifierAdapter;
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.msggeneration.MsgOutputProtector;
 import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import com.siemens.pki.cmpracomponent.msgvalidation.MessageContext;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
-import com.siemens.pki.cmpracomponent.remoteattestation.EvidenceObjectIdentifiers;
-import com.siemens.pki.cmpracomponent.remoteattestation.rest.RestApiFactory;
 import com.siemens.pki.cmpracomponent.util.ConfigLogger;
+import com.siemens.pki.verifieradapter.asn1.EvidenceObjectIdentifiers;
 import java.io.IOException;
 import java.security.cert.CRLException;
 import java.security.cert.CertificateException;
@@ -69,10 +69,6 @@ import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.asn1.x509.GeneralNames;
 import org.bouncycastle.asn1.x509.Time;
 import org.openapitools.client.ApiException;
-import org.openapitools.client.ApiResponse;
-import org.openapitools.client.api.DefaultApi;
-import org.openapitools.client.model.ChallengeResponseSession;
-import org.openapitools.client.model.ChallengeResponseSession.StatusEnum;
 
 /**
  * implementation of a GENM service handler
@@ -197,42 +193,21 @@ class ServiceImplementation {
         return new PKIBody(PKIBody.TYPE_GEN_REP, new GenRepContent(new InfoTypeAndValue(infoType)));
     }
 
-    private PKIBody handleGetFreshRatNonce(InfoTypeAndValue itav, GetFreshRatNonceHandler messageHandler)
+    private PKIBody handleGetFreshRatNonce(
+            InfoTypeAndValue itav,
+            GetFreshRatNonceHandler messageHandler,
+            byte[] transactionId,
+            VerifierAdapter verifyAdapter)
             throws ApiException, CmpProcessingException {
-        final String verifierBasePath = messageHandler.getBasePath().toString();
-        final DefaultApi apiInstance = RestApiFactory.getCreateApiClient(verifierBasePath);
-        final ApiResponse<ChallengeResponseSession> result =
-                apiInstance.newSessionPostWithHttpInfo(messageHandler.getNonceSize(), null);
-        final int statusCode = result.getStatusCode();
-        if (statusCode != 201 /* Created */) {
-            throw new CmpProcessingException(
-                    "RAT verifier at " + verifierBasePath,
-                    PKIFailureInfo.systemFailure,
-                    " returned HTTP status " + statusCode);
+        if (verifyAdapter == null) {
+            throw new CmpProcessingException(INTERFACE_NAME, PKIFailureInfo.systemFailure, "RAT not configured");
         }
-        final ChallengeResponseSession data = result.getData();
-        final StatusEnum status = data.getStatus();
-        if (status != StatusEnum.WAITING) {
-            throw new CmpProcessingException(
-                    "RAT verifier at " + verifierBasePath, PKIFailureInfo.systemFailure, "returned status " + status);
-        }
-        final List<String> locations = result.getHeaders().get("Location");
-        if (locations == null || locations.isEmpty()) {
-            throw new CmpProcessingException(
-                    "RAT verifier at " + verifierBasePath,
-                    PKIFailureInfo.systemFailure,
-                    "did not provide a new Session Location");
-        }
-        // Location: https://veraison.example/challenge-response/v1/session/1234567890
-        final String[] splittedLocation = locations.get(0).split("/");
-        final String sessionId = splittedLocation[splittedLocation.length - 1];
-        persistencyContext.setRatVerifierBasePath(verifierBasePath);
-        persistencyContext.setRatSessionId(sessionId);
+        final byte[] nonce = verifyAdapter.getFreshRatNonce(transactionId);
+
         persistencyContext.markAsPreparingGenm();
         return new PKIBody(
                 PKIBody.TYPE_GEN_REP,
-                new GenRepContent(
-                        new InfoTypeAndValue(EvidenceObjectIdentifiers.aa_nonce, new DEROctetString(data.getNonce()))));
+                new GenRepContent(new InfoTypeAndValue(EvidenceObjectIdentifiers.aa_nonce, new DEROctetString(nonce))));
     }
 
     private PKIBody handleGetRootCaCertificateUpdate(
@@ -305,7 +280,17 @@ class ServiceImplementation {
             } else if (messageHandler instanceof CrlUpdateRetrievalHandler) {
                 body = handleCrlUpdateRetrieval(itav, (CrlUpdateRetrievalHandler) messageHandler);
             } else if (messageHandler instanceof GetFreshRatNonceHandler) {
-                body = handleGetFreshRatNonce(itav, (GetFreshRatNonceHandler) messageHandler);
+                final VerifierAdapter verifyAdapter = ConfigLogger.logOptional(
+                        INTERFACE_NAME,
+                        "Configuration.getVerifierAdapter",
+                        config::getVerifierAdapter,
+                        persistencyContext.getCertProfile(),
+                        PKIBody.TYPE_GEN_MSG);
+                body = handleGetFreshRatNonce(
+                        itav,
+                        (GetFreshRatNonceHandler) messageHandler,
+                        msg.getHeader().getTransactionID().getOctets(),
+                        verifyAdapter);
             } else {
                 throw new CmpProcessingException(INTERFACE_NAME, PKIFailureInfo.systemFailure, "internal error");
             }

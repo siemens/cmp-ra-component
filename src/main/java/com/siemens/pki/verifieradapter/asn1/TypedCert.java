@@ -25,7 +25,7 @@
  * content     TYPED-CERT.&Type ({TypedCertSet}{@certType})
  * }
  */
-package com.siemens.pki.cmpracomponent.remoteattestation;
+package com.siemens.pki.verifieradapter.asn1;
 
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1EncodableVector;

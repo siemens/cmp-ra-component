@@ -15,7 +15,7 @@
  *
  *  SPDX-License-Identifier: Apache-2.0
  */
-package com.siemens.pki.cmpracomponent.remoteattestation;
+package com.siemens.pki.verifieradapter.asn1;
 
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;

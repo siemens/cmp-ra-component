@@ -90,6 +90,19 @@ public interface Configuration {
     InventoryInterface getInventory(String certProfile, int bodyType);
 
     /**
+     * optionally access function to external remote attestation verify adapter
+     *
+     * @param certProfile certificate profile extracted from the CMP request header
+     *                    generalInfo field or <code>null</code> if no certificate
+     *                    profile was specified
+     * @param bodyType    request/response PKI Message Body type
+     * @return external VerifierAdapter or <code>null</code>
+     */
+    default VerifierAdapter getVerifierAdapter(String certProfile, int bodyType) {
+        return null;
+    }
+
+    /**
      * provide a persistence implementation
      *
      * @return persistence implementation

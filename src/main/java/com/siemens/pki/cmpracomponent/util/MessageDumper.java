@@ -19,7 +19,7 @@ package com.siemens.pki.cmpracomponent.util;
 
 import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
-import com.siemens.pki.cmpracomponent.remoteattestation.EvidenceObjectIdentifiers;
+import com.siemens.pki.verifieradapter.asn1.EvidenceObjectIdentifiers;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

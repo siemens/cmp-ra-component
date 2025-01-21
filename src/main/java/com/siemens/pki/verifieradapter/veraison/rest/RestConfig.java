@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2023 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -15,13 +15,28 @@
  *
  *  SPDX-License-Identifier: Apache-2.0
  */
-package com.siemens.pki.cmpracomponent.configuration;
+package com.siemens.pki.verifieradapter.veraison.rest;
 
 /**
- * support message handler supporting Remote Attestation Procedures nonce genm
- * requests, see https://datatracker.ietf.org/doc/draft-ietf-rats-reference-interaction-models/ ,
- * and https://github.com/veraison/docs/blob/main/api/challenge-response/README.md
+ * hardcoded configuration parameter for veraison REST interface
  */
-public interface GetFreshRatNonceHandler extends SupportMessageHandlerInterface {
-    // up to now only a placeholder
+public class RestConfig {
+
+    // utility class
+    private RestConfig() {}
+
+    /**
+     * default REST API endpoint
+     */
+    public static final String DEFAULT_VERIFIER_BASE_PATH = "https://192.168.202.128:8080/challenge-response/v1";
+
+    /**
+     * HTTP conten typ to use
+     */
+    public static final String REQUEST_CONTENT_TYPE = "application/custom-plugin-evidence";
+
+    /**
+     * RAT nonce size
+     */
+    public static final int NONCE_SIZE = 32;
 }

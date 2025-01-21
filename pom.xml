@@ -149,7 +149,10 @@
 					</execution>
 				</executions>
 				<configuration>
-					<sourceFileExcludes>**/remoteattestation/**</sourceFileExcludes>
+					<sourceFileExcludes>
+						<sourceFileExclude>**/openapitools/**</sourceFileExclude>
+						<sourceFileExclude>**/asn1/**</sourceFileExclude>
+					</sourceFileExcludes>
 					<show>public</show>
 				</configuration>
 			</plugin>

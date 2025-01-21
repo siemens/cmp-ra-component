@@ -37,18 +37,18 @@ import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
 import com.siemens.pki.cmpracomponent.configuration.PersistencyInterface;
 import com.siemens.pki.cmpracomponent.configuration.SupportMessageHandlerInterface;
 import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
+import com.siemens.pki.cmpracomponent.configuration.VerifierAdapter;
 import com.siemens.pki.cmpracomponent.persistency.DefaultPersistencyImplementation;
-import com.siemens.pki.cmpracomponent.remoteattestation.EvidenceObjectIdentifiers;
 import com.siemens.pki.cmpracomponent.test.framework.ConfigFileLoader;
 import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
 import com.siemens.pki.cmpracomponent.test.framework.SignatureValidationCredentials;
 import com.siemens.pki.cmpracomponent.test.framework.TrustChainAndPrivateKey;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
+import com.siemens.pki.verifieradapter.asn1.EvidenceObjectIdentifiers;
+import com.siemens.pki.verifieradapter.veraison.rest.VerifierAdapterFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.security.KeyPair;
 import java.security.cert.X509Certificate;
 import java.util.List;
@@ -187,6 +187,11 @@ public class TestCrWithRAT extends EnrollmentTestcaseBase {
             }
 
             @Override
+            public VerifierAdapter getVerifierAdapter(String certProfile, int bodyType) {
+                return VerifierAdapterFactory.getCreateVerifierClient();
+            }
+
+            @Override
             public InventoryInterface getInventory(final String certProfile, final int bodyType) {
                 LOGGER.debug(
                         "getInventory called with certprofile: {}, type: {}",
@@ -275,23 +280,7 @@ public class TestCrWithRAT extends EnrollmentTestcaseBase {
                         certProfile,
                         infoTypeOid);
                 if (EvidenceObjectIdentifiers.aa_nonce.getId().equalsIgnoreCase(infoTypeOid)) {
-                    return new GetFreshRatNonceHandler() {
-
-                        @Override
-                        public URI getBasePath() {
-                            try {
-                                return new URI("https://192.168.202.128:8080/challenge-response/v1");
-                            } catch (final URISyntaxException e) {
-                                e.printStackTrace();
-                            }
-                            return null;
-                        }
-
-                        @Override
-                        public Integer getNonceSize() {
-                            return 32;
-                        }
-                    };
+                    return new GetFreshRatNonceHandler() {};
                 }
                 return null;
             }

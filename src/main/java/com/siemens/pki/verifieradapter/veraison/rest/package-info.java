@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2023 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -15,13 +15,7 @@
  *
  *  SPDX-License-Identifier: Apache-2.0
  */
-package com.siemens.pki.cmpracomponent.configuration;
-
 /**
- * support message handler supporting Remote Attestation Procedures nonce genm
- * requests, see https://datatracker.ietf.org/doc/draft-ietf-rats-reference-interaction-models/ ,
- * and https://github.com/veraison/docs/blob/main/api/challenge-response/README.md
+ * REST interface to Veraison verifier
  */
-public interface GetFreshRatNonceHandler extends SupportMessageHandlerInterface {
-    // up to now only a placeholder
-}
+package com.siemens.pki.verifieradapter.veraison.rest;

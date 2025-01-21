@@ -1,4 +1,4 @@
-package com.siemens.pki.cmpracomponent.remoteattestation;
+package com.siemens.pki.verifieradapter.asn1;
 
 /*
  *  Copyright (c) 2023 Siemens AG

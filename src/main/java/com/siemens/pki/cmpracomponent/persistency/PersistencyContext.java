@@ -40,7 +40,6 @@ public class PersistencyContext {
     private final TransactionStateTracker transactionStateTracker = new TransactionStateTracker(this);
 
     private Date expirationTime;
-
     private byte[] transactionId;
     private String certProfile;
     private PrivateKey newGeneratedPrivateKey;
@@ -60,10 +59,6 @@ public class PersistencyContext {
     private PersistencyContextManager contextManager;
 
     private int certificateRequestType;
-
-    private String ratSessionId;
-
-    private String ratVerifierBasePath;
 
     /**
      * ctor used by jackson
@@ -184,22 +179,6 @@ public class PersistencyContext {
      */
     public PKIMessage getPendingDelayedResponse() {
         return pendingDelayedResponse;
-    }
-
-    /**
-     * get remote attestation verifier REST sessionId
-     * @return sessionId
-     */
-    public String getRatSessionId() {
-        return ratSessionId;
-    }
-
-    /**
-     * get remote attestation REST verifier base path
-     * @return the base path
-     */
-    public String getRatVerifierBasePath() {
-        return ratVerifierBasePath;
     }
 
     /**
@@ -346,22 +325,6 @@ public class PersistencyContext {
                     "duplicate response for same transactionID");
         }
         this.pendingDelayedResponse = delayedResponse;
-    }
-
-    /**
-     * set remote attestation Verifier REST session id
-     * @param sessionId sessionId
-     */
-    public void setRatSessionId(String sessionId) {
-        ratSessionId = sessionId;
-    }
-
-    /**
-     * set remote attestation REST verifier base path
-     * @param verifierBasePath the base path
-     */
-    public void setRatVerifierBasePath(String verifierBasePath) {
-        ratVerifierBasePath = verifierBasePath;
     }
 
     /**

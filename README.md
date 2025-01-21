@@ -324,3 +324,28 @@ at `target/site/apidocs/com/siemens/pki/cmpracomponent/main/CmpRaComponent.html`
 # Acknowledgements
 
 This work was partly funded by the German Federal Ministry of Education and Research in the project Quoryptan through grant number **16KIS2033**.
+
+# Support for Remote Attestation in Certificate Signing Requests (CSRs)
+
+This branch supports the internet drafts [Use of Remote Attestation with Certification Signing Requests](https://datatracker.ietf.org/doc/draft-ietf-lamps-csr-attestation/) and [Nonce-based Freshness for Remote Attestation in Certificate Signing Requests (CSRs) for the Certification Management Protocol (CMP) and for Enrollment over Secure Transport (EST) draft-ietf-lamps-attestation-freshness](https://datatracker.ietf.org/doc/draft-ietf-lamps-attestation-freshness/).
+
+## Design
+
+The [RA configuration interface](src/main/java/com/siemens/pki/cmpracomponent/configuration/Configuration.java) allows to
+register an [`com.siemens.pki.cmpracomponent.configuration.VerifierAdapter`](src/main/java/com/siemens/pki/verifieradapter/VerifierAdapter.java)  interface to an external Verifier. This interface is called 
+by a modified [`com.siemens.pki.cmpracomponent.msgprocessing.ServiceImplementation`](src/main/java/com/siemens/pki/cmpracomponent/msgprocessing/ServiceImplementation.java) to obtain a fresh RAT nonce via 
+GENM/GENREP and also by the [`com.siemens.pki.cmpracomponent.msgprocessing.RaDownstream`](src/main/java/com/siemens/pki/cmpracomponent/msgprocessing/RaDownstream.java) to process the subsequent CRMF template. 
+
+As an example implementation the REST interface to a [Veraison Attestation Verification Service](https://github.com/veraison) is provided at [`com.siemens.pki.verifieradapter.veraison.rest`](src/main/java/com/siemens/pki/verifieradapter/veraison/rest). 
+
+The [Client configuration interface](./src/main/java/com/siemens/pki/cmpclientcomponent/configuration/ClientContext.java) allows to register an [`com.siemens.pki.cmpclientcomponent.configuration.ClientAttestationContext`](src/main/java/com/siemens/pki/cmpclientcomponent/configuration/ClientAttestationContext.java) interface to an external Attester.
+
+The package [`com.siemens.pki.verifieradapter.asn1`](src/main/java/com/siemens/pki/verifieradapter/asn1) supports some ASN.1 definitons from [Use of Remote Attestation with Certification Signing Requests](https://datatracker.ietf.org/doc/draft-ietf-lamps-csr-attestation/).
+
+## Test case
+
+The [`com.siemens.pki.cmpclientcomponent.test.TestCrWithRAT`](src/test/java/com/siemens/pki/cmpclientcomponent/test/TestCrWithRAT.java) shows setup and execution of a RAT sequence. To execute the TC the verifier REST endpoint [`com.siemens.pki.verifieradapter.veraison.rest.RestConfig.DEFAULT_VERIFIER_BASE_PATH`](src/main/java/com/siemens/pki/verifieradapter/veraison/rest/RestConfig.java) needs to be adapted to the current network setup.
+
+## Standalone Setup
+For a standalone setup look at [LightweightCmpRa](https://code.siemens.com/ct-rda-cst-ses-de/remote-attestation/base-functionality/lightweightcmpra/-/tree/RAT_integration?ref_type=heads).
+
