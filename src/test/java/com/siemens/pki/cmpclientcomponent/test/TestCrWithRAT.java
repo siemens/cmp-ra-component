@@ -280,7 +280,7 @@ public class TestCrWithRAT extends EnrollmentTestcaseBase {
                         @Override
                         public URI getBasePath() {
                             try {
-                                return new URI("http://192.168.202.128:8080/challenge-response/v1");
+                                return new URI("https://192.168.202.128:8080/challenge-response/v1");
                             } catch (final URISyntaxException e) {
                                 e.printStackTrace();
                             }
