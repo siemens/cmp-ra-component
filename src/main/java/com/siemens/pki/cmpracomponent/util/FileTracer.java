@@ -21,6 +21,7 @@ import static com.siemens.pki.cmpracomponent.util.NullUtil.defaultIfNull;
 import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.util.Base64;
@@ -68,6 +69,18 @@ public class FileTracer {
         // "pem+txt+der+asn1+json+yaml"
         final String dumpFormat = System.getProperty("dumpformat", "yaml").toLowerCase();
         init(dumpDirName, dumpFormat);
+    }
+
+    /**
+     * use this to parse  DER-encoded messages from a given filename
+     * @param args arg[0] file name for DER encoded {@link PKIMessage} to load
+     */
+    public static void main(String[] args) {
+        try (FileInputStream fi = new FileInputStream(args[0])) {
+            logMessage(PKIMessage.getInstance(fi.readAllBytes()), "fromFile");
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
     }
 
     /**
