@@ -82,8 +82,8 @@ public class PersistencyContext {
     }
 
     /**
-     * store or clear persisten state
-     * @throws IOException en case of erro
+     * store or clear persistent state
+     * @throws IOException in case of error
      */
     public void flush() throws IOException {
         if (transactionStateTracker.isTransactionTerminated()) {

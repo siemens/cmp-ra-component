@@ -95,7 +95,7 @@ public class TrustChainAndPrivateKey implements SignatureCredentialContext, Veri
         final JcaX509ExtensionUtils extUtils = new JcaX509ExtensionUtils();
 
         KeyPairGenerator altKpg =
-                NullUtil.ifNotNull(altSigningAlg, s -> KeyPairGeneratorFactory.getGenericKeyPairGenerator(s));
+                NullUtil.ifNotNull(altSigningAlg, KeyPairGeneratorFactory::getGenericKeyPairGenerator);
 
         // generate trusted root
         KeyPair rootKeypair = kpg[0].generateKeyPair();

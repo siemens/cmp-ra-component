@@ -45,8 +45,6 @@ import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;
 
 public class CmpClientTestcaseBase {
 

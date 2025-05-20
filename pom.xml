@@ -8,7 +8,7 @@
 	<groupId>com.siemens.pki</groupId>
 	<artifactId>CmpRaComponent</artifactId>
 	<packaging>jar</packaging>
-	<version>4.3.0_QOURYPTAN</version>
+	<version>4.3.0_PQ</version>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<parent.basedir>.</parent.basedir>

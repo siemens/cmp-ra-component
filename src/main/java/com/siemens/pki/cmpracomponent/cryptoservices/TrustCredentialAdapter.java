@@ -76,7 +76,7 @@ public class TrustCredentialAdapter {
     /**
      * ctor
      *
-     * @param config        specific configuration
+     * @param config specific configuration
      * @param interfaceName CMP interface name for logging
      */
     public TrustCredentialAdapter(final VerificationContext config, String interfaceName) {
@@ -109,7 +109,7 @@ public class TrustCredentialAdapter {
      *                                    validation
      * @return the validated chain without trust anchor but with cert or
      *         <code>null</code> if the validation failed
-     * @throws NoSuchProviderException      if provider is not available
+     * @throws NoSuchProviderException if provider is not available
      * @throws IOException in case of encoding error
      * @throws CertificateEncodingException in case of encoding error
      * @throws CertException in case of encoding error

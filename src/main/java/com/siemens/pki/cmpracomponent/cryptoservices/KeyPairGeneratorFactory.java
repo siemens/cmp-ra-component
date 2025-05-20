@@ -43,7 +43,6 @@ public class KeyPairGeneratorFactory {
      * @throws GeneralSecurityException if key pair generator generation failed
      */
     public static KeyPairGenerator getEcKeyPairGenerator(final String curve) throws GeneralSecurityException {
-
         final KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC", CertUtility.getBouncyCastleProvider());
         try {
             final ECGenParameterSpec ecSpec = new ECGenParameterSpec(curve);
@@ -78,7 +77,7 @@ public class KeyPairGeneratorFactory {
      */
     public static KeyPairGenerator getGenericKeyPairGenerator(final ASN1ObjectIdentifier algOid)
             throws GeneralSecurityException {
-        return KeyPairGenerator.getInstance(algOid.getId(), CertUtility.getBouncyCastleProvider());
+        return getGenericKeyPairGenerator(algOid.getId());
     }
 
     /**

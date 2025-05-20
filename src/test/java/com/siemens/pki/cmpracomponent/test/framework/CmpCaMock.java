@@ -59,7 +59,6 @@ import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
-import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
@@ -101,9 +100,7 @@ public class CmpCaMock implements CmpRaComponent.UpstreamExchange {
             Extensions extensionsFromTemplate)
             throws Exception {
         final long now = System.currentTimeMillis();
-        final PublicKey pubKey = new JcaPEMKeyConverter()
-                .setProvider(CertUtility.getBouncyCastleProvider())
-                .getPublicKey(publicKey);
+        final PublicKey pubKey = CertUtility.parsePublicKey(publicKey);
         final X509v3CertificateBuilder v3CertBldr = new JcaX509v3CertificateBuilder(
                 issuingCert.getSubjectX500Principal(),
                 BigInteger.valueOf(now),

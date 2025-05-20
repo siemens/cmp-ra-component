@@ -60,8 +60,7 @@ public class DataSigner {
      */
     public DataSigner(final BaseCredentialService credentialService)
             throws OperatorCreationException, CertificateEncodingException, IOException, CMSException {
-        SignerInfoGenerator signerInfoGenerator;
-        signerInfoGenerator = new JcaSimpleSignerInfoGeneratorBuilder()
+        final SignerInfoGenerator signerInfoGenerator = new JcaSimpleSignerInfoGeneratorBuilder()
                 .setProvider(CertUtility.getBouncyCastleProvider())
                 .build(
                         credentialService.getSignatureAlgorithmName(),
