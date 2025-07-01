@@ -12,8 +12,8 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<parent.basedir>.</parent.basedir>
-		<spotless.version>2.44.3</spotless.version>
-		<jacoco.version>0.8.12</jacoco.version>
+		<spotless.version>2.44.5</spotless.version>
+		<jacoco.version>0.8.13</jacoco.version>
 		<source.version>3.3.1</source.version>
 		<maven.compiler.source>11</maven.compiler.source>
 		<maven.compiler.target>11</maven.compiler.target>
@@ -83,7 +83,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
-				<version>3.5.2</version>
+				<version>3.5.3</version>
 				<configuration>
 					<excludes>
 						<exclude>**/local/**</exclude>
@@ -225,12 +225,12 @@
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcprov-jdk18on</artifactId>
-			<version>1.80</version>
+			<version>1.81</version>
 		</dependency>
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcpkix-jdk18on</artifactId>
-			<version>1.80</version>
+			<version>1.81</version>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
@@ -240,12 +240,12 @@
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
-			<version>2.18.3</version>
+			<version>2.19.1</version>
 		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.dataformat</groupId>
 			<artifactId>jackson-dataformat-yaml</artifactId>
-			<version>2.18.3</version>
+			<version>2.19.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jacoco</groupId>
@@ -259,7 +259,7 @@
 			CVE-2021-26291.-->
 			<groupId>org.apache.maven.shared</groupId>
 			<artifactId>file-management</artifactId>
-			<version>3.1.0</version>
+			<version>3.2.0</version>
 		</dependency>
 	</dependencies>
 	<scm>
