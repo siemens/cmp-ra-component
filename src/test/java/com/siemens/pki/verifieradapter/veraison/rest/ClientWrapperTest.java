@@ -3,6 +3,12 @@ import org.junit.Test;
 import org.junit.Assert;
 
 public class ClientWrapperTest {
+
+    /**
+     * Given an attestation response,
+     * When the data is not a valid JSON structure,
+     * Then the attestation result must be considered negative.
+     */
     @Test
     public void testIsAttestationResultPositive_withInvalidJwt() {
         ClientWrapper clientWrapper = new ClientWrapper("http://localhost");
@@ -13,9 +19,14 @@ public class ClientWrapperTest {
         } catch (Exception e) {
             Assert.fail("Exception thrown for invalid input that should have been handled: " + e.getMessage());
         }
-        Assert.assertFalse(result);//, "Expected false for invalid JWT input");
+        Assert.assertFalse(result);
     }
 
+    /**
+     * Given an attestation response,
+     * When the data is valid JSON structure that contains a valid attestation result with an "affirming" status
+     * Then the attestation result must be considered positive.
+     */
     @Test
     public void testIsAttestationResultPositive_withValidJson() {
         ClientWrapper clientWrapper = new ClientWrapper("http://localhost");
