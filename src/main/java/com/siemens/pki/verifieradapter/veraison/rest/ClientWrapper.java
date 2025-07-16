@@ -242,6 +242,10 @@ public class ClientWrapper implements VerifierAdapter {
                     }
                     final String resultJwt = responseData.getResult();
                     LOGGER.info("got attestation JWT:\n" + resultJwt);
+
+                    if(!isAttestationResultPositive(resultJwt)) {
+                        throw new ApiException("RAT verifier returned a negative attestation result");
+                    }
                     return resultJwt;
                 }
                 case 202: // The client is supposed to poll the resource
