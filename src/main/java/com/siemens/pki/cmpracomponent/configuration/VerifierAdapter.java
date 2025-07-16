@@ -20,14 +20,14 @@ package com.siemens.pki.cmpracomponent.configuration;
 import org.openapitools.client.ApiException;
 
 /**
- * adapter to verfier
+ * adapter to verifier
  */
 public interface VerifierAdapter {
 
     /**
      * turn evidence into verification result
      * @param transactionId current CMP transactionId, used to map related calls to getFreshRatNonce and processRatVerification
-     * @param evidence eveidence provided by EE
+     * @param evidence evidence provided by EE
      * @return verification result
      * @throws ApiException if API to Verifier fails
      * @throws InterruptedException it thread handling fails
@@ -35,7 +35,7 @@ public interface VerifierAdapter {
     String processRatVerification(byte[] transactionId, byte[] evidence) throws ApiException, InterruptedException;
 
     /**
-     * create fres RAT nonce
+     * create fresh RAT nonce
      * @param transactionId current CMP transactionId, used to map related calls to getFreshRatNonce and processRatVerification
      * @return fresh RAT nonce from verifier
      * @throws ApiException if API to Verifier fails
