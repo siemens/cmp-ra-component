@@ -6,18 +6,18 @@ The generic CMP component supports the implementation of Java applications
 that provide CMP Registration Authority (RA) and/or CMP client functions.
 
 It implements the CMP features specified in the
-[Lightweight Certificate Management Protocol (CMP) Profile](
+[Lightweight Certificate Management Protocol (CMP) Profile, RFC 9483](
 https://datatracker.ietf.org/doc/draft-ietf-lamps-lightweight-cmp-profile/),
-reflecting the updates to CMP (RFC 4210) and CRMF (RFC 4211) given in
-[Certificate Management Protocol (CMP) Updates](
-https://datatracker.ietf.org/doc/draft-ietf-lamps-cmp-updates/)
-and [Certificate Management Protocol (CMP) Algorithms](
-https://datatracker.ietf.org/doc/draft-ietf-lamps-cmp-algorithms/).
+reflecting the updates to CMPv2 (RFC 4210) and CRMF (RFC 4211) given in
+[Certificate Management Protocol (CMP) Updates, RFC 9880](
+https://datatracker.ietf.org/doc/rfc9480/)
+and [Certificate Management Protocol (CMP) Algorithms, RFC 9481](
+https://datatracker.ietf.org/doc/rfc9481/).
 
-It has been used as a reference implementation for the standardization of 
-CMP Updates, CMP Algorithms, and the Lightweight CMP Profile (LCMPP)
-and is being used for PoC developments for the standardization of
-[RFC4210bis](https://datatracker.ietf.org/doc/html/draft-ietf-lamps-rfc4210bis).
+It has been used as the reference implementation for the standardization
+of CMP Updates, CMP Algorithms, the Lightweight CMP Profile (LCMPP), and
+the new [Internet X.509 PKI -- Certificate Management Protocol (CMP) RFC 9810](
+https://datatracker.ietf.org/doc/rfc9810/).
 
 It serves as the core of productive Java-based CMP developments.\
 It is also used in the
