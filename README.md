@@ -5,9 +5,9 @@
 The generic CMP component supports the implementation of Java applications
 that provide CMP Registration Authority (RA) and/or CMP client functions.
 
-It implements the CMP features specified in the
+It implements all CMP features specified in the
 [Lightweight Certificate Management Protocol (CMP) Profile, RFC 9483](
-https://datatracker.ietf.org/doc/draft-ietf-lamps-lightweight-cmp-profile/),
+https://datatracker.ietf.org/doc/rfc9483/),
 reflecting the updates to CMPv2 (RFC 4210) and CRMF (RFC 4211) given in
 [Certificate Management Protocol (CMP) Updates, RFC 9880](
 https://datatracker.ietf.org/doc/rfc9480/)
