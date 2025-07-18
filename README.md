@@ -24,6 +24,14 @@ It is also used in the
 [Lightweight CMP RA and CMP Client](https://github.com/siemens/LightweightCmpRa/)
 Java application for demonstration and test purposes.
 
+# Interfaces of generic CMP RA component
+
+This picture gives and overview of the high-level Java-based API of the component.
+
+![Interface overview of the generic CMP RA component](doc/CmpRaComponent-interfaces.png)
+
+For more detail, see [below](#component-and-interface-design).
+
 
 ## Basic features for use in PoCs, reference implementations, and in production
 
