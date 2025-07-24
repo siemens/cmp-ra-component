@@ -17,6 +17,9 @@
  */
 package com.siemens.pki.verifieradapter.veraison.rest;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.siemens.pki.cmpracomponent.configuration.VerifierAdapter;
 import java.net.Socket;
 import java.net.http.HttpClient;
@@ -154,6 +157,57 @@ public class ClientWrapper implements VerifierAdapter {
         return data.getNonce();
     }
 
+    /**
+     * Check if the attestation result is complete and positive.
+     *
+     * Ensure that the status is "complete" and that the evidence status is "affirming", any
+     * deviation from that is considered a failure.
+     *
+     * @param jwt the JWT to check
+     * @return true if the attestation result is positive, false otherwise
+     */
+    public boolean isAttestationResultPositive(String jwt) {
+        if (jwt == null || jwt.isEmpty()) {
+            return false;
+        }
+
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            JsonNode root = mapper.readTree(jwt);
+
+            String status = root.path("status").asText();
+            if (status == null || !status.equals("complete")) {
+                LOGGER.warn("Attestation status is not `complete`: " + status);
+                return false;
+            }
+
+            // Examine the evidence to ensure the status is "affirming".
+            // Check `result.submods.ATG_PLUGIN.ear.status` inside the JWT JSON structure. Beware that
+            // `result` is a dot-separated string with 3 components encoded as base64, we look into the second one; and that
+            // `ear.status` is an actual attribute name, not a nested structure.
+            String attestationResultB64 = root.path("result").asText().split("\\.")[1];
+            byte[] decodedPayload = Base64.getUrlDecoder().decode(attestationResultB64);
+            JsonNode payloadNode = mapper.readTree(new String(decodedPayload));
+
+            String earStatus = payloadNode.path("submods").path("ATG_PLUGIN").path("ear.status").asText();
+            if (earStatus == null || !earStatus.equals("affirming")) {
+                LOGGER.warn("Attestation result is not `affirming`: " + status);
+                return false;
+            }
+
+            LOGGER.info("Attestation is `affirming`, verifier " +
+                    payloadNode.path("ear.verifier-id").path("developer").asText("N/A"));
+        } catch (JsonProcessingException e) {
+            LOGGER.error("Failed to parse JWT: " + jwt, e);
+            return false;
+        }
+
+        // TODO consider what other checks to perform
+        // - nonce is correct
+        // - the response did not expire
+        return true;
+    }
+
     @Override
     public String processRatVerification(byte[] transactionId, byte[] evidence)
             throws ApiException, InterruptedException {
@@ -188,6 +242,10 @@ public class ClientWrapper implements VerifierAdapter {
                     }
                     final String resultJwt = responseData.getResult();
                     LOGGER.info("got attestation JWT:\n" + resultJwt);
+
+                    if(!isAttestationResultPositive(resultJwt)) {
+                        throw new ApiException("RAT verifier returned a negative attestation result");
+                    }
                     return resultJwt;
                 }
                 case 202: // The client is supposed to poll the resource
