@@ -28,10 +28,10 @@ public class RestConfig {
     /**
      * default REST API endpoint
      */
-    public static final String DEFAULT_VERIFIER_BASE_PATH = "https://192.168.202.128:8080/challenge-response/v1";
+    public static final String DEFAULT_VERIFIER_BASE_PATH = "https://192.168.110.11:8443/challenge-response/v1";
 
     /**
-     * HTTP conten typ to use
+     * HTTP content type to use
      */
     public static final String REQUEST_CONTENT_TYPE = "application/custom-plugin-evidence";
 
