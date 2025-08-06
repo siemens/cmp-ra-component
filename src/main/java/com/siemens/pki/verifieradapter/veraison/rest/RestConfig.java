@@ -33,7 +33,7 @@ public class RestConfig {
     /**
      * HTTP content type to use
      */
-    public static final String REQUEST_CONTENT_TYPE = "application/custom-plugin-evidence";
+    public static final String REQUEST_CONTENT_TYPE = "application/atg-plugin-evidence";
 
     /**
      * RAT nonce size
