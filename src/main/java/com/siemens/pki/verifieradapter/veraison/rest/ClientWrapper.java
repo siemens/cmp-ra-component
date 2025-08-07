@@ -121,14 +121,8 @@ public class ClientWrapper implements VerifierAdapter {
         // ugly hack to come around https://github.com/OpenAPITools/openapi-generator/issues/7059
         // by default "*/*" maps to "application/json" but veraison expects "application/custom-plugin-evidence" in POST
         wrappedClient.setRequestInterceptor(
-                builder -> builder.setHeader("Content-Type", "application/custom-plugin-evidence"));
-        wrappedClient.updateBaseUri(verifierBasePath);
-        // ugly hack to come around
-        // https://github.com/OpenAPITools/openapi-generator/issues/7059
-        // by default "*/*" maps to "application/json" but veraison expects
-        // "application/psa-attestation-token" in POST
-        wrappedClient.setRequestInterceptor(
-                builder -> builder.setHeader("Content-Type", RestConfig.REQUEST_CONTENT_TYPE));
+            builder -> builder.setHeader("Content-Type", RestConfig.REQUEST_CONTENT_TYPE)
+        );
         wrappedClient.updateBaseUri(ratVerifierBasePath);
         wrappedDefaultApi = new DefaultApi(wrappedClient);
     }
