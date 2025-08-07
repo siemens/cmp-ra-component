@@ -214,7 +214,7 @@ public class ClientWrapper implements VerifierAdapter {
             throw new ApiException("RAT verifier at " + verifierBasePath + "  not in status WAITING: " + status);
         }
         apiResponse = wrappedDefaultApi.sessionSessionIdPostWithHttpInfo(
-                ratSessionId, Base64.getEncoder().encodeToString(evidence));
+                ratSessionId, new String(evidence));
         for (; ; ) {
             statusCode = apiResponse.getStatusCode();
             switch (statusCode) {
