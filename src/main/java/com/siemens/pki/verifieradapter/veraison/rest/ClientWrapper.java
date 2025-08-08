@@ -167,30 +167,22 @@ public class ClientWrapper implements VerifierAdapter {
 
         ObjectMapper mapper = new ObjectMapper();
         try {
-            JsonNode root = mapper.readTree(jwt);
-
-            String status = root.path("status").asText();
-            if (status == null || !status.equals("complete")) {
-                LOGGER.warn("Attestation status is not `complete`: " + status);
-                return false;
-            }
-
-            // Examine the evidence to ensure the status is "affirming".
-            // Check `result.submods.ATG_PLUGIN.ear.status` inside the JWT JSON structure. Beware that
-            // `result` is a dot-separated string with 3 components encoded as base64, we look into the second one; and that
-            // `ear.status` is an actual attribute name, not a nested structure.
-            String attestationResultB64 = root.path("result").asText().split("\\.")[1];
+            // `jwt` is a dot-separated string with 3 components encoded as base64, we look into the second one.
+            String attestationResultB64 = jwt.split("\\.")[1];
             byte[] decodedPayload = Base64.getUrlDecoder().decode(attestationResultB64);
-            JsonNode payloadNode = mapper.readTree(new String(decodedPayload));
 
-            String earStatus = payloadNode.path("submods").path("ATG_PLUGIN").path("ear.status").asText();
+            JsonNode root = mapper.readTree(new String(decodedPayload));
+
+            // Check the evidence to ensure the status is "affirming", look into `result.submods.ATG_PLUGIN.ear.status`,
+            // beware that `ear.status` is an actual attribute name, not a nested structure.
+            String earStatus = root.path("submods").path("ATG_PLUGIN").path("ear.status").asText();
             if (earStatus == null || !earStatus.equals("affirming")) {
-                LOGGER.warn("Attestation result is not `affirming`: " + status);
+                LOGGER.warn("Attestation result is not `affirming`: " + earStatus);
                 return false;
             }
 
             LOGGER.info("Attestation is `affirming`, verifier " +
-                    payloadNode.path("ear.verifier-id").path("developer").asText("N/A"));
+                    root.path("ear.verifier-id").path("developer").asText("N/A"));
         } catch (JsonProcessingException e) {
             LOGGER.error("Failed to parse JWT: " + jwt, e);
             return false;
