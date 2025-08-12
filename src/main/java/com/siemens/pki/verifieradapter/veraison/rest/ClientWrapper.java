@@ -170,6 +170,11 @@ public class ClientWrapper implements VerifierAdapter {
             // `jwt` is a dot-separated string with 3 components encoded as base64, we look into the second one.
             String attestationResultB64 = jwt.split("\\.")[1];
             byte[] decodedPayload = Base64.getUrlDecoder().decode(attestationResultB64);
+            // Pretty print the JSON string
+            String prettyJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(
+                mapper.readTree(new String(decodedPayload))
+            );
+            LOGGER.info("Attestation result:\n" + prettyJson);
 
             JsonNode root = mapper.readTree(new String(decodedPayload));
 
