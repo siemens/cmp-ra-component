@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2023 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -28,43 +28,25 @@ import org.bouncycastle.asn1.cmp.PKIBody;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestPasswordBasedIr extends EnrollmentTestcaseBase {
+// just to cover skip and forceReprotect
+public class TestBasswordBasedIrWithoutResponseValidation extends EnrollmentTestcaseBase {
 
     @Before
     public void setUp() throws Exception {
-        final Configuration config = ConfigurationFactory.buildPasswordbasedDownstreamConfiguration();
+        final Configuration config =
+                ConfigurationFactory.buildPasswordbasedDownstreamConfigurationWithoutResponseValidation();
         launchCmpCaAndRa(config);
     }
 
     @Test
-    public void testIrPASSWORDBASEDMAC() throws Exception {
-        final EnrollmentResult ret = getPasswordBasedCmpClient(
-                        "theCertProfileForOnlineEnrollment",
+    public void testIrWithoutResponseValidation() throws Exception {
+        final EnrollmentResult ret = getPasswordBasedCmpClientWithoutResponseValidation(
+                        "theCertProfileForOnlineEnrollmentWithoutResponseValidation",
                         getClientContext(
                                 PKIBody.TYPE_CERT_REQ,
                                 ConfigurationFactory.getKeyGenerator().generateKeyPair(),
                                 null),
                         new SharedSecret("PASSWORDBASEDMAC", TestUtils.PASSWORD),
-                        null)
-                .invokeEnrollment();
-        assertNotNull(ret);
-    }
-
-    /**
-     * Enrolling an End Entity to a New PKI/Using MAC-Based Protection for
-     * Enrollment
-     *
-     * @throws Exception in case of error
-     */
-    @Test
-    public void testPbmac1Ir() throws Exception {
-        final EnrollmentResult ret = getPasswordBasedCmpClient(
-                        "theCertProfileForOnlineEnrollment",
-                        getClientContext(
-                                PKIBody.TYPE_CERT_REQ,
-                                ConfigurationFactory.getKeyGenerator().generateKeyPair(),
-                                null),
-                        new SharedSecret("PBMAC1", TestUtils.PASSWORD),
                         null)
                 .invokeEnrollment();
         assertNotNull(ret);

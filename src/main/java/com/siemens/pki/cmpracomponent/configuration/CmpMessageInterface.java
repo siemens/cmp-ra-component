@@ -76,11 +76,26 @@ public interface CmpMessageInterface {
     }
 
     /**
-     * provide configuration for protection mode of outgoing messages
+     * provide configuration for protection mode of outgoing messages. Responses
+     * to MAC-based requests at Downstream are always reprotected using the same
+     * credentials if {@link CmpMessageInterface#isEnforceReprotectMode()}
+     * returns <code>false</code>.
      *
      * @return protection mode
      */
     ReprotectMode getReprotectMode();
+
+    /**
+     * enforce protection mode of outgoing messages as given by
+     * {@link #getReprotectMode()} even if the last incoming message was
+     * MAC-based protected.
+     * @return <code>true</code>, if reprotection can be enforced,
+     * <code>false</code> if response to an MAC-based protected request should
+     * be protected using the same credentials
+     */
+    default boolean isEnforceReprotectMode() {
+        return false;
+    }
 
     /**
      * If the method returns true, do not sent an extraCerts certificate twice in a

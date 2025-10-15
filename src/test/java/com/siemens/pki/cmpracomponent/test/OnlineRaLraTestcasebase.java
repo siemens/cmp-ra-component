@@ -78,6 +78,7 @@ public class OnlineRaLraTestcasebase extends OnlineEnrollmentTestcaseBase {
                 downStreamCredentials,
                 ReprotectMode.keep,
                 downstreamTrust,
+                false,
                 upstreamCredentials,
                 upstreamTrust,
                 enrollmentTrust);
