@@ -361,14 +361,14 @@ public class PersistencyContext {
     }
 
     /**
-     * in case of indirect KEM POP the cert responded by RA must be encryptet. Enable it.
+     * in case of indirect KEM POP the cert responded by RA must be encrypted. Enable it.
      *
      */
     public void setRespondedCertMustBeEncrypted() {
         respondedCertMustBeEncrypted = true;
     }
     /**
-     * in case of indirect KEM POP the cert responded by RA must be encryptet
+     * in case of indirect KEM POP the cert responded by RA must be encrypted
      * @return <code>true</code> if indirect KEM POP is used for enrollment
      */
     public boolean isRespondedCertMustBeEncrypted() {
