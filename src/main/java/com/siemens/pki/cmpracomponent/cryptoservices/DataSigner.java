@@ -51,11 +51,12 @@ public class DataSigner {
 
     /**
      * ctor
+     *
      * @param credentialService credentials used for signing
-     * @throws OperatorCreationException in case of error
+     * @throws OperatorCreationException    in case of error
      * @throws CertificateEncodingException in case of error
-     * @throws IOException in case of error
-     * @throws CMSException in case of error
+     * @throws IOException                  in case of error
+     * @throws CMSException                 in case of error
      */
     public DataSigner(final BaseCredentialService credentialService)
             throws OperatorCreationException, CertificateEncodingException, IOException, CMSException {
@@ -79,13 +80,14 @@ public class DataSigner {
 
     /**
      * ctor
-     * @param privateKey private key used for signing
+     *
+     * @param privateKey     private key used for signing
      * @param endCertificate certificate used for signing
      * @param interfaceName CMP interface name for logging
      * @throws CertificateEncodingException in case of error
-     * @throws OperatorCreationException in case of error
-     * @throws IOException in case of error
-     * @throws CMSException in case of error
+     * @throws OperatorCreationException    in case of error
+     * @throws IOException                  in case of error
+     * @throws CMSException                 in case of error
      */
     public DataSigner(final PrivateKey privateKey, final X509Certificate endCertificate, String interfaceName)
             throws CertificateEncodingException, OperatorCreationException, IOException, CMSException {

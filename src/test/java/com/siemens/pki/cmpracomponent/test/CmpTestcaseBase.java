@@ -20,7 +20,6 @@ package com.siemens.pki.cmpracomponent.test;
 import static org.junit.Assert.fail;
 
 import com.siemens.pki.cmpracomponent.configuration.Configuration;
-import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.main.CmpRaComponent;
 import com.siemens.pki.cmpracomponent.main.CmpRaComponent.CmpRaInterface;
 import com.siemens.pki.cmpracomponent.main.CmpRaComponent.UpstreamExchange;
@@ -28,7 +27,6 @@ import com.siemens.pki.cmpracomponent.test.framework.CmpCaMock;
 import com.siemens.pki.cmpracomponent.test.framework.ConfigFileLoader;
 import java.io.File;
 import java.io.IOException;
-import java.security.Security;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.bouncycastle.asn1.cmp.PKIMessage;
@@ -41,7 +39,6 @@ public class CmpTestcaseBase {
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        Security.addProvider(CertUtility.getBouncyCastleProvider());
         ConfigFileLoader.setConfigFileBase(CONFIG_DIRECTORY);
     }
 

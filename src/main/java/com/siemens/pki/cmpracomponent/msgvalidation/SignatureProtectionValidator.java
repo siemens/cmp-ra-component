@@ -18,6 +18,7 @@
 package com.siemens.pki.cmpracomponent.msgvalidation;
 
 import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
+import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.cryptoservices.TrustCredentialAdapter;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
@@ -67,7 +68,7 @@ class SignatureProtectionValidator implements ValidatorIF<Void> {
         final PKIHeader header = message.getHeader();
         final byte[] protectedBytes = new ProtectedPart(header, message.getBody()).getEncoded(ASN1Encoding.DER);
         final byte[] protectionBytes = message.getProtection().getBytes();
-        final Signature sig = Signature.getInstance(algorithm.getId(), CertUtility.getBouncyCastleProvider());
+        final Signature sig = AlgorithmHelper.getSignature(algorithm.getId());
         sig.initVerify(protectingCert.getPublicKey());
         sig.update(protectedBytes);
         if (!sig.verify(protectionBytes, 0, protectionBytes.length)) {

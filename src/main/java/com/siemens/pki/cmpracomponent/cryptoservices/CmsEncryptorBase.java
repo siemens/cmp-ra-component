@@ -18,9 +18,9 @@
 package com.siemens.pki.cmpracomponent.cryptoservices;
 
 import com.siemens.pki.cmpracomponent.configuration.CkgContext;
-import com.siemens.pki.cmpracomponent.util.ConfigLogger;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
+import java.security.Provider;
 import org.bouncycastle.asn1.ASN1Object;
 import org.bouncycastle.asn1.cms.EnvelopedData;
 import org.bouncycastle.cms.CMSEnvelopedData;
@@ -35,17 +35,19 @@ import org.bouncycastle.cms.jcajce.JceCMSContentEncryptorBuilder;
  */
 public class CmsEncryptorBase {
 
+    protected static Provider getProvider() {
+        return CertUtility.getBouncyCastleProvider();
+    }
+
     private final CMSEnvelopedDataGenerator envGen = new CMSEnvelopedDataGenerator();
     private final CkgContext config;
+
+    @SuppressWarnings("unused")
     private final String interfaceName;
 
     protected CmsEncryptorBase(final CkgContext config, String interfaceName) {
         this.config = config;
         this.interfaceName = interfaceName;
-    }
-
-    protected void addRecipientInfoGenerator(final RecipientInfoGenerator recipientGenerator) {
-        envGen.addRecipientInfoGenerator(recipientGenerator);
     }
 
     /**
@@ -58,13 +60,30 @@ public class CmsEncryptorBase {
      *                                  unknown
      */
     public EnvelopedData encrypt(final byte[] msg) throws CMSException, NoSuchAlgorithmException {
+        try {
+            return encrypt(msg, CertUtility.getBouncyCastleProvider());
+        } catch (CMSException | NoSuchAlgorithmException e) {
+            throw e;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * encrypt the data
+     *
+     * @param msg data to encrypt
+     * @return encrypted data
+     * @throws CMSException             in case of an CMS processing error
+     * @throws NoSuchAlgorithmException if getContentEncryptionAlg in config is
+     *                                  unknown
+     */
+    private EnvelopedData encrypt(final byte[] msg, Provider provider) throws CMSException, NoSuchAlgorithmException {
+        CMSProcessableByteArray content = new CMSProcessableByteArray(msg);
         final CMSEnvelopedData cmsEnvData = envGen.generate(
-                new CMSProcessableByteArray(msg),
-                new JceCMSContentEncryptorBuilder(AlgorithmHelper.getKeyEncryptionOID(ConfigLogger.log(
-                                interfaceName,
-                                "CkgContext.getContentEncryptionAlg()",
-                                config::getContentEncryptionAlg)))
-                        .setProvider(CertUtility.getBouncyCastleProvider())
+                content,
+                new JceCMSContentEncryptorBuilder(AlgorithmHelper.getKeyEncryptionOID(config.getContentEncryptionAlg()))
+                        .setProvider(provider)
                         .build());
         return EnvelopedData.getInstance(cmsEnvData.toASN1Structure().getContent());
     }
@@ -72,15 +91,19 @@ public class CmsEncryptorBase {
     /**
      * encrypt the data
      *
-     * @param asn1Object ASN.1 object to encrypt
+     * @param asn1Object ASN1.1 object to encrypt
      * @return encrypted data
-     * @throws CMSException in case of an CMS processing error
-     * @throws IOException  in case of ASN.1 encoding error
+     * @throws CMSException             in case of an CMS processing error
+     * @throws IOException              in case of ASN.1 encoding error
      * @throws NoSuchAlgorithmException if getContentEncryptionAlg in config is
      *                                  unknown
      */
     public EnvelopedData encrypt(final ASN1Object asn1Object)
             throws CMSException, IOException, NoSuchAlgorithmException {
         return encrypt(asn1Object.getEncoded());
+    }
+
+    protected void addRecipientInfoGenerator(final RecipientInfoGenerator recipientGenerator) {
+        envGen.addRecipientInfoGenerator(recipientGenerator);
     }
 }

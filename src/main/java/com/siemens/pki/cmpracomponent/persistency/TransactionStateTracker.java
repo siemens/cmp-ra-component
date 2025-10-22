@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Objects;
 import org.bouncycastle.asn1.ASN1Encoding;
+import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
 import org.bouncycastle.asn1.cmp.CertConfirmContent;
 import org.bouncycastle.asn1.cmp.CertRepMessage;
@@ -100,10 +101,7 @@ class TransactionStateTracker {
                     .getCertOrEncCert()
                     .getCertificate()
                     .getX509v3PKCert();
-            final DigestCalculator dc =
-                    digestProvider.get(digestFinder.find(enrolledCertificate.getSignatureAlgorithm()));
-            dc.getOutputStream().write(enrolledCertificate.getEncoded(ASN1Encoding.DER));
-            persistencyContext.setDigestToConfirm(dc.getDigest());
+            persistencyContext.setEnrolledCertficate(new CMPCertificate(enrolledCertificate));
             final SubjectPublicKeyInfo enrolledPublicKey = enrolledCertificate.getSubjectPublicKeyInfo();
             if (!Arrays.equals(
                     persistencyContext.getRequestedPublicKey(), enrolledPublicKey.getEncoded(ASN1Encoding.DER))) {
@@ -296,8 +294,9 @@ class TransactionStateTracker {
      * @param message message to process
      * @throws BaseCmpException in case of failed CMP processing
      * @throws IOException      in case of broken ASN.1
+     * @throws OperatorCreationException
      */
-    public void trackMessage(final PKIMessage message) throws BaseCmpException, IOException {
+    public void trackMessage(final PKIMessage message) throws BaseCmpException, IOException, OperatorCreationException {
         if (isResponse(message)) {
             persistencyContext.setLastSenderNonce(message.getHeader().getSenderNonce());
         }
@@ -407,12 +406,19 @@ class TransactionStateTracker {
                             "response was not answered with confirmation for "
                                     + MessageDumper.msgAsShortString(message));
                 }
-                if (!Arrays.equals(
-                        persistencyContext.getDigestToConfirm(),
-                        ((CertConfirmContent) message.getBody().getContent())
-                                .toCertStatusArray()[0]
-                                .getCertHash()
-                                .getOctets())) {
+                final CertStatus certStatus =
+                        ((CertConfirmContent) message.getBody().getContent()).toCertStatusArray()[0];
+                final CMPCertificate enrolledCertificate = persistencyContext.getEnrolledCertificate();
+                final DigestCalculator dc;
+                if (certStatus.getHashAlg() != null) {
+                    dc = digestProvider.get(certStatus.getHashAlg());
+                } else {
+                    dc = digestProvider.get(digestFinder.find(
+                            enrolledCertificate.getX509v3PKCert().getSignatureAlgorithm()));
+                }
+                dc.getOutputStream().write(enrolledCertificate.getEncoded(ASN1Encoding.DER));
+
+                if (!Arrays.equals(dc.getDigest(), certStatus.getCertHash().getOctets())) {
                     persistencyContext.setLastTransactionState(LastTransactionState.IN_ERROR_STATE);
                     throw new CmpValidationException(
                             INTERFACE_NAME,
