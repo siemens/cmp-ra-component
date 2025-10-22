@@ -214,6 +214,13 @@ public class PersistencyContext {
     }
 
     /**
+     * mark the currently processed GENM as preparing for a remaining transaction
+     */
+    public void markAsPreparingGenm() {
+        transactionStateTracker.markAsPreparingGenm();
+    }
+
+    /**
      * store  already sent extra certs in case of compression
      * @param alreadySentExtraCerts already sent extra certs
      */

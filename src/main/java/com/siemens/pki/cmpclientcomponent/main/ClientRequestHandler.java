@@ -184,6 +184,21 @@ class ClientRequestHandler {
                 false);
     }
 
+    PKIMessage buildFurtherRequest(
+            final PKIMessage formerResponse,
+            final PKIBody requestBody,
+            final boolean withImplicitConfirm,
+            final int pvno)
+            throws Exception {
+        final PKIHeader formerResponseHeader = formerResponse.getHeader();
+        return buildRequest(
+                requestBody,
+                formerResponseHeader.getTransactionID(),
+                formerResponseHeader.getSenderNonce(),
+                pvno,
+                withImplicitConfirm);
+    }
+
     PKIMessage buildInitialRequest(final PKIBody requestBody, final boolean withImplicitConfirm) throws Exception {
         return buildInitialRequest(requestBody, withImplicitConfirm, DEFAULT_PVNO);
     }
@@ -295,6 +310,10 @@ class ClientRequestHandler {
             throws Exception {
         return sendReceiveValidateMessage(buildInitialRequest(body, withImplicitConfirm), firstRequestType)
                 .getBody();
+    }
+
+    PKIMessage sendReceiveInitialMessage(final PKIBody body) throws Exception {
+        return sendReceiveValidateMessage(buildInitialRequest(body, false), body.getType());
     }
 
     PKIMessage sendReceiveValidateMessage(PKIMessage request, final int firstRequestType) throws Exception {

@@ -27,6 +27,7 @@ import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.InventoryInterface;
 import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
 import com.siemens.pki.cmpracomponent.configuration.SignatureCredentialContext;
+import com.siemens.pki.cmpracomponent.configuration.VerifierAdapter;
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.cryptoservices.CmsEncryptorBase;
 import com.siemens.pki.cmpracomponent.cryptoservices.DataSigner;
@@ -51,6 +52,7 @@ import com.siemens.pki.cmpracomponent.protection.SignatureBasedProtection;
 import com.siemens.pki.cmpracomponent.util.ConfigLogger;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import com.siemens.pki.cmpracomponent.util.NullUtil.ExFunction;
+import com.siemens.pki.verifieradapter.asn1.AttestationObjectIdentifiers;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
@@ -67,9 +69,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.bouncycastle.asn1.ASN1Encoding;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.ASN1OctetString;
+import org.bouncycastle.asn1.DERUTF8String;
 import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
 import org.bouncycastle.asn1.cmp.CertRepMessage;
@@ -95,6 +100,8 @@ import org.bouncycastle.asn1.edec.EdECObjectIdentifiers;
 import org.bouncycastle.asn1.pkcs.CertificationRequest;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.Extensions;
 import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.asn1.x9.X9ObjectIdentifiers;
@@ -192,7 +199,7 @@ class RaDownstream {
     // special handling for CR, IR, KUR
     private PKIMessage handleCrmfCertificateRequest(
             final PKIMessage incomingCertificateRequest, final PersistencyContext persistencyContext)
-            throws BaseCmpException, GeneralSecurityException, IOException {
+            throws BaseCmpException, GeneralSecurityException, IOException, InterruptedException, Exception {
 
         final PKIBody requestBody = incomingCertificateRequest.getBody();
         final PKIBody body = requestBody;
@@ -201,6 +208,38 @@ class RaDownstream {
         final CertReqMsg certReqMsg = ((CertReqMessages) body.getContent()).toCertReqMsgArray()[0];
         CertRequest certRequest = certReqMsg.getCertReq();
         CertTemplate certTemplate = certRequest.getCertTemplate();
+
+        // process RAT verification
+        final VerifierAdapter verifyAdapter = ConfigLogger.logOptional(
+                INTERFACE_NAME,
+                "Configuration.getVerifierAdapter",
+                config::getVerifierAdapter,
+                persistencyContext.getCertProfile(),
+                requestBodyType);
+        if (verifyAdapter != null) {
+            final Extensions extensions = certTemplate.getExtensions();
+            final Extension ratExtension =
+                    processRatVerification(verifyAdapter, persistencyContext.getTransactionId(), extensions);
+            if (ratExtension != null) {
+                final Extensions newExtensions = new Extensions(Stream.concat(
+                                Arrays.stream(extensions.getExtensionOIDs())
+                                        .filter(oid -> !oid.equals(AttestationObjectIdentifiers.id_aa_evidence))
+                                        .map(oid -> extensions.getExtension(oid)),
+                                Arrays.asList(ratExtension).stream())
+                        .toArray(Extension[]::new));
+                certTemplate = new CertTemplateBuilder()
+                        .setVersion(certTemplate.getVersion())
+                        .setSerialNumber(certTemplate.getSerialNumber())
+                        .setSigningAlg(certTemplate.getSigningAlg())
+                        .setIssuer(certTemplate.getIssuer())
+                        .setValidity(certTemplate.getValidity())
+                        .setSubject(certTemplate.getSubject())
+                        .setPublicKey(certTemplate.getPublicKey())
+                        .setExtensions(newExtensions)
+                        .build();
+                certRequest = new CertRequest(0, certTemplate, certRequest.getControls());
+            }
+        }
 
         // check request against inventory
         final InventoryInterface inventory = ConfigLogger.logOptional(
@@ -306,9 +345,10 @@ class RaDownstream {
             }
             final KeyPair keyPair = kpgen.genKeyPair();
             // regenerate template but with newly generated public key
+            final Extensions extensions2 = certTemplate.getExtensions();
             final CertTemplate certTemplateWithPublicKey = new CertTemplateBuilder()
                     .setSubject(certTemplate.getSubject())
-                    .setExtensions(certTemplate.getExtensions())
+                    .setExtensions(extensions2)
                     .setPublicKey(
                             SubjectPublicKeyInfo.getInstance(keyPair.getPublic().getEncoded()))
                     .build();
@@ -687,8 +727,8 @@ class RaDownstream {
             case PKIBody.TYPE_GEN_MSG:
                 // try to handle locally
                 persistencyContext.setRequestType(incomingRequest.getBody().getType());
-                final PKIMessage genmResponse =
-                        new ServiceImplementation(config).handleValidatedInputMessage(incomingRequest, messageContext);
+                final PKIMessage genmResponse = new ServiceImplementation(config, persistencyContext)
+                        .handleValidatedInputMessage(incomingRequest, messageContext);
                 if (genmResponse != null) {
                     return genmResponse;
                 }
@@ -875,5 +915,25 @@ class RaDownstream {
                     PKIFailureInfo.wrongAuthority,
                     "could not properly process certificate response: " + ex);
         }
+    }
+
+    private Extension processRatVerification(
+            final VerifierAdapter verifyAdapter, final byte[] transactionId, Extensions extensions)
+            throws CmpProcessingException, InterruptedException, IOException, Exception {
+        if (extensions == null) {
+            return null;
+        }
+        final Extension evidenceItav = extensions.getExtension(AttestationObjectIdentifiers.id_aa_evidence);
+        if (evidenceItav == null) {
+            return null;
+        }
+
+        final ASN1OctetString octetString =
+                ASN1OctetString.getInstance(evidenceItav.getExtnValue().getOctets());
+        final String resultJwt = verifyAdapter.processRatVerification(transactionId, octetString.getOctets());
+        if (resultJwt == null) {
+            return null;
+        }
+        return Extension.create(AttestationObjectIdentifiers.id_aa_ar, false, new DERUTF8String(resultJwt));
     }
 }

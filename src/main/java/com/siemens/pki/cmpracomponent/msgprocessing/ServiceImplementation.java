@@ -23,9 +23,12 @@ import com.siemens.pki.cmpracomponent.configuration.Configuration;
 import com.siemens.pki.cmpracomponent.configuration.CrlUpdateRetrievalHandler;
 import com.siemens.pki.cmpracomponent.configuration.GetCaCertificatesHandler;
 import com.siemens.pki.cmpracomponent.configuration.GetCertificateRequestTemplateHandler;
+import com.siemens.pki.cmpracomponent.configuration.GetFreshRatNonceHandler;
 import com.siemens.pki.cmpracomponent.configuration.GetRootCaCertificateUpdateHandler;
 import com.siemens.pki.cmpracomponent.configuration.GetRootCaCertificateUpdateHandler.RootCaCertificateUpdateResponse;
 import com.siemens.pki.cmpracomponent.configuration.SupportMessageHandlerInterface;
+import com.siemens.pki.cmpracomponent.configuration.VerifierAdapter;
+import com.siemens.pki.cmpracomponent.configuration.VerifierAdapter.NonceResponseRet;
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.msggeneration.MsgOutputProtector;
 import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
@@ -33,6 +36,11 @@ import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import com.siemens.pki.cmpracomponent.msgvalidation.MessageContext;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import com.siemens.pki.cmpracomponent.util.ConfigLogger;
+import com.siemens.pki.verifieradapter.asn1.AttestationObjectIdentifiers;
+import com.siemens.pki.verifieradapter.asn1.NonceRequestValue;
+import com.siemens.pki.verifieradapter.asn1.NonceRequestValue.NonceRequest;
+import com.siemens.pki.verifieradapter.asn1.NonceResponseValue;
+import com.siemens.pki.verifieradapter.asn1.NonceResponseValue.NonceResponse;
 import java.io.IOException;
 import java.security.cert.CRLException;
 import java.security.cert.CertificateException;
@@ -42,9 +50,11 @@ import java.util.Arrays;
 import java.util.List;
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1EncodableVector;
+import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.ASN1Sequence;
+import org.bouncycastle.asn1.ASN1UTF8String;
 import org.bouncycastle.asn1.DERSequence;
 import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
@@ -72,13 +82,16 @@ class ServiceImplementation {
 
     private static final String INTERFACE_NAME = "GENM service";
     private final Configuration config;
+    private final PersistencyContext persistencyContext;
 
     /**
-     * @param config specific configuration
+     * @param config             specific configuration
+     * @param persistencyContext contect of running transaction
      * @throws Exception in case of error
      */
-    ServiceImplementation(final Configuration config) {
+    ServiceImplementation(final Configuration config, PersistencyContext persistencyContext) {
         this.config = config;
+        this.persistencyContext = persistencyContext;
     }
 
     private String[] generalNamesToStrings(final GeneralNames generalNames) {
@@ -185,6 +198,35 @@ class ServiceImplementation {
         return new PKIBody(PKIBody.TYPE_GEN_REP, new GenRepContent(new InfoTypeAndValue(infoType)));
     }
 
+    private PKIBody handleGetRatNonce(
+            InfoTypeAndValue itav,
+            GetFreshRatNonceHandler messageHandler,
+            byte[] transactionId,
+            VerifierAdapter verifyAdapter)
+            throws CmpProcessingException, Exception {
+        if (verifyAdapter == null) {
+            throw new CmpProcessingException(INTERFACE_NAME, PKIFailureInfo.systemFailure, "RAT not configured");
+        }
+        NonceRequestValue nonceRequestValue = NonceRequestValue.getInstance(itav.getInfoValue());
+        NonceRequest[] nonceRequests = nonceRequestValue.getNonceRequests();
+        NonceResponse[] responses = new NonceResponse[nonceRequests.length];
+        for (int i = 0; i < nonceRequests.length; i++) {
+            NonceRequest aktRequest = nonceRequests[i];
+            NonceResponseRet ret = verifyAdapter.generateNonce(
+                    transactionId,
+                    ifNotNull(aktRequest.getLen(), ASN1Integer::getValue),
+                    ifNotNull(aktRequest.getType(), ASN1ObjectIdentifier::getId),
+                    ifNotNull(aktRequest.getHint(), ASN1UTF8String::getString),
+                    aktRequest.getEncoded());
+            responses[i] = new NonceResponse(ret.getNonce(), ret.getExpiry(), ret.getType(), ret.getHint());
+        }
+        persistencyContext.markAsPreparingGenm();
+        return new PKIBody(
+                PKIBody.TYPE_GEN_REP,
+                new GenRepContent(new InfoTypeAndValue(
+                        AttestationObjectIdentifiers.id_it_NonceResponse, new NonceResponseValue(responses))));
+    }
+
     private PKIBody handleGetRootCaCertificateUpdate(
             final InfoTypeAndValue itav, final GetRootCaCertificateUpdateHandler messageHandler)
             throws CertificateException {
@@ -254,6 +296,18 @@ class ServiceImplementation {
                 body = handleGetRootCaCertificateUpdate(itav, (GetRootCaCertificateUpdateHandler) messageHandler);
             } else if (messageHandler instanceof CrlUpdateRetrievalHandler) {
                 body = handleCrlUpdateRetrieval(itav, (CrlUpdateRetrievalHandler) messageHandler);
+            } else if (messageHandler instanceof GetFreshRatNonceHandler) {
+                final VerifierAdapter verifyAdapter = ConfigLogger.logOptional(
+                        INTERFACE_NAME,
+                        "Configuration.getVerifierAdapter",
+                        config::getVerifierAdapter,
+                        persistencyContext.getCertProfile(),
+                        PKIBody.TYPE_GEN_MSG);
+                body = handleGetRatNonce(
+                        itav,
+                        (GetFreshRatNonceHandler) messageHandler,
+                        msg.getHeader().getTransactionID().getOctets(),
+                        verifyAdapter);
             } else {
                 throw new CmpProcessingException(INTERFACE_NAME, PKIFailureInfo.systemFailure, "internal error");
             }
