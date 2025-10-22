@@ -38,6 +38,7 @@ import org.bouncycastle.cms.PasswordRecipient;
 import org.bouncycastle.cms.PasswordRecipient.PRF;
 import org.bouncycastle.crypto.Digest;
 import org.bouncycastle.jcajce.util.DefaultJcaJceHelper;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.DefaultDigestAlgorithmIdentifierFinder;
 import org.bouncycastle.operator.DefaultSignatureAlgorithmIdentifierFinder;
 import org.slf4j.Logger;
@@ -304,7 +305,7 @@ public class AlgorithmHelper {
     }
 
     /**
-     * get MAC for name or OID
+     * get MAC for name or OID, currently {@link BouncyCastleProvider} is used
      *
      * @param macId name of MAC
      * @return mac
@@ -315,7 +316,7 @@ public class AlgorithmHelper {
     }
 
     /**
-     * get Signature for name or OID
+     * get Signature for name or OID,  currently {@link BouncyCastleProvider} is used
      *
      * @param signatureId name of Signature
      * @return signature

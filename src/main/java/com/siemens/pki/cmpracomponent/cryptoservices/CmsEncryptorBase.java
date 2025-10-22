@@ -95,7 +95,7 @@ public class CmsEncryptorBase {
      * @return encrypted data
      * @throws CMSException             in case of an CMS processing error
      * @throws IOException              in case of ASN.1 encoding error
-     * @throws NoSuchAlgorithmException f getContentEncryptionAlg in config is
+     * @throws NoSuchAlgorithmException if getContentEncryptionAlg in config is
      *                                  unknown
      */
     public EnvelopedData encrypt(final ASN1Object asn1Object)

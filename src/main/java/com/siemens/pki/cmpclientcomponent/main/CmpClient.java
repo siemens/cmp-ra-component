@@ -512,12 +512,14 @@ public class CmpClient
                         new ContentInfo(envelopedData.getEncryptedContentInfo().getContentType(), envelopedData));
                 final RecipientInformationStore recipients = cmsEnvelopedData.getRecipientInfos();
                 for (RecipientInformation recipient : recipients.getRecipients()) {
+                    // in case of multiple recipients we try until we find a
+                    // recipient fitting our key
                     try {
                         byte[] content = recipient.getContent(jkr);
                         enrolledCertificate = CMPCertificate.getInstance(content);
                         break;
                     } catch (CMSException ex) {
-                        // try next recipient
+                        LOGGER.debug("unable to decrypt recipient, try next", ex);
                     }
                 }
             } else {
