@@ -71,7 +71,7 @@ public class PBMAC1Protection extends MacProtection {
                 AlgorithmHelper.convertSharedSecretToPassword(config.getSharedSecret()),
                 salt,
                 config.getIterationCount(),
-                keyLength));
+                keyLength * 8));
         final AlgorithmIdentifier messageAuthScheme =
                 new AlgorithmIdentifier(AlgorithmHelper.getOidForMac(ConfigLogger.log(
                         interfaceName, "SharedSecretCredentialContext.getMacAlgorithm()", config::getMacAlgorithm)));

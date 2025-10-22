@@ -141,7 +141,8 @@
 				<configuration>
 					<failBuildOnCVSS>0</failBuildOnCVSS>
 					<suppressionFiles>resources/dependency-check-suppress.xml</suppressionFiles>
-					<nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
+					<ossIndexUsername>${env.OSS_INDEX_USERNAME}</ossIndexUsername>
+					<ossIndexPassword>${env.OSS_INDEX_PASSWORD}</ossIndexPassword>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -216,6 +217,15 @@
 				</executions>
 			</plugin>
 		</plugins>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.sonarsource.scanner.maven</groupId>
+                    <artifactId>sonar-maven-plugin</artifactId>
+                    <version>5.2.0.4988</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
 	</build>
 	<dependencies>
 		<dependency>
