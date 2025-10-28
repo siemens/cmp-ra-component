@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -33,18 +33,17 @@ import org.bouncycastle.asn1.pkcs.PBMAC1Params;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 
-/**
- * a {@link ProtectionProvider} enforcing a CMP message with PBMAC1 protection
- */
+/** a {@link ProtectionProvider} enforcing a CMP message with PBMAC1 protection */
 public class PBMAC1Protection extends MacProtection {
 
     /**
      * ctor
+     *
      * @param config specific configuration
      * @param interfaceName CMP interface name for logging
-     * @throws InvalidKeySpecException  in case of internal error
+     * @throws InvalidKeySpecException in case of internal error
      * @throws NoSuchAlgorithmException in case of unsupported algorithm
-     * @throws InvalidKeyException      in case of internal error
+     * @throws InvalidKeyException in case of internal error
      */
     public PBMAC1Protection(final SharedSecretCredentialContext config, String interfaceName)
             throws InvalidKeySpecException, InvalidKeyException, NoSuchAlgorithmException {

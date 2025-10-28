@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -19,10 +19,7 @@ package com.siemens.pki.cmpracomponent.configuration;
 
 import org.bouncycastle.cms.CMSAlgorithm;
 
-/**
- * encryptor which uses the password-based key management technique for
- * encryption
- */
+/** encryptor which uses the password-based key management technique for encryption */
 public interface CkgPasswordContext {
 
     /**

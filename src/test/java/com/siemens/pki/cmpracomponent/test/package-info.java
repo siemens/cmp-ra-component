@@ -16,7 +16,5 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * {@link org.junit.Test} test cases
- */
+/** {@link org.junit.Test} test cases */
 package com.siemens.pki.cmpracomponent.test;

@@ -1,0 +1,162 @@
+plugins {
+    id 'java'
+    id 'jacoco'
+    id 'maven-publish'
+    id 'org.cyclonedx.bom' version '3.0.1'
+    id 'com.diffplug.spotless' version '8.0.0'
+    id 'org.owasp.dependencycheck' version '12.1.3'
+}
+
+apply from: 'config/gradle/pom.gradle'
+
+group = project.group
+version = project.version
+artifactId = project.artifactId
+
+def ossrhUsername = System.getenv("OSSRH_USERNAME")
+def ossrhPassword = System.getenv("OSSRH_PASSWORD")
+def nvdApiKey = System.getenv('NVD_API_KEY')
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+        vendor = JvmVendorSpec.ADOPTIUM
+    }
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+    options.incremental = true
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.bouncycastle:bcprov-jdk18on:1.82'
+    implementation 'org.bouncycastle:bcpkix-jdk18on:1.82'
+    implementation 'org.slf4j:slf4j-api:2.0.17'
+    implementation 'tools.jackson.core:jackson-databind:3.0.1'
+    implementation 'tools.jackson.dataformat:jackson-dataformat-yaml:3.0.1'
+    
+	testImplementation 'junit:junit:4.13.2'
+	testRuntimeOnly 'org.slf4j:slf4j-simple:2.0.17'
+}
+
+tasks.cyclonedxDirectBom {
+    // Include only runtime dependencies
+    includeConfigs = ["runtimeClasspath", "compileClasspath"]
+
+    // Exclude all test-related configurations using regex
+    skipConfigs = [".*test.*", ".*Test.*"]
+
+    // Skip specific projects from aggregation
+    skipProjects = ["test-utils", "integration-tests"]
+
+    // Set application metadata
+    projectType = "application"
+    componentName = "my-microservice"
+    componentVersion = "2.0.0-SNAPSHOT"
+
+    // Schema configuration
+    schemaVersion = org.cyclonedx.model.schema.SchemaVersion.VERSION_16
+
+    // Metadata options
+    includeBomSerialNumber = true
+    includeLicenseText = true
+    includeMetadataResolution = true
+    includeBuildSystem = true
+
+    // Custom build system URL template
+    //buildSystemEnvironmentVariable = '${CI_PIPELINE_URL}/jobs/${CI_JOB_ID}'
+
+    // Custom output locations
+    jsonOutput = file("build/reports/sbom/${project.name}-sbom.json")
+    xmlOutput = file("build/reports/sbom/${project.name}-sbom.xml")
+}
+
+spotless {
+    java {
+        target 'src/**/*.java'
+        leadingSpacesToTabs()
+        endWithNewline()
+        importOrder()
+        removeUnusedImports()
+        forbidWildcardImports()
+        trimTrailingWhitespace()
+        cleanthat().version('2.24').sourceCompatibility('25').includeDraft(false)
+        palantirJavaFormat('2.81.0').formatJavadoc(true)
+        formatAnnotations()
+        licenseHeaderFile('config/license-header.txt', 'package ')
+    }
+}
+
+jacoco {
+    toolVersion = "0.8.14"
+}
+
+test {
+    exclude '**/local/**'
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+dependencyCheck {
+    outputDirectory = "$buildDir/security-reports"
+    formats = ['HTML', 'XML', 'JSON', 'CSV', 'SAFIR']
+    
+    /*CVSS (Common Vulnerability Scoring System) scores range from 0 to 10:
+        0.0–3.9: Low severity
+        4.0–6.9: Medium severity
+        7.0–8.9: High severity
+        9.0–10.0: Critical severity
+    */
+    failBuildOnCVSS = 7 // Fail build if any vulnerability has CVSS ≥ 7
+
+    // Suppress known false positives
+    suppressionFile = 'config/dependency-check-suppress.xml'
+    
+    analyzers {
+        assemblyEnabled = false
+        nodeAuditEnabled = false
+    }
+    
+    autoUpdate = true
+    nvd {
+        apiKey = nvdApiKey
+    }
+    scanSet = project.files('src') // Directories/files to scan
+    data {
+        directory = "$buildDir/dependency-check-data" // Cache directory
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifactId = artifactId
+            pom pomConfig
+        }
+    }
+    repositories {
+        maven {
+            name = "ossrh"
+            url = uri("https://s01.oss.sonatype.org/content/repositories/snapshots")
+            credentials {
+                username = ossrhUsername
+                password = ossrhPassword
+            }
+        }
+    }
+}

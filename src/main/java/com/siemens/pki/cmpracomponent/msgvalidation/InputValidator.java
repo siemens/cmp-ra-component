@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -28,9 +28,7 @@ import java.util.function.BiPredicate;
 import org.bouncycastle.asn1.cmp.PKIFailureInfo;
 import org.bouncycastle.asn1.cmp.PKIMessage;
 
-/**
- * validator for an incoming message
- */
+/** validator for an incoming message */
 public class InputValidator implements ValidatorIF<MessageContext> {
 
     private final Collection<Integer> supportedMessageTypes;
@@ -41,14 +39,12 @@ public class InputValidator implements ValidatorIF<MessageContext> {
 
     /**
      * ctor
-     * @param interfaceName             name of the attached interface used for
-     *                                  logging
-     * @param config                    specific configuration
-     * @param isRaVerifiedAcceptable    should raVerified accepted for POPO?
-     * @param supportedMessageTypes     acceptable CMP message types
-     * @param persistencyContext function to (re-)create a
-     *                                  {@link PersistencyContext} out of a
-     *                                  transaction id
+     *
+     * @param interfaceName name of the attached interface used for logging
+     * @param config specific configuration
+     * @param isRaVerifiedAcceptable should raVerified accepted for POPO?
+     * @param supportedMessageTypes acceptable CMP message types
+     * @param persistencyContext function to (re-)create a {@link PersistencyContext} out of a transaction id
      */
     public InputValidator(
             final String interfaceName,
@@ -65,8 +61,7 @@ public class InputValidator implements ValidatorIF<MessageContext> {
     }
 
     /**
-     * validate a message according to the given configuration and acceptable
-     * message types
+     * validate a message according to the given configuration and acceptable message types
      *
      * @param in message to validate
      * @return a message context

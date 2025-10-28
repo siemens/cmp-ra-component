@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
  *
  *  SPDX-License-Identifier: Apache-2.0
  */
-
 package com.siemens.pki.cmpracomponent.protection;
 
 import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
@@ -34,9 +33,7 @@ import org.bouncycastle.asn1.cmp.ProtectedPart;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.GeneralName;
 
-/**
- * base class for MAC protection provider
- */
+/** base class for MAC protection provider */
 public abstract class MacProtection implements ProtectionProvider {
 
     private final SharedSecretCredentialContext config;
@@ -83,7 +80,8 @@ public abstract class MacProtection implements ProtectionProvider {
 
     /**
      * get shared secret used for protection
-     * @return  shared secret
+     *
+     * @return shared secret
      */
     public byte[] getSharedSecret() {
         return config.getSharedSecret();

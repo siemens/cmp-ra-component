@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -21,11 +21,13 @@ import org.bouncycastle.asn1.cmp.PKIMessage;
 
 /**
  * this interface must be implemented by all {@link PKIMessage} validators
+ *
  * @param <ResultType> validation result type
  */
 public interface ValidatorIF<ResultType> {
     /**
      * validate a {@link PKIMessage}
+     *
      * @param messageToValidate a message given to the validator
      * @return additional validation result
      * @throws CmpProcessingException if the message is invalid

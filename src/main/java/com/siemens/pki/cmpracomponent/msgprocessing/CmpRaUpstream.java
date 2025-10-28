@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -47,9 +47,7 @@ import org.bouncycastle.asn1.cmp.PKIMessages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * representation of an CMP upstream interface of a RA
- */
+/** representation of an CMP upstream interface of a RA */
 class CmpRaUpstream implements RaUpstream {
 
     private static final String INTERFACE_NAME = "CMP upstream";
@@ -77,8 +75,8 @@ class CmpRaUpstream implements RaUpstream {
 
     /**
      * @param persistencyContextManager persistency interface
-     * @param config                    specific configuration
-     * @param upstreamExchange          upstream function
+     * @param config specific configuration
+     * @param upstreamExchange upstream function
      */
     CmpRaUpstream(
             final PersistencyContextManager persistencyContextManager,
@@ -104,119 +102,131 @@ class CmpRaUpstream implements RaUpstream {
             throws BaseCmpException {
         try {
             if (persistencyContext.isDelayedDeliveryInProgress()) {
-                // delayed delivery in progress, handle some nessages locally
-                switch (in.getBody().getType()) {
-                    case PKIBody.TYPE_CERT_CONFIRM:
-                        // handle cert confirm locally
-                        return PkiMessageGenerator.generateUnprotectMessage(
-                                PkiMessageGenerator.buildRespondingHeaderProvider(in),
-                                PkiMessageGenerator.generatePkiConfirmBody());
-                    case PKIBody.TYPE_POLL_REQ:
-                        return handlePollReq(in, persistencyContext);
-                    default:
-                        throw new CmpProcessingException(
-                                INTERFACE_NAME,
-                                PKIFailureInfo.transactionIdInUse,
-                                "transactionId was already useded for another request");
-                }
+                return handleDelayedDelivery(in, persistencyContext);
             }
 
-            PKIMessage sentMessage;
-            final CmpMessageInterface upstreamConfiguration = ConfigLogger.log(
-                    INTERFACE_NAME,
-                    "Configuration.getUpstreamConfiguration",
-                    config::getUpstreamConfiguration,
-                    persistencyContext.getCertProfile(),
-                    in.getBody().getType());
-            if (in.getBody().getType() == PKIBody.TYPE_KEY_UPDATE_REQ) {
-                // never re-protect a KUR
-                sentMessage = in;
-            } else {
-                final MsgOutputProtector outputProtector = new MsgOutputProtector(
-                        upstreamConfiguration, INTERFACE_NAME, new MessageContext(persistencyContext, null));
-                sentMessage = outputProtector.protectOutgoingMessage(in, null);
-            }
-            final NestedEndpointContext nestedEndpointContext = ConfigLogger.logOptional(
-                    INTERFACE_NAME,
-                    "CmpMessageInterface.getNestedEndpointContext()",
-                    upstreamConfiguration::getNestedEndpointContext);
-            if (nestedEndpointContext != null) {
-                final MsgOutputProtector nestedProtector =
-                        new MsgOutputProtector(nestedEndpointContext, "NESTED CMP upstream", null);
-                // wrap into nested message
-                sentMessage = nestedProtector.protectOutgoingMessage(
-                        new PKIMessage(
-                                sentMessage.getHeader(),
-                                new PKIBody(PKIBody.TYPE_NESTED, new PKIMessages(sentMessage)),
-                                null),
-                        null);
-            }
-
+            PKIMessage sentMessage = prepareOutgoingMessage(in, persistencyContext);
             PKIMessage receivedMessage = upstreamMsgHandler.apply(
                     sentMessage, persistencyContext.getCertProfile(), persistencyContext.getRequestType());
 
             if (receivedMessage == null) {
-                // start asynchronous transfer
                 persistencyContext.setDelayedInitialRequest(in);
                 return PkiMessageGenerator.generateUnprotectMessage(
                         PkiMessageGenerator.buildRespondingHeaderProvider(sentMessage),
                         PkiMessageGenerator.generateResponseBodyWithWaiting(sentMessage.getBody(), INTERFACE_NAME));
             }
-            // synchronous transfer
-            if (receivedMessage.getBody().getType() == PKIBody.TYPE_NESTED && nestedEndpointContext != null) {
-                final MessageHeaderValidator nestedHeaderValidator = new MessageHeaderValidator(NESTED_INTERFACE_NAME);
-                nestedHeaderValidator.validate(receivedMessage);
-                final ProtectionValidator nestedProtectionValidator = new ProtectionValidator(
-                        NESTED_INTERFACE_NAME,
-                        ConfigLogger.logOptional(
-                                NESTED_INTERFACE_NAME,
-                                "NestedEndpointContext.getInputVerification()",
-                                nestedEndpointContext::getInputVerification));
-                nestedProtectionValidator.validate(receivedMessage);
-                PKIHeader receivedMessageHeader = receivedMessage.getHeader();
-                boolean isIncomingRecipientValid = ConfigLogger.log(
-                        NESTED_INTERFACE_NAME,
-                        "NestedEndpointContext.isIncomingRecipientValid()",
-                        () -> nestedEndpointContext.isIncomingRecipientValid(
-                                receivedMessageHeader.getRecipient().getName().toString()));
-                if (isIncomingRecipientValid) {
-                    // unpack 1st message
-                    PKIMessage[] wrappedMessages =
-                            ((PKIMessages) receivedMessage.getBody().getContent()).toPKIMessageArray();
-                    if (wrappedMessages.length != 1) {
-                        throw new CmpValidationException(
-                                NESTED_INTERFACE_NAME,
-                                0,
-                                "unable to unpack NESTED messsage with " + wrappedMessages.length + " inner messages");
-                    }
-                    receivedMessage = wrappedMessages[0];
-                } else {
-                    return receivedMessage;
-                }
-            }
-            final InputValidator inputValidator = new InputValidator(
-                    INTERFACE_NAME,
-                    config::getUpstreamConfiguration,
-                    (x, y) -> false,
-                    supportedMessageTypes,
-                    persistencyContext);
-            inputValidator.validate(receivedMessage);
-            final PKIHeader inHeader = in.getHeader();
-            final PKIHeader recHeader = receivedMessage.getHeader();
-            if (!Objects.equals(inHeader.getTransactionID(), recHeader.getTransactionID())) {
-                throw new CmpValidationException(
-                        INTERFACE_NAME, PKIFailureInfo.badMessageCheck, "transaction ID mismatch on upstream");
-            }
-            if (!Objects.equals(inHeader.getSenderNonce(), recHeader.getRecipNonce())) {
-                throw new CmpValidationException(
-                        INTERFACE_NAME, PKIFailureInfo.badRecipientNonce, "nonce mismatch on upstream");
-            }
+
+            receivedMessage = handleNestedMessage(receivedMessage, persistencyContext);
+            validateResponse(in, receivedMessage, persistencyContext);
+
             return receivedMessage;
         } catch (final BaseCmpException ex) {
             throw ex;
         } catch (final Exception ex) {
             LOGGER.error("exception at upstream interface", ex);
             throw new CmpProcessingException(INTERFACE_NAME, PKIFailureInfo.systemFailure, ex);
+        }
+    }
+
+    private PKIMessage handleDelayedDelivery(PKIMessage in, PersistencyContext ctx)
+            throws BaseCmpException, GeneralSecurityException, IOException {
+        switch (in.getBody().getType()) {
+            case PKIBody.TYPE_CERT_CONFIRM:
+                return PkiMessageGenerator.generateUnprotectMessage(
+                        PkiMessageGenerator.buildRespondingHeaderProvider(in),
+                        PkiMessageGenerator.generatePkiConfirmBody());
+            case PKIBody.TYPE_POLL_REQ:
+                return handlePollReq(in, ctx);
+            default:
+                throw new CmpProcessingException(
+                        INTERFACE_NAME,
+                        PKIFailureInfo.transactionIdInUse,
+                        "transactionId was already used for another request");
+        }
+    }
+
+    private PKIMessage prepareOutgoingMessage(PKIMessage in, PersistencyContext ctx)
+            throws CmpProcessingException, GeneralSecurityException, IOException {
+        final CmpMessageInterface upstream = ConfigLogger.log(
+                INTERFACE_NAME,
+                "Configuration.getUpstreamConfiguration",
+                config::getUpstreamConfiguration,
+                ctx.getCertProfile(),
+                in.getBody().getType());
+
+        PKIMessage msg = (in.getBody().getType() == PKIBody.TYPE_KEY_UPDATE_REQ)
+                ? in
+                : new MsgOutputProtector(upstream, INTERFACE_NAME, new MessageContext(ctx, null))
+                        .protectOutgoingMessage(in, null);
+
+        final NestedEndpointContext nestedCtx = ConfigLogger.logOptional(
+                INTERFACE_NAME, "CmpMessageInterface.getNestedEndpointContext", upstream::getNestedEndpointContext);
+
+        if (nestedCtx != null) {
+            msg = new MsgOutputProtector(nestedCtx, "NESTED CMP upstream", null)
+                    .protectOutgoingMessage(
+                            new PKIMessage(
+                                    msg.getHeader(), new PKIBody(PKIBody.TYPE_NESTED, new PKIMessages(msg)), null),
+                            null);
+        }
+
+        return msg;
+    }
+
+    private PKIMessage handleNestedMessage(PKIMessage received, PersistencyContext ctx) throws BaseCmpException {
+        final NestedEndpointContext nestedCtx = ConfigLogger.logOptional(
+                INTERFACE_NAME,
+                "CmpMessageInterface.getNestedEndpointContext",
+                config.getUpstreamConfiguration(
+                        ctx.getCertProfile(), received.getBody().getType())::getNestedEndpointContext);
+
+        if (received.getBody().getType() != PKIBody.TYPE_NESTED || nestedCtx == null) {
+            return received;
+        }
+
+        new MessageHeaderValidator(NESTED_INTERFACE_NAME).validate(received);
+        new ProtectionValidator(
+                        NESTED_INTERFACE_NAME,
+                        ConfigLogger.logOptional(
+                                NESTED_INTERFACE_NAME,
+                                "NestedEndpointContext.getInputVerification",
+                                nestedCtx::getInputVerification))
+                .validate(received);
+
+        boolean isValidRecipient = ConfigLogger.log(
+                NESTED_INTERFACE_NAME,
+                "NestedEndpointContext.isIncomingRecipientValid",
+                () -> nestedCtx.isIncomingRecipientValid(
+                        received.getHeader().getRecipient().getName().toString()));
+
+        if (!isValidRecipient) return received;
+
+        PKIMessage[] innerMessages = ((PKIMessages) received.getBody().getContent()).toPKIMessageArray();
+        if (innerMessages.length != 1) {
+            throw new CmpValidationException(
+                    NESTED_INTERFACE_NAME,
+                    0,
+                    "unable to unpack NESTED message with " + innerMessages.length + " inner messages");
+        }
+
+        return innerMessages[0];
+    }
+
+    private void validateResponse(PKIMessage in, PKIMessage received, PersistencyContext ctx) throws BaseCmpException {
+        new InputValidator(
+                        INTERFACE_NAME, config::getUpstreamConfiguration, (x, y) -> false, supportedMessageTypes, ctx)
+                .validate(received);
+
+        if (!Objects.equals(
+                in.getHeader().getTransactionID(), received.getHeader().getTransactionID())) {
+            throw new CmpValidationException(
+                    INTERFACE_NAME, PKIFailureInfo.badMessageCheck, "transaction ID mismatch on upstream");
+        }
+
+        if (!Objects.equals(
+                in.getHeader().getSenderNonce(), received.getHeader().getRecipNonce())) {
+            throw new CmpValidationException(
+                    INTERFACE_NAME, PKIFailureInfo.badRecipientNonce, "nonce mismatch on upstream");
         }
     }
 

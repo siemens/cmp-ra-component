@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -37,10 +37,7 @@ import org.bouncycastle.asn1.cmp.PKIMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * implementation of a RA composed from a {@link CmpRaUpstream} and a
- * {@link RaDownstream}
- */
+/** implementation of a RA composed from a {@link CmpRaUpstream} and a {@link RaDownstream} */
 public class CmpRaImplementation implements CmpRaInterface {
 
     private static final String DOWNSTREAM_INTERFACE_NAME = "RaDownstream";
@@ -66,7 +63,8 @@ public class CmpRaImplementation implements CmpRaInterface {
 
     /**
      * ctor
-     * @param config              specific configuration
+     *
+     * @param config specific configuration
      * @param rawUpstreamExchange upstream interface function
      * @throws Exception in case of error
      * @see CmpRaComponent

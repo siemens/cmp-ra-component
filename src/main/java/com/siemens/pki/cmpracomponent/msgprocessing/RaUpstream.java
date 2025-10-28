@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -21,9 +21,7 @@ import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 import org.bouncycastle.asn1.cmp.PKIMessage;
 
-/**
- * representation of an CMP upstream interface of a RA
- */
+/** representation of an CMP upstream interface of a RA */
 interface RaUpstream {
     PKIMessage handleRequest(final PKIMessage in, final PersistencyContext pesistencyContext) throws BaseCmpException;
 }

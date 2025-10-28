@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -26,9 +26,7 @@ import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.crypto.ec.CustomNamedCurves;
 import org.bouncycastle.jce.spec.ECParameterSpec;
 
-/**
- * helper class for generation of {@link KeyPairGenerator}s
- */
+/** helper class for generation of {@link KeyPairGenerator}s */
 public class KeyPairGeneratorFactory {
     private static final SecureRandom RANDOM = new SecureRandom();
 

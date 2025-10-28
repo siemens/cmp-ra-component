@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -30,9 +30,7 @@ import org.bouncycastle.cms.CMSProcessableByteArray;
 import org.bouncycastle.cms.RecipientInfoGenerator;
 import org.bouncycastle.cms.jcajce.JceCMSContentEncryptorBuilder;
 
-/**
- * base class for CMS data encryption
- */
+/** base class for CMS data encryption */
 public class CmsEncryptorBase {
 
     private final CMSEnvelopedDataGenerator envGen = new CMSEnvelopedDataGenerator();
@@ -53,9 +51,8 @@ public class CmsEncryptorBase {
      *
      * @param msg data to encrypt
      * @return encrypted data
-     * @throws CMSException             in case of an CMS processing error
-     * @throws NoSuchAlgorithmException if getContentEncryptionAlg in config is
-     *                                  unknown
+     * @throws CMSException in case of an CMS processing error
+     * @throws NoSuchAlgorithmException if getContentEncryptionAlg in config is unknown
      */
     public EnvelopedData encrypt(final byte[] msg) throws CMSException, NoSuchAlgorithmException {
         final CMSEnvelopedData cmsEnvData = envGen.generate(
@@ -75,9 +72,8 @@ public class CmsEncryptorBase {
      * @param asn1Object ASN.1 object to encrypt
      * @return encrypted data
      * @throws CMSException in case of an CMS processing error
-     * @throws IOException  in case of ASN.1 encoding error
-     * @throws NoSuchAlgorithmException if getContentEncryptionAlg in config is
-     *                                  unknown
+     * @throws IOException in case of ASN.1 encoding error
+     * @throws NoSuchAlgorithmException if getContentEncryptionAlg in config is unknown
      */
     public EnvelopedData encrypt(final ASN1Object asn1Object)
             throws CMSException, IOException, NoSuchAlgorithmException {

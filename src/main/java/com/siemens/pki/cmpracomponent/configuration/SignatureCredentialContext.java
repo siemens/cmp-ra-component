@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -23,27 +23,23 @@ import java.security.cert.X509Certificate;
 import java.util.List;
 
 /**
- * an instance implementing {@link SignatureCredentialContext} provides all
- * attributes needed for signature based CMP protection, authentication, signing
- * or encryption
+ * an instance implementing {@link SignatureCredentialContext} provides all attributes needed for signature based CMP
+ * protection, authentication, signing or encryption
  */
 public interface SignatureCredentialContext extends CredentialContext {
 
     /**
-     * provide a certificate chain starting with the end certificate and also
-     * containing all required intermediate certificate usable for CMP protection,
-     * authentication, signing or encryption
+     * provide a certificate chain starting with the end certificate and also containing all required intermediate
+     * certificate usable for CMP protection, authentication, signing or encryption
      *
      * @return a certificate chain starting with the end certificate
      */
     List<X509Certificate> getCertificateChain();
 
     /**
-     * provide the private key for the end certificate given in
-     * {@link #getPrivateKey()}
+     * provide the private key for the end certificate given in {@link #getPrivateKey()}
      *
-     * @return private key for first certificate returned by
-     *         {@link #getCertificateChain()}
+     * @return private key for first certificate returned by {@link #getCertificateChain()}
      */
     PrivateKey getPrivateKey();
 
@@ -52,9 +48,8 @@ public interface SignatureCredentialContext extends CredentialContext {
      * href=https://docs.oracle.com/en/java/javase/11/docs/specs/security/standard-names.html#signature-algorithms>Signature
      * Algorithms</a>
      *
-     * @return name or OID of signature algorithm as string. Name or OID specifies
-     *         an asymmetric signature algorithm in conjunction with any needed
-     *         digest algorithm.
+     * @return name or OID of signature algorithm as string. Name or OID specifies an asymmetric signature algorithm in
+     *     conjunction with any needed digest algorithm.
      */
     default String getSignatureAlgorithmName() {
         return AlgorithmHelper.getSigningAlgNameFromKey(getPrivateKey());

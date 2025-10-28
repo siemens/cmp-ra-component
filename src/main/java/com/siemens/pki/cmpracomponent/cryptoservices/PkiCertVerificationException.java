@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -17,10 +17,7 @@
  */
 package com.siemens.pki.cmpracomponent.cryptoservices;
 
-/**
- * This class wraps an exception that could be thrown during the cert validation
- * process.
- */
+/** This class wraps an exception that could be thrown during the cert validation process. */
 public class PkiCertVerificationException extends Exception {
 
     private static final long serialVersionUID = 10L;
@@ -38,7 +35,7 @@ public class PkiCertVerificationException extends Exception {
      * Constructor for PkiCertVerificationException
      *
      * @param message message with the reason why the verification failed
-     * @param cause   exception occured during verification process
+     * @param cause exception occured during verification process
      */
     public PkiCertVerificationException(final String message, final Throwable cause) {
         super(message, cause);

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2020 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -19,9 +19,7 @@ package com.siemens.pki.cmpracomponent.test.framework;
 
 import java.security.SecureRandom;
 
-/**
- *
- */
+/** */
 public class TestUtils {
 
     public static final String PASSWORD = "Password";

@@ -15,7 +15,5 @@
  *
  *  SPDX-License-Identifier: Apache-2.0
  */
-/**
- * the top level CMP end entity entry functions
- */
+/** the top level CMP end entity entry functions */
 package com.siemens.pki.cmpclientcomponent.main;

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -48,9 +48,7 @@ import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * handler for one transaction identified by a transactionId
- */
+/** handler for one transaction identified by a transactionId */
 class TransactionStateTracker {
 
     private static final DefaultDigestAlgorithmIdentifierFinder digestFinder =
@@ -295,7 +293,7 @@ class TransactionStateTracker {
      *
      * @param message message to process
      * @throws BaseCmpException in case of failed CMP processing
-     * @throws IOException      in case of broken ASN.1
+     * @throws IOException in case of broken ASN.1
      */
     public void trackMessage(final PKIMessage message) throws BaseCmpException, IOException {
         if (isResponse(message)) {

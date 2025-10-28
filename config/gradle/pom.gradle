@@ -1,0 +1,30 @@
+ext.pomConfig = {
+    name = 'CMP RA Component'
+    description = 'A generic CMP Registration Authority and Client component library'
+    url = 'https://github.com/siemens/cmp-ra-component/'
+    licenses {
+        license {
+            name = 'The Apache License, Version 2.0'
+            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+        }
+    }
+    developers {
+        developer {
+            id = 'akretschmer'
+            name = 'Andreas Kretschmer'
+            email = 'Andreas.Kretschmer@siemens.com'
+            organization = 'Siemens AG'
+            organizationUrl = 'https://siemens.com'
+        }
+        developer {
+            id = 'dvoheimb'
+            name = 'David von Oheimb'
+            email = 'David.von.Oheimb@siemens.com'
+            organization = 'Siemens AG'
+            organizationUrl = 'https://siemens.com'
+        }
+    }
+    scm {
+        url = 'https://github.com/siemens/cmp-ra-component/'
+    }
+}

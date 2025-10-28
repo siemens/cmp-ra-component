@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -29,15 +29,14 @@ import org.bouncycastle.asn1.cmp.PKIFailureInfo;
 import org.bouncycastle.asn1.cmp.PKIHeader;
 import org.bouncycastle.asn1.cmp.PKIMessage;
 
-/**
- * validator for {@link PKIMessage} header
- */
+/** validator for {@link PKIMessage} header */
 public class MessageHeaderValidator implements ValidatorIF<String> {
 
     private final String interfaceName;
 
     /**
      * ctor
+     *
      * @param interfaceName related interface name used for logging
      */
     public MessageHeaderValidator(final String interfaceName) {
@@ -93,14 +92,12 @@ public class MessageHeaderValidator implements ValidatorIF<String> {
     }
 
     /**
-     * Validates the {@link PKIHeader header} of the given {@link PKIMessage
-     * message}.<br>
+     * Validates the {@link PKIHeader header} of the given {@link PKIMessage message}.<br>
      * <strong>Note:</strong><br>
      * See RFC4210 Section 5.1.1. PKI Message Header for further details.
      *
      * @param message the message to validate
-     * @return certProfile or <code>null</code> if certProfile was not found in
-     *         header
+     * @return certProfile or <code>null</code> if certProfile was not found in header
      * @throws BaseCmpException in case of failed validation
      */
     @Override

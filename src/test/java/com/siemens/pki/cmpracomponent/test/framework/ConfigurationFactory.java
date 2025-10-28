@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -65,9 +65,7 @@ import org.bouncycastle.asn1.x500.X500Name;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * builder class for {@link Configuration} objects
- */
+/** builder class for {@link Configuration} objects */
 public class ConfigurationFactory {
 
     private static final String INTERFACE_NAME = "testclient";

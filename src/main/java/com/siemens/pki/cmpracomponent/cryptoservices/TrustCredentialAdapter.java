@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -46,9 +46,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Class for building a certification chain for given certificate and verifying
- * it. Relies on a set of root CA certificates and intermediate certificates
- * that will be used for building the certification chain.
+ * Class for building a certification chain for given certificate and verifying it. Relies on a set of root CA
+ * certificates and intermediate certificates that will be used for building the certification chain.
  */
 public class TrustCredentialAdapter {
 
@@ -67,6 +66,7 @@ public class TrustCredentialAdapter {
 
     /**
      * ctor
+     *
      * @param config specific configuration
      * @param interfaceName CMP interface name for logging
      */
@@ -76,8 +76,8 @@ public class TrustCredentialAdapter {
     }
 
     /**
-     * additional check for intermediate certificates in chain. This method is
-     * called for each intermediate certificate after chain building.
+     * additional check for intermediate certificates in chain. This method is called for each intermediate certificate
+     * after chain building.
      *
      * @param cert the certificate to check
      * @return <code>true</code> if the certificate is acceptable
@@ -90,16 +90,13 @@ public class TrustCredentialAdapter {
     }
 
     /**
-     * Attempts to build a certification chain for given certificate and to verify
-     * it. Relies on a set of root CA certificates (trust anchors) and a set of
-     * intermediate certificates (to be used as part of the chain).
+     * Attempts to build a certification chain for given certificate and to verify it. Relies on a set of root CA
+     * certificates (trust anchors) and a set of intermediate certificates (to be used as part of the chain).
      *
-     * @param cert                        certificate for validation
-     * @param additionalIntermediateCerts set of intermediate certificates, must
-     *                                    also include the certificate for
-     *                                    validation
-     * @return the validated chain without trust anchor but with cert or
-     *         <code>null</code> if the validation failed
+     * @param cert certificate for validation
+     * @param additionalIntermediateCerts set of intermediate certificates, must also include the certificate for
+     *     validation
+     * @return the validated chain without trust anchor but with cert or <code>null</code> if the validation failed
      * @throws NoSuchProviderException if SUN provider is not available
      */
     @SuppressWarnings("unchecked")

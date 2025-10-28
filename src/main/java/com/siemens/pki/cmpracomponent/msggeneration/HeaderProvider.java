@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -24,18 +24,19 @@ import org.bouncycastle.asn1.DERGeneralizedTime;
 import org.bouncycastle.asn1.cmp.InfoTypeAndValue;
 import org.bouncycastle.asn1.x509.GeneralName;
 
-/**
- * data provider for all parameters required to build a CMP header.
- */
+/** data provider for all parameters required to build a CMP header. */
 public interface HeaderProvider {
 
-    /** get GeneralInfo (ImplicitConfirm, ConfirmWaitTime) to be used in CMP header
+    /**
+     * get GeneralInfo (ImplicitConfirm, ConfirmWaitTime) to be used in CMP header
+     *
      * @return GeneralInfo
      */
     InfoTypeAndValue[] getGeneralInfo();
 
     /**
      * get MessageTime to be used in CMP header.
+     *
      * @return MessageTime
      */
     default ASN1GeneralizedTime getMessageTime() {
@@ -44,36 +45,42 @@ public interface HeaderProvider {
 
     /**
      * get CMP version to be used in CMP header.
+     *
      * @return CMP version
      */
     int getPvno();
 
     /**
      * get Recipient to be used in CMP header.
+     *
      * @return Recipient
      */
     GeneralName getRecipient();
 
     /**
      * get RecipNonce to be used in CMP header.
+     *
      * @return RecipNonce
      */
     ASN1OctetString getRecipNonce();
 
     /**
      * get Sender to be used in CMP header.
+     *
      * @return Sender
      */
     GeneralName getSender();
 
     /**
      * get SenderNonce to be used in CMP header.
+     *
      * @return SenderNonce
      */
     ASN1OctetString getSenderNonce();
 
     /**
      * get TransactionID to be used in CMP header.
+     *
      * @return TransactionID
      */
     ASN1OctetString getTransactionID();

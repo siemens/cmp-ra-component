@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -24,15 +24,14 @@ import org.bouncycastle.asn1.sec.SECObjectIdentifiers;
 import org.bouncycastle.cms.CMSAlgorithm;
 
 /**
- * an instance of this interface provides all attributes required to implement
- * key agreement in context of central key generation
+ * an instance of this interface provides all attributes required to implement key agreement in context of central key
+ * generation
  */
 public interface CkgKeyAgreementContext {
     /**
-     * specifies the algorithm used for key agreement, see
-     * <a href= "https://tools.ietf.org/wg/lamps/draft-ietf-lamps-cmp-algorithms">
-     * Certificate Management Protocol (CMP) Algorithms </a>, section "Key Agreement
-     * Algorithms"
+     * specifies the algorithm used for key agreement, see <a href=
+     * "https://tools.ietf.org/wg/lamps/draft-ietf-lamps-cmp-algorithms"> Certificate Management Protocol (CMP)
+     * Algorithms </a>, section "Key Agreement Algorithms"
      *
      * @return name or OID of an key agreement algorithm
      */
@@ -41,10 +40,9 @@ public interface CkgKeyAgreementContext {
     }
 
     /**
-     * specifies the algorithm used for key encryption, see
-     * <a href= "https://tools.ietf.org/wg/lamps/draft-ietf-lamps-cmp-algorithms">
-     * Certificate Management Protocol (CMP) Algorithms </a>, section "Key
-     * Management Algorithms"
+     * specifies the algorithm used for key encryption, see <a href=
+     * "https://tools.ietf.org/wg/lamps/draft-ietf-lamps-cmp-algorithms"> Certificate Management Protocol (CMP)
+     * Algorithms </a>, section "Key Management Algorithms"
      *
      * @return name or OID of an key encryption algorithm
      */

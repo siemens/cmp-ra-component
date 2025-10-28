@@ -15,7 +15,5 @@
  *
  *  SPDX-License-Identifier: Apache-2.0
  */
-/**
- * some test helper classes
- */
+/** some test helper classes */
 package com.siemens.pki.cmpracomponent.test.framework;

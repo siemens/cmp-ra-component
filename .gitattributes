@@ -1,0 +1,46 @@
+# Normalize line endings
+* text=auto
+# Shell scripts (LF)
+*.sh text eol=lf
+# Batch files (CRLF)
+*.bat text eol=crlf
+# Text files
+*.md text
+*.yml text
+*.yaml text
+*.json text
+*.java text
+*.gradle text
+Dockerfile text
+*.dockerignore text
+.gitlab-ci.yml text
+.github/** text
+*.env text
+# Binary files
+*.png filter=lfs diff=lfs merge=lfs -text
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.tar binary
+# Custom diffs
+*.md diff=markdown
+*.json diff=json
+*.yml diff=yaml
+# Lock files
+package-lock.json merge=ours
+yarn.lock merge=ours
+# GitHub language stats
+*.gradle linguist-language=Groovy
+*.gitlab-ci.yml linguist-language=YAML
+# Gradle wrapper and batch files
+/gradlew text eol=lf
+*.bat text eol=crlf
+# Binary files
+*.jar binary
+# LFS-managed files
+*.drawio filter=lfs diff=lfs merge=lfs -text
+*.png filter=lfs diff=lfs merge=lfs -text

@@ -16,7 +16,5 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * client {@link org.junit.Test}  test cases
- */
+/** client {@link org.junit.Test} test cases */
 package com.siemens.pki.cmpclientcomponent.test;

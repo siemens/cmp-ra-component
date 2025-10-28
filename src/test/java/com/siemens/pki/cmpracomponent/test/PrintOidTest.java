@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -23,9 +23,7 @@ import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.junit.Ignore;
 
 public class PrintOidTest {
-    /**
-     * test class to print OIDs and related attributes
-     */
+    /** test class to print OIDs and related attributes */
     // @Test
     @Ignore
     public void test() {

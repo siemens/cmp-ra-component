@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -27,19 +27,17 @@ import org.bouncycastle.asn1.cmp.PKIFailureInfo;
 import org.bouncycastle.cms.PasswordRecipient;
 import org.bouncycastle.cms.jcajce.JcePasswordRecipientInfoGenerator;
 
-/**
- * encryptor which uses the the MAC protected key management technique for
- * encryption
- */
+/** encryptor which uses the the MAC protected key management technique for encryption */
 public class PasswordEncryptor extends CmsEncryptorBase {
 
     /**
      * ctor
-     * @param config             specific configuration
-     * @param interfaceName      CMP interface name for logging
+     *
+     * @param config specific configuration
+     * @param interfaceName CMP interface name for logging
      * @param initialRequestType type of initial request (cr, ir, kur)
      * @throws NoSuchAlgorithmException if KEK in config is unknown
-     * @throws CmpEnrollmentException   if configuration is missing
+     * @throws CmpEnrollmentException if configuration is missing
      */
     public PasswordEncryptor(final CkgContext config, final int initialRequestType, final String interfaceName)
             throws NoSuchAlgorithmException, CmpEnrollmentException {

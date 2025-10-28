@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -31,9 +31,7 @@ import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.PKIFailureInfo;
 import org.bouncycastle.asn1.cmp.PKIMessage;
 
-/**
- * holder for all persistent data
- */
+/** holder for all persistent data */
 public class PersistencyContext {
 
     @JsonIgnore
@@ -60,13 +58,12 @@ public class PersistencyContext {
 
     private int certificateRequestType;
 
-    /**
-     * ctor used by jackson
-     */
+    /** ctor used by jackson */
     public PersistencyContext() {}
 
     /**
      * ctor
+     *
      * @param contextManager contextManager in charge
      * @param transactionId transactionId belonging to this PersistencyContext
      */
@@ -79,6 +76,7 @@ public class PersistencyContext {
 
     /**
      * store or clear persisten state
+     *
      * @throws IOException en case of erro
      */
     public void flush() throws IOException {
@@ -91,6 +89,7 @@ public class PersistencyContext {
 
     /**
      * get sent extra certs, if compression is used
+     *
      * @return already sent extra certs
      */
     public Set<CMPCertificate> getAlreadySentExtraCerts() {
@@ -102,6 +101,7 @@ public class PersistencyContext {
 
     /**
      * get certificate profile used in transaction
+     *
      * @return certificate profile or <code>null</code>
      */
     public String getCertProfile() {
@@ -110,6 +110,7 @@ public class PersistencyContext {
 
     /**
      * is the transaction delayed (polling)?
+     *
      * @return true if delayed
      */
     @JsonIgnore
@@ -119,6 +120,7 @@ public class PersistencyContext {
 
     /**
      * get certificate digest to confirm
+     *
      * @return certificate digest or <code>null</code>
      */
     public byte[] getDigestToConfirm() {
@@ -127,6 +129,7 @@ public class PersistencyContext {
 
     /**
      * get expiration time for related transaction
+     *
      * @return expiration time
      */
     public Date getExpirationTime() {
@@ -135,6 +138,7 @@ public class PersistencyContext {
 
     /**
      * get first request of the transaction
+     *
      * @return first request
      */
     public PKIMessage getDelayedInitialRequest() {
@@ -143,6 +147,7 @@ public class PersistencyContext {
 
     /**
      * get issueing chain
+     *
      * @return issueing chain
      */
     public List<CMPCertificate> getIssuingChain() {
@@ -151,6 +156,7 @@ public class PersistencyContext {
 
     /**
      * get last used sender nonce
+     *
      * @return last used sender nonce
      */
     public ASN1OctetString getLastSenderNonce() {
@@ -159,6 +165,7 @@ public class PersistencyContext {
 
     /**
      * get last state of transaction
+     *
      * @return last state of transaction
      */
     public LastTransactionState getLastTransactionState() {
@@ -167,7 +174,8 @@ public class PersistencyContext {
 
     /**
      * get central generated private key
-     * @return  private key or <code>null</code>
+     *
+     * @return private key or <code>null</code>
      */
     public PrivateKey getNewGeneratedPrivateKey() {
         return newGeneratedPrivateKey;
@@ -175,6 +183,7 @@ public class PersistencyContext {
 
     /**
      * get pending upstream response in case of deöayed delivery
+     *
      * @return upstream response
      */
     public PKIMessage getPendingDelayedResponse() {
@@ -183,6 +192,7 @@ public class PersistencyContext {
 
     /**
      * get public key in CRMF template
+     *
      * @return public key
      */
     public byte[] getRequestedPublicKey() {
@@ -191,6 +201,7 @@ public class PersistencyContext {
 
     /**
      * get type of initial request
+     *
      * @return type of initial request
      */
     public int getRequestType() {
@@ -199,6 +210,7 @@ public class PersistencyContext {
 
     /**
      * get TransactionId
+     *
      * @return TransactionId
      */
     public byte[] getTransactionId() {
@@ -207,6 +219,7 @@ public class PersistencyContext {
 
     /**
      * ImplicitConfirm used in transaction
+     *
      * @return true if ImplicitConfirm is used
      */
     public boolean isImplicitConfirmGranted() {
@@ -214,7 +227,8 @@ public class PersistencyContext {
     }
 
     /**
-     * store  already sent extra certs in case of compression
+     * store already sent extra certs in case of compression
+     *
      * @param alreadySentExtraCerts already sent extra certs
      */
     public void setAlreadySentExtraCerts(final Set<CMPCertificate> alreadySentExtraCerts) {
@@ -223,6 +237,7 @@ public class PersistencyContext {
 
     /**
      * set certificate profile
+     *
      * @param certProfile certificate profile or <code>null</code> if certificate profile should not change
      */
     public void setCertProfile(final String certProfile) {
@@ -233,6 +248,7 @@ public class PersistencyContext {
 
     /**
      * set contextManager
+     *
      * @param contextManager the contextManager
      */
     public void setContextManager(final PersistencyContextManager contextManager) {
@@ -241,6 +257,7 @@ public class PersistencyContext {
 
     /**
      * set digestToConfirm
+     *
      * @param digestToConfirm the digestToConfirm
      */
     public void setDigestToConfirm(final byte[] digestToConfirm) {
@@ -249,6 +266,7 @@ public class PersistencyContext {
 
     /**
      * set transaction expiration time
+     *
      * @param expirationTime transaction expiration time
      */
     public void setExpirationTime(final Date expirationTime) {
@@ -257,6 +275,7 @@ public class PersistencyContext {
 
     /**
      * set implicitConfirmGranted
+     *
      * @param implicitConfirmGranted true if implict confirm used
      */
     public void setImplicitConfirmGranted(final boolean implicitConfirmGranted) {
@@ -265,6 +284,7 @@ public class PersistencyContext {
 
     /**
      * mark transaction as delayed delivery, store initial request
+     *
      * @param delayedInitialRequest the initial request triggering delayed delivery
      */
     public void setDelayedInitialRequest(final PKIMessage delayedInitialRequest) {
@@ -275,6 +295,7 @@ public class PersistencyContext {
 
     /**
      * set issuingChain
+     *
      * @param issuingChain the issuingChain
      */
     public void setIssuingChain(final List<CMPCertificate> issuingChain) {
@@ -283,6 +304,7 @@ public class PersistencyContext {
 
     /**
      * set lastSenderNonce
+     *
      * @param asn1OctetString the lastSenderNonce
      */
     public void setLastSenderNonce(final ASN1OctetString asn1OctetString) {
@@ -291,6 +313,7 @@ public class PersistencyContext {
 
     /**
      * set lastTransactionState
+     *
      * @param lastTransactionState the lastTransactionState
      */
     public void setLastTransactionState(final LastTransactionState lastTransactionState) {
@@ -299,6 +322,7 @@ public class PersistencyContext {
 
     /**
      * set newGeneratedPrivateKey
+     *
      * @param newGeneratedPrivateKey the newGeneratedPrivateKey
      */
     public void setNewGeneratedPrivateKey(final PrivateKey newGeneratedPrivateKey) {
@@ -307,6 +331,7 @@ public class PersistencyContext {
 
     /**
      * set pending delayed response from upstream
+     *
      * @param delayedResponse the delayed response
      * @throws CmpProcessingException in case of error
      */
@@ -322,6 +347,7 @@ public class PersistencyContext {
 
     /**
      * set requestedPublicKey
+     *
      * @param requestedPublicKey the requestedPublicKey
      */
     public void setRequestedPublicKey(final byte[] requestedPublicKey) {
@@ -330,6 +356,7 @@ public class PersistencyContext {
 
     /**
      * set certificateRequestType
+     *
      * @param certificateRequestType the certificateRequestType
      */
     public void setRequestType(final int certificateRequestType) {
@@ -338,6 +365,7 @@ public class PersistencyContext {
 
     /**
      * process an incoming message
+     *
      * @param msg message to process
      * @throws BaseCmpException in case of CMP relate error
      * @throws IOException in case of general error
@@ -348,6 +376,7 @@ public class PersistencyContext {
 
     /**
      * update expirationTime
+     *
      * @param expirationTime new expirationTime
      */
     public void updateTransactionExpirationTime(final Date expirationTime) {

@@ -15,7 +15,5 @@
  *
  *  SPDX-License-Identifier: Apache-2.0
  */
-/**
- * utility functions
- */
+/** utility functions */
 package com.siemens.pki.cmpracomponent.util;

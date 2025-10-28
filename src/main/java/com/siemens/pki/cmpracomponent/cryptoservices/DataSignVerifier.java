@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -26,9 +26,9 @@ import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.PKCS8EncodedKeySpec;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.BiPredicate;
 import org.bouncycastle.asn1.cms.CMSObjectIdentifiers;
 import org.bouncycastle.asn1.cms.ContentInfo;
@@ -44,9 +44,7 @@ import org.bouncycastle.util.Store;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * a verifier for CMS signed data
- */
+/** a verifier for CMS signed data */
 public class DataSignVerifier extends TrustCredentialAdapter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DataSignVerifier.class);
@@ -55,6 +53,7 @@ public class DataSignVerifier extends TrustCredentialAdapter {
 
     /**
      * verify and strip off a signature
+     *
      * @param encodedSignedData date to verify
      * @return date without signature
      * @throws CertificateException in case of error
@@ -66,6 +65,38 @@ public class DataSignVerifier extends TrustCredentialAdapter {
         return verifySignature(encodedSignedData, (cert, additionalCerts) -> true);
     }
 
+    /*
+    private static byte[] verifySignature(
+    		final byte[] encodedSignedData,
+    		final BiPredicate<X509CertificateHolder, List<X509Certificate>> trustValidator)
+    		throws CMSException, IOException, CertificateException {
+
+    	final CMSSignedData signedData = new CMSSignedData(
+    			new ContentInfo(CMSObjectIdentifiers.signedData, SignedData.getInstance(encodedSignedData)));
+    	final SignerInformationStore signers = signedData.getSignerInfos();
+    	final Store<X509CertificateHolder> certs = signedData.getCertificates();
+    	final List<X509Certificate> allCerts = new ArrayList<>();
+    	for (final X509CertificateHolder aktCert : certs.getMatches(null)) {
+    		allCerts.add(CertUtility.asX509Certificate(aktCert.getEncoded()));
+    	}
+    	for (final SignerInformation signerInfo : signers) {
+    		@SuppressWarnings("unchecked")
+    		final Collection<X509CertificateHolder> certCollection = certs.getMatches(signerInfo.getSID());
+    		final X509CertificateHolder cert = certCollection.iterator().next();
+    		try {
+    			if (signerInfo.verify(builder.build(cert)) && trustValidator.test(cert, allCerts)) {
+    				final CMSTypedData cmsData = signedData.getSignedContent();
+    				final ByteArrayOutputStream bOut = new ByteArrayOutputStream();
+    				cmsData.write(bOut);
+    				return bOut.toByteArray();
+    			}
+    		} catch (final Exception exception) {
+    			// try next signer
+    		}
+    	}
+    	return new byte[0];
+    }*/
+
     private static byte[] verifySignature(
             final byte[] encodedSignedData,
             final BiPredicate<X509CertificateHolder, List<X509Certificate>> trustValidator)
@@ -74,31 +105,56 @@ public class DataSignVerifier extends TrustCredentialAdapter {
         final CMSSignedData signedData = new CMSSignedData(
                 new ContentInfo(CMSObjectIdentifiers.signedData, SignedData.getInstance(encodedSignedData)));
         final SignerInformationStore signers = signedData.getSignerInfos();
-        final Store<X509CertificateHolder> certs = signedData.getCertificates();
-        final List<X509Certificate> allCerts = new ArrayList<>();
-        for (final X509CertificateHolder aktCert : certs.getMatches(null)) {
-            allCerts.add(CertUtility.asX509Certificate(aktCert.getEncoded()));
-        }
-        for (final SignerInformation signerInfo : signers) {
+        final Store<X509CertificateHolder> certStore = signedData.getCertificates();
+
+        final List<X509Certificate> allCerts = certStore.getMatches(null).stream()
+                .map(holder -> {
+                    try {
+                        return CertUtility.asX509Certificate(holder.getEncoded());
+                    } catch (CertificateException | IOException e) {
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .toList();
+
+        for (SignerInformation signerInfo : signers) {
+
+            // Collection<X509CertificateHolder> certs = certStore.getMatches(signerInfo.getSID());
+
             @SuppressWarnings("unchecked")
-            final Collection<X509CertificateHolder> certCollection = certs.getMatches(signerInfo.getSID());
-            final X509CertificateHolder cert = certCollection.iterator().next();
+			Collection<? extends X509CertificateHolder> certs = certStore.getMatches(signerInfo.getSID());
+
+            List<X509CertificateHolder> certList = certs.stream()
+                    .filter(X509CertificateHolder.class::isInstance)
+                    .map(X509CertificateHolder.class::cast)
+                    .toList();
+
+            if (certs.isEmpty()) continue;
+
+            X509CertificateHolder certHolder = certList.iterator().next();
+            boolean isVerified = false;
+
             try {
-                if (signerInfo.verify(builder.build(cert)) && trustValidator.test(cert, allCerts)) {
-                    final CMSTypedData cmsData = signedData.getSignedContent();
-                    final ByteArrayOutputStream bOut = new ByteArrayOutputStream();
-                    cmsData.write(bOut);
-                    return bOut.toByteArray();
-                }
-            } catch (final Exception e) {
-                // try next signer
+                isVerified = signerInfo.verify(builder.build(certHolder));
+            } catch (Exception ignored) {
+                // skip invalid signer
+            }
+
+            if (isVerified && trustValidator.test(certHolder, allCerts)) {
+                CMSTypedData cmsData = signedData.getSignedContent();
+                ByteArrayOutputStream bOut = new ByteArrayOutputStream();
+                cmsData.write(bOut);
+                return bOut.toByteArray();
             }
         }
-        return null;
+
+        return new byte[0];
     }
 
     /**
      * ctor
+     *
      * @param config context used for verification
      * @param interfaceName CMP interface name for logging
      */
@@ -116,8 +172,8 @@ public class DataSignVerifier extends TrustCredentialAdapter {
      *
      * @param encodedSignedData the BER encoding of the SignedData
      * @return signed content or null if not trusted
-     * @throws IOException          in case of ASN.1 encoding error
-     * @throws CMSException         in case of error in CMS processing
+     * @throws IOException in case of ASN.1 encoding error
+     * @throws CMSException in case of error in CMS processing
      * @throws CertificateException in case of error in certificate processing
      */
     public byte[] verifySignatureAndTrust(final byte[] encodedSignedData)
@@ -133,6 +189,7 @@ public class DataSignVerifier extends TrustCredentialAdapter {
 
     /**
      * strip off a private key from signed date
+     *
      * @param encodedSignedData the BER encoding of the SignedData
      * @return found private key
      * @throws CertificateException in case of error

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -29,18 +29,15 @@ import org.bouncycastle.asn1.cmp.ProtectedPart;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.GeneralName;
 
-/**
- * Implementations can control protection of a new generated CMP message
- */
+/** Implementations can control protection of a new generated CMP message */
 public interface ProtectionProvider {
 
-    /**
-     * no protection
-     */
+    /** no protection */
     ProtectionProvider NO_PROTECTION = new NoProtection();
 
     /**
      * get extra certs used for protection
+     *
      * @return extra certs used for protection
      * @throws CertificateException in case of error
      * @throws GeneralSecurityException in case of error
@@ -49,6 +46,7 @@ public interface ProtectionProvider {
 
     /**
      * get protection algorithm
+     *
      * @return protection algorithm
      */
     AlgorithmIdentifier getProtectionAlg();
@@ -64,13 +62,15 @@ public interface ProtectionProvider {
     DERBitString getProtectionFor(ProtectedPart protectedPart) throws GeneralSecurityException, IOException;
 
     /**
-     * get  sender to use for protected message
+     * get sender to use for protected message
+     *
      * @return sender to use for protected message
      */
     GeneralName getSender();
 
     /**
      * get sender KID to use for protected message
+     *
      * @return sender KID to use for protected message
      */
     DEROctetString getSenderKID();

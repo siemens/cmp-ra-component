@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -75,15 +75,11 @@ import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCSException;
 
-/**
- * A CMP message validator to ensure CMP messages conform to RFC 4210.
- */
+/** A CMP message validator to ensure CMP messages conform to RFC 4210. */
 public class MessageBodyValidator implements ValidatorIF<String> {
     private static final String CERT_REQ_ID_MUST_BE_0 = "CertReqId must be 0";
 
-    /**
-     *
-     */
+    /** */
     private static final ASN1Integer ASN1INTEGER_0 = new ASN1Integer(0);
 
     private static final BigInteger MINUS_ONE = BigInteger.ONE.negate();
@@ -101,11 +97,11 @@ public class MessageBodyValidator implements ValidatorIF<String> {
 
     /**
      * ctor
-     * @param interfaceName          name used in error messages and logging
+     *
+     * @param interfaceName name used in error messages and logging
      * @param isRaVerifiedAcceptable should RaVerified accepted in POPO?
-     * @param cmpInterfaceConfig     specific interface (downstream/upstream)
-     *                               configuration
-     * @param certProfile            certificate profile of this transaction
+     * @param cmpInterfaceConfig specific interface (downstream/upstream) configuration
+     * @param certProfile certificate profile of this transaction
      */
     public MessageBodyValidator(
             final String interfaceName,
@@ -180,8 +176,7 @@ public class MessageBodyValidator implements ValidatorIF<String> {
     }
 
     /**
-     * Validates the given <code>message</code> to ensure that it conforms to the
-     * CMP profile.
+     * Validates the given <code>message</code> to ensure that it conforms to the CMP profile.
      *
      * @param message the CMP message to validate
      * @throws BaseCmpException if validation failed

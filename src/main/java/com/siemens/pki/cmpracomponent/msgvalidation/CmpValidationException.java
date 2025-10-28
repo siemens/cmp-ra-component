@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -17,18 +17,17 @@
  */
 package com.siemens.pki.cmpracomponent.msgvalidation;
 
-/**
- * This exception is created if a CMP message validation failed.
- */
+/** This exception is created if a CMP message validation failed. */
 public class CmpValidationException extends BaseCmpException {
 
     private static final long serialVersionUID = 1L;
 
     /**
      * ctor
+     *
      * @param interfaceName interface name used as prefix message text
-     * @param failInfo      CMP failInfo proposed for CMP error message
-     * @param errorDetails  description of some details related to the error
+     * @param failInfo CMP failInfo proposed for CMP error message
+     * @param errorDetails description of some details related to the error
      */
     public CmpValidationException(final String interfaceName, final int failInfo, final String errorDetails) {
         super(interfaceName, failInfo, errorDetails, null);

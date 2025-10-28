@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -43,10 +43,7 @@ import org.bouncycastle.operator.DefaultSignatureAlgorithmIdentifierFinder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * utility class to translate between Java JCE Strings, OIDs, {@link Mac},
- * {@link Digest} a.s.o.
- */
+/** utility class to translate between Java JCE Strings, OIDs, {@link Mac}, {@link Digest} a.s.o. */
 public class AlgorithmHelper {
 
     static class AlgorithmTableEntry<T> {
@@ -245,6 +242,7 @@ public class AlgorithmHelper {
 
     /**
      * convert shared secrets from byte[] to char[]
+     *
      * @param sharedSecret sharedSecret as byte[]
      * @return sharedSecret as char[]
      */
@@ -261,6 +259,7 @@ public class AlgorithmHelper {
 
     /**
      * get AlgorithmIdentifier for MessageDigest
+     *
      * @param dig digest
      * @return AlgorithmIdentifier
      */
@@ -269,10 +268,9 @@ public class AlgorithmHelper {
     }
 
     /**
-     * Get Algorithm OID for the given algorithm. Function supports only RSA, EC and
-     * EdDSA and will return OID sha256WithRSAEncryption (1.2.840.113549.1.1.11) for
-     * RSA, ecdsa_with_SHA256 (1.2.840.10045.4.3.2) for EC, id-Ed25519 (1.3.101.112)
-     * for Ed25519 and id-Ed448 (1.3.101.1123) for Ed448
+     * Get Algorithm OID for the given algorithm. Function supports only RSA, EC and EdDSA and will return OID
+     * sha256WithRSAEncryption (1.2.840.113549.1.1.11) for RSA, ecdsa_with_SHA256 (1.2.840.10045.4.3.2) for EC,
+     * id-Ed25519 (1.3.101.112) for Ed25519 and id-Ed448 (1.3.101.1123) for Ed448
      *
      * @param algorithm algorithm ("RSA", "EC", "Ed25519", "Ed448") to get OID for
      * @return OID of the algorithm
@@ -295,6 +293,7 @@ public class AlgorithmHelper {
 
     /**
      * get OID for name of KEK algorithm
+     *
      * @param id name of KEK algorithm
      * @return KEK OID
      * @throws NoSuchAlgorithmException if id is unknown
@@ -305,6 +304,7 @@ public class AlgorithmHelper {
 
     /**
      * get OID for key agreement algorithm name
+     *
      * @param id name of key agreement algorithm
      * @return key agreement OID
      * @throws NoSuchAlgorithmException if id is unknown
@@ -315,6 +315,7 @@ public class AlgorithmHelper {
 
     /**
      * get OID for key encryption algorithm name
+     *
      * @param id name of key encryption algorithm
      * @return key encryption OID
      * @throws NoSuchAlgorithmException if id is unknown
@@ -325,6 +326,7 @@ public class AlgorithmHelper {
 
     /**
      * get OID for MAC name
+     *
      * @param macId name of MAC
      * @return mac
      * @throws NoSuchAlgorithmException if macId is unknown
@@ -335,6 +337,7 @@ public class AlgorithmHelper {
 
     /**
      * get MessageDigest for MessageDigest name
+     *
      * @param id MessageDigest name
      * @return MessageDigest instance
      * @throws NoSuchAlgorithmException if nothing found
@@ -345,6 +348,7 @@ public class AlgorithmHelper {
 
     /**
      * get OID for mac algorithm name
+     *
      * @param macAlg mac algorithm
      * @return OID for mac
      */
@@ -358,6 +362,7 @@ public class AlgorithmHelper {
 
     /**
      * get PRF for id of PRF
+     *
      * @param id id of PRF
      * @return PRF
      * @throws NoSuchAlgorithmException if id is unknown
@@ -375,8 +380,7 @@ public class AlgorithmHelper {
      *
      * @param id PRF id
      * @return a related SecretKeyFactory
-     * @throws NoSuchAlgorithmException if no SecretKeyFactory related to the id
-     *                                  could be created
+     * @throws NoSuchAlgorithmException if no SecretKeyFactory related to the id could be created
      */
     public static SecretKeyFactory getSecretKeyFactory(final String id) throws NoSuchAlgorithmException {
         return HELPER.createSecretKeyFactory(PBKDF2_ALG_NAMES.getJavaAlgorithm(id));
@@ -384,6 +388,7 @@ public class AlgorithmHelper {
 
     /**
      * get AlgorithmIdentifier of preferred signature algorithm for a key
+     *
      * @param key the key
      * @return AlgorithmIdentifier of preferred signature algorithm
      */
@@ -393,6 +398,7 @@ public class AlgorithmHelper {
 
     /**
      * get AlgorithmIdentifier for keyAlgorithm name
+     *
      * @param keyAlgorithm name
      * @return AlgorithmIdentifier
      */
@@ -401,6 +407,7 @@ public class AlgorithmHelper {
     }
     /**
      * get AlgorithmIdentifier for signatureAlgorithmName
+     *
      * @param signatureAlgorithmName the name
      * @return AlgorithmIdentifier
      */
@@ -412,8 +419,8 @@ public class AlgorithmHelper {
      * get a feasible signing algorithm for the given key
      *
      * @param key the key to fetch the algorithm from
-     * @return standard java name for signature algorithm or <code>null</code> if
-     *         key uses algorithms beside RSA, EC or EdDSA
+     * @return standard java name for signature algorithm or <code>null</code> if key uses algorithms beside RSA, EC or
+     *     EdDSA
      */
     public static String getSigningAlgNameFromKey(final Key key) {
         return getSigningAlgNameFromKeyAlg(key.getAlgorithm());
@@ -423,8 +430,8 @@ public class AlgorithmHelper {
      * get a feasible signing algorithm for the given keyAlgorithm
      *
      * @param keyAlgorithm the algorithm to calculate the name from
-     * @return standard java name for signature algorithm or <code>null</code> if
-     *         key uses algorithms beside RSA, EC or EdDSA
+     * @return standard java name for signature algorithm or <code>null</code> if key uses algorithms beside RSA, EC or
+     *     EdDSA
      */
     public static String getSigningAlgNameFromKeyAlg(final String keyAlgorithm) {
         if (keyAlgorithm.startsWith("Ed")) {
@@ -438,22 +445,17 @@ public class AlgorithmHelper {
         return "SHA256with" + keyAlgorithm;
     }
 
-    /**
-     * Password-Based MAC used for protection
-     */
+    /** Password-Based MAC used for protection */
     public enum PasswordBasedMacAlg {
-        /**
-         * The PasswordBasedMac algorithm is defined in Section 5.1.3.1 of [RFC4210]
-         */
+        /** The PasswordBasedMac algorithm is defined in Section 5.1.3.1 of [RFC4210] */
         PasswordBasedMac,
-        /**
-         * Password-Based Message Authentication Code 1 (PBMAC1) is defined in [RFC8018]
-         */
+        /** Password-Based Message Authentication Code 1 (PBMAC1) is defined in [RFC8018] */
         PBMAC1
     };
 
     /**
      * get an Password-based message authentication code (MAC) algorithms
+     *
      * @param passwordBasedMacAlgorithm id of Password-Based MAC used for protection
      * @return related {@link PasswordBasedMacAlg}
      * @throws NoSuchAlgorithmException if id is unknown

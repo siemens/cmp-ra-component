@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2023 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -93,19 +93,13 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * a CMP client implementation
- *
- */
+/** a CMP client implementation */
 public class CmpClient
         implements CrlUpdateRetrievalHandler,
                 GetCaCertificatesHandler,
                 GetCertificateRequestTemplateHandler,
                 GetRootCaCertificateUpdateHandler {
-    /**
-     * result of an enrollment transaction
-     *
-     */
+    /** result of an enrollment transaction */
     public interface EnrollmentResult {
         /**
          * get enrolled certificate
@@ -115,8 +109,7 @@ public class CmpClient
         X509Certificate getEnrolledCertificate();
 
         /**
-         * get certificate chain (1st intermediate certificate up to root certificate)
-         * of the enrolled certificate
+         * get certificate chain (1st intermediate certificate up to root certificate) of the enrolled certificate
          *
          * @return the certificate chain of the enrolled certificate
          */
@@ -140,17 +133,12 @@ public class CmpClient
 
     /**
      * ctor
-     * @param certProfile           certificate profile to be used for enrollment.
-     *                              <code>null</code> if no certificate profile
-     *                              should be used.
      *
-     * @param upstreamExchange      the {@link UpstreamExchange} interface
-     *                              implemented by the wrapping application.
-     *
-     * @param upstreamConfiguration configuration for the upstream CMP interface
-     *                              towards the CA
-     *
-     * @param clientContext         client specific configuration
+     * @param certProfile certificate profile to be used for enrollment. <code>null</code> if no certificate profile
+     *     should be used.
+     * @param upstreamExchange the {@link UpstreamExchange} interface implemented by the wrapping application.
+     * @param upstreamConfiguration configuration for the upstream CMP interface towards the CA
+     * @param clientContext client specific configuration
      * @throws Exception in case of error
      */
     public CmpClient(
@@ -192,9 +180,7 @@ public class CmpClient
         return ret.length > 0 ? ret[0] : null;
     }
 
-    /**
-     * invoke a Get CA certificates GENM request {@inheritDoc}
-     */
+    /** invoke a Get CA certificates GENM request {@inheritDoc} */
     @Override
     public List<X509Certificate> getCaCertificates() {
         final PKIBody requestBody = new PKIBody(
@@ -219,9 +205,7 @@ public class CmpClient
         return null;
     }
 
-    /**
-     * invoke a Get certificate request template GENM request {@inheritDoc}
-     */
+    /** invoke a Get certificate request template GENM request {@inheritDoc} */
     @Override
     public byte[] getCertificateRequestTemplate() {
         final PKIBody requestBody = new PKIBody(
@@ -318,9 +302,7 @@ public class CmpClient
         return null;
     }
 
-    /**
-     * invoke a Get root CA certificate update GENM request {@inheritDoc}
-     */
+    /** invoke a Get root CA certificate update GENM request {@inheritDoc} */
     @Override
     public RootCaCertificateUpdateResponse getRootCaCertificateUpdate(final X509Certificate oldRootCaCertificate) {
 

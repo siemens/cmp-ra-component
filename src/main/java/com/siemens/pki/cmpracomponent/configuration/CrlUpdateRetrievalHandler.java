@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -21,26 +21,17 @@ import java.security.cert.X509CRL;
 import java.util.Date;
 import java.util.List;
 
-/**
- * support message handler supporting CRL Update Retrieval genm requests
- */
+/** support message handler supporting CRL Update Retrieval genm requests */
 public interface CrlUpdateRetrievalHandler extends SupportMessageHandlerInterface {
     /**
-     * handle a CRL Update Retrieval genm request and return the CRLs to build the
-     * related GENP response
+     * handle a CRL Update Retrieval genm request and return the CRLs to build the related GENP response
      *
-     * @param dpnFullName                fullName from DistributionPointName in
-     *                                   CRLSource or <code>null</code> if absent in
-     *                                   request
-     * @param dpnNameRelativeToCRLIssuer nameRelativeToCRLIssuer from
-     *                                   DistributionPointName in CRLSource or
-     *                                   <code>null</code> if absent in request
-     * @param issuer                     issuer from CRLSource or <code>null</code>
-     *                                   if absent in request
-     * @param thisUpdate                 thisUpdate time from CRLStatus in request
-     *                                   <code>null</code> if absent in request
-     * @return CRLs to be returned or <code>null</code> if the returned infoValue
-     *         should be absent
+     * @param dpnFullName fullName from DistributionPointName in CRLSource or <code>null</code> if absent in request
+     * @param dpnNameRelativeToCRLIssuer nameRelativeToCRLIssuer from DistributionPointName in CRLSource or <code>null
+     *     </code> if absent in request
+     * @param issuer issuer from CRLSource or <code>null</code> if absent in request
+     * @param thisUpdate thisUpdate time from CRLStatus in request <code>null</code> if absent in request
+     * @return CRLs to be returned or <code>null</code> if the returned infoValue should be absent
      */
     List<X509CRL> getCrls(String[] dpnFullName, String dpnNameRelativeToCRLIssuer, String[] issuer, Date thisUpdate);
 }

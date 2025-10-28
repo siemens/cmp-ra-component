@@ -15,7 +15,5 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-/**
- * crypto services for CMS, key and certificate handling
- */
+/** crypto services for CMS, key and certificate handling */
 package com.siemens.pki.cmpracomponent.cryptoservices;

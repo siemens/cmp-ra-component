@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -15,15 +15,12 @@
  *
  *  SPDX-License-Identifier: Apache-2.0
  */
-
 package com.siemens.pki.cmpracomponent.msgvalidation;
 
 import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
 
-/**
- * Container class to store @link{PersistencyContext} and @link{CredentialContext} of a PKI message
- */
+/** Container class to store @link{PersistencyContext} and @link{CredentialContext} of a PKI message */
 public class MessageContext {
 
     final PersistencyContext persistencyContext;
@@ -31,8 +28,9 @@ public class MessageContext {
 
     /**
      * Class constructor
-     * @param persistency   a persistency context
-     * @param credentials   a credential context
+     *
+     * @param persistency a persistency context
+     * @param credentials a credential context
      */
     public MessageContext(PersistencyContext persistency, CredentialContext credentials) {
         persistencyContext = persistency;
@@ -41,6 +39,7 @@ public class MessageContext {
 
     /**
      * provide a persistency context
+     *
      * @return a persistency context
      */
     public PersistencyContext getPersistencyContext() {
@@ -49,7 +48,8 @@ public class MessageContext {
 
     /**
      * provide a credential context configuration usable for message protection
-     * @return  a credential context
+     *
+     * @return a credential context
      */
     public CredentialContext getCredentialContext() {
         return credentialContext;

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2023 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -33,10 +33,7 @@ import java.util.TreeMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * a {@link Map} based default implementation of {@link PersistencyInterface}
- *
- */
+/** a {@link Map} based default implementation of {@link PersistencyInterface} */
 public class DefaultPersistencyImplementation implements PersistencyInterface {
 
     class ValueType {
@@ -58,6 +55,7 @@ public class DefaultPersistencyImplementation implements PersistencyInterface {
 
     /**
      * get a default singleton instance
+     *
      * @return the singleton instance
      */
     public static synchronized PersistencyInterface getInstance() {
@@ -76,6 +74,7 @@ public class DefaultPersistencyImplementation implements PersistencyInterface {
 
     /**
      * ctor
+     *
      * @param housekeepingPeriod time in seconds between two checks for expired transactions
      */
     public DefaultPersistencyImplementation(final long housekeepingPeriod) {

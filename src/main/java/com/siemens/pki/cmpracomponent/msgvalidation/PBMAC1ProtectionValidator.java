@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -38,12 +38,13 @@ import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 
 /**
- * This class validates the PBMAC1 password based protection of all incoming
- * messages and generates proper error responses on failed validation.
+ * This class validates the PBMAC1 password based protection of all incoming messages and generates proper error
+ * responses on failed validation.
  */
 public class PBMAC1ProtectionValidator extends MacValidator {
     /**
      * ctor
+     *
      * @param interfaceName name of related interface used for logging
      * @param config related configuration
      */

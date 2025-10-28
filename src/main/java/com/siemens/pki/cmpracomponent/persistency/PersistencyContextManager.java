@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -17,15 +17,6 @@
  */
 package com.siemens.pki.cmpracomponent.persistency;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.Version;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.siemens.pki.cmpracomponent.configuration.PersistencyInterface;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -44,10 +35,19 @@ import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.PKIMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.Version;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ValueDeserializer;
+import tools.jackson.databind.ValueSerializer;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.module.SimpleModule;
 
-/**
- * a manager for {@link PersistencyContext instances}
- */
+/** a manager for {@link PersistencyContext instances} */
 public class PersistencyContextManager {
 
     /**
@@ -55,7 +55,7 @@ public class PersistencyContextManager {
      *
      * @param <T> specific type to deserialize
      */
-    public static class Asn1ObjectDeserializer<T extends ASN1Object> extends JsonDeserializer<T> {
+    public static class Asn1ObjectDeserializer<T extends ASN1Object> extends ValueDeserializer<T> {
 
         private final Class<T> clazz;
 
@@ -65,7 +65,7 @@ public class PersistencyContextManager {
 
         @SuppressWarnings("unchecked")
         @Override
-        public T deserialize(final JsonParser p, final DeserializationContext ctxt) throws IOException {
+        public T deserialize(final JsonParser p, final DeserializationContext ctxt) {
             final byte[] binaryValue = p.getBinaryValue();
             if (binaryValue == null || binaryValue.length == 0) {
                 return null;
@@ -77,8 +77,9 @@ public class PersistencyContextManager {
                     | InvocationTargetException
                     | NoSuchMethodException
                     | SecurityException e) {
-                throw new IOException(e);
+                e.printStackTrace();
             }
+            return null;
         }
 
         @Override
@@ -87,13 +88,9 @@ public class PersistencyContextManager {
         }
     }
 
-    /**
-     * Serializer for {@link ASN1Object}
-     */
-    public static class Asn1ObjectSerializer extends JsonSerializer<ASN1Object> {
-        /**
-         * ctor
-         */
+    /** Serializer for {@link ASN1Object} */
+    public static class Asn1ObjectSerializer extends ValueSerializer<ASN1Object> {
+        /** ctor */
         public Asn1ObjectSerializer() {}
 
         @Override
@@ -103,20 +100,25 @@ public class PersistencyContextManager {
 
         @Override
         public void serialize(
-                final ASN1Object value, final JsonGenerator jsonGenerator, final SerializerProvider provider)
-                throws IOException {
+                final ASN1Object value, final JsonGenerator jsonGenerator, final SerializationContext provider) {
             if (value == null) {
                 jsonGenerator.writeNull();
             } else {
-                jsonGenerator.writeBinary(value.getEncoded());
+                try {
+                    jsonGenerator.writeBinary(value.getEncoded());
+                } catch (JacksonException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
             }
         }
     }
 
-    /**
-     * Serializer for {@link PrivateKey}s
-     */
-    public static class KeySerializer extends JsonSerializer<PrivateKey> {
+    /** Serializer for {@link PrivateKey}s */
+    public static class KeySerializer extends ValueSerializer<PrivateKey> {
 
         private final SecretKeySpec secretKey;
 
@@ -131,8 +133,7 @@ public class PersistencyContextManager {
 
         @Override
         public void serialize(
-                final PrivateKey key, final JsonGenerator jsonGenerator, final SerializerProvider provider)
-                throws IOException {
+                final PrivateKey key, final JsonGenerator jsonGenerator, final SerializationContext provider) {
             if (key == null) {
                 jsonGenerator.writeNull();
             }
@@ -146,15 +147,13 @@ public class PersistencyContextManager {
                     | InvalidKeyException
                     | IllegalBlockSizeException
                     | InvalidAlgorithmParameterException e) {
-                throw new IOException(e);
+                e.printStackTrace();
             }
         }
     }
 
-    /**
-     * Deserializer for {@link PrivateKey}s
-     */
-    public static class PrivateKeyDeserializer extends JsonDeserializer<PrivateKey> {
+    /** Deserializer for {@link PrivateKey}s */
+    public static class PrivateKeyDeserializer extends ValueDeserializer<PrivateKey> {
         private final SecretKeySpec secretKey;
 
         private PrivateKeyDeserializer(final SecretKeySpec secretKey) {
@@ -162,7 +161,7 @@ public class PersistencyContextManager {
         }
 
         @Override
-        public PrivateKey deserialize(final JsonParser p, final DeserializationContext ctxt) throws IOException {
+        public PrivateKey deserialize(final JsonParser p, final DeserializationContext ctxt) {
             final byte[] binaryValue = p.getBinaryValue();
             if (binaryValue == null || binaryValue.length == 0) {
                 return null;
@@ -182,9 +181,10 @@ public class PersistencyContextManager {
             } catch (final InvalidKeyException
                     | NoSuchAlgorithmException
                     | NoSuchPaddingException
-                    | InvalidAlgorithmParameterException e1) {
-                throw new IOException(e1);
+                    | InvalidAlgorithmParameterException e) {
+                e.printStackTrace();
             }
+            return null;
         }
     }
 
@@ -192,7 +192,9 @@ public class PersistencyContextManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PersistencyContextManager.class);
 
-    private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
+    private final JsonMapper.Builder builder = JsonMapper.builder().findAndAddModules();
+
+    private ObjectMapper objectMapper = new ObjectMapper();
 
     private static final IvParameterSpec iv = new IvParameterSpec("The IV for PrivK".getBytes());
 
@@ -201,8 +203,7 @@ public class PersistencyContextManager {
     /**
      * ctor
      *
-     * @param wrappedInterface external {@link PersistencyInterface} to use for
-     *                         store and load
+     * @param wrappedInterface external {@link PersistencyInterface} to use for store and load
      */
     public PersistencyContextManager(final PersistencyInterface wrappedInterface) {
         this.wrappedInterface = wrappedInterface;
@@ -214,7 +215,8 @@ public class PersistencyContextManager {
         simpleModule.addDeserializer(CMPCertificate.class, new Asn1ObjectDeserializer<>(CMPCertificate.class));
         simpleModule.addDeserializer(PKIMessage.class, new Asn1ObjectDeserializer<>(PKIMessage.class));
         simpleModule.addDeserializer(PrivateKey.class, new PrivateKeyDeserializer(secretKey));
-        objectMapper.registerModule(simpleModule);
+        builder.addModule(simpleModule);
+        objectMapper = builder.build();
     }
 
     /**

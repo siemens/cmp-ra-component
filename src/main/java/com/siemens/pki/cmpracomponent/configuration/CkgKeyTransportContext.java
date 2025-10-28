@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -20,13 +20,12 @@ package com.siemens.pki.cmpracomponent.configuration;
 import java.security.cert.X509Certificate;
 
 /**
- * an instance of this interface provides all attributes required to implement
- * key transport in context of central key generation
+ * an instance of this interface provides all attributes required to implement key transport in context of central key
+ * generation
  */
 public interface CkgKeyTransportContext {
     /**
-     * specifies the intended recipient by its certificate. The public key in the
-     * certificate is used for encryption.
+     * specifies the intended recipient by its certificate. The public key in the certificate is used for encryption.
      *
      * @param protectingCertificate protecting certificate of request
      * @return the certificates of the recipient

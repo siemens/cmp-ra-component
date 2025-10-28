@@ -15,7 +15,5 @@
  *
  *  SPDX-License-Identifier: Apache-2.0
  */
-/**
- * {@link org.bouncycastle.asn1.cmp.PKIMessage} validation functions
- */
+/** {@link org.bouncycastle.asn1.cmp.PKIMessage} validation functions */
 package com.siemens.pki.cmpracomponent.msgvalidation;

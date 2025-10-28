@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -43,9 +43,7 @@ import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
-/**
- * A utility class for certificate handling
- */
+/** A utility class for certificate handling */
 public class CertUtility {
     private static final SecureRandom RANDOM = new SecureRandom();
     private static Provider BOUNCY_CASTLE_PROVIDER;
@@ -56,8 +54,7 @@ public class CertUtility {
      *
      * @param cert certificate to convert
      * @return converted certificate
-     * @throws CertificateException if certificate could not be converted from CMP
-     *                              Certificate
+     * @throws CertificateException if certificate could not be converted from CMP Certificate
      */
     public static CMPCertificate asCmpCertificate(final Certificate cert) throws CertificateException {
         return CMPCertificate.getInstance(cert.getEncoded());
@@ -68,8 +65,7 @@ public class CertUtility {
      *
      * @param certs certificates to convert
      * @return converted certificate
-     * @throws CertificateException if certificate could not be converted from CMP
-     *                              Certificate
+     * @throws CertificateException if certificate could not be converted from CMP Certificate
      */
     public static CMPCertificate[] asCmpCertificates(final List<X509Certificate> certs) throws CertificateException {
         final CMPCertificate[] ret = new CMPCertificate[certs.size()];
@@ -85,8 +81,7 @@ public class CertUtility {
      *
      * @param encoded byte string to encode
      * @return converted certificate
-     * @throws CertificateException if certificate could not be converted from
-     *                              encoded
+     * @throws CertificateException if certificate could not be converted from encoded
      */
     public static X509Certificate asX509Certificate(final byte[] encoded) throws CertificateException {
         return (X509Certificate) getCertificateFactory().generateCertificate(new ByteArrayInputStream(encoded));
@@ -97,8 +92,7 @@ public class CertUtility {
      *
      * @param cert certificate to convert
      * @return converted certificate
-     * @throws CertificateException if certificate could not be converted from CMP
-     *                              Certificate
+     * @throws CertificateException if certificate could not be converted from CMP Certificate
      */
     public static X509Certificate asX509Certificate(final CMPCertificate cert) throws CertificateException {
         try {
@@ -113,8 +107,7 @@ public class CertUtility {
      *
      * @param certs certificates to convert
      * @return converted certificate
-     * @throws CertificateException if certificate could not be converted from CMP
-     *                              Certificate
+     * @throws CertificateException if certificate could not be converted from CMP Certificate
      */
     public static List<X509Certificate> asX509Certificates(final CMPCertificate[] certs) throws CertificateException {
         try {
@@ -157,9 +150,8 @@ public class CertUtility {
     }
 
     /**
-     * get Bouncy Castle Provider.
-     * if already initialized will be retrieved from Security.getProviders()
-     * otherwise it will be instantiated and registered
+     * get Bouncy Castle Provider. if already initialized will be retrieved from Security.getProviders() otherwise it
+     * will be instantiated and registered
      *
      * @return the Bouncy Castle Provider
      */
@@ -175,9 +167,8 @@ public class CertUtility {
      * Function to retrieve the static certificate factory object
      *
      * @return static certificate factory object
-     * @throws CertificateException thrown if the certificate factory could not be
-     *                              instantiated
-     * @throws CertificateException            in case of an error
+     * @throws CertificateException thrown if the certificate factory could not be instantiated
+     * @throws CertificateException in case of an error
      */
     public static synchronized CertificateFactory getCertificateFactory() throws CertificateException {
         if (certificateFactory == null) {
@@ -187,12 +178,10 @@ public class CertUtility {
     }
 
     /**
-     * Checks whether given X.509 certificate is intermediate certificate and not
-     * self-signed.
+     * Checks whether given X.509 certificate is intermediate certificate and not self-signed.
      *
      * @param cert certificate to be checked
-     * @return <code>true</code> if the certificate is intermediate and not
-     *         self-signed
+     * @return <code>true</code> if the certificate is intermediate and not self-signed
      */
     public static boolean isIntermediateCertificate(final X509Certificate cert) {
         try {

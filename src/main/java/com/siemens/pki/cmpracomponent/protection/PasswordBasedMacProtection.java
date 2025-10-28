@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -30,16 +30,14 @@ import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
 import org.bouncycastle.asn1.cmp.PBMParameter;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 
-/**
- * a {@link ProtectionProvider} enforcing a CMP message with password based MAC
- * protection
- */
+/** a {@link ProtectionProvider} enforcing a CMP message with password based MAC protection */
 public class PasswordBasedMacProtection extends MacProtection {
     /**
      * ctor
+     *
      * @param config specific configuration
      * @param interfaceName CMP interface name for logging
-     * @throws InvalidKeyException      in case of internal error
+     * @throws InvalidKeyException in case of internal error
      * @throws NoSuchAlgorithmException in case of unsupported algorithm
      */
     public PasswordBasedMacProtection(final SharedSecretCredentialContext config, String interfaceName)

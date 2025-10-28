@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -18,8 +18,7 @@
 package com.siemens.pki.cmpracomponent.configuration;
 
 /**
- * an instance of an interface derived from {@link CredentialContext} provides
- * all attributes needed for CMP protection, authentication, signing or
- * encryption
+ * an instance of an interface derived from {@link CredentialContext} provides all attributes needed for CMP protection,
+ * authentication, signing or encryption
  */
 public interface CredentialContext {}

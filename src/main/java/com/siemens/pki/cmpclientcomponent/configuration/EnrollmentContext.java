@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -23,15 +23,10 @@ import java.security.cert.X509Certificate;
 import java.util.List;
 import org.bouncycastle.asn1.cmp.PKIBody;
 
-/**
- * enrollment specific configuration
- *
- */
+/** enrollment specific configuration */
 public interface EnrollmentContext {
 
-    /**
-     * extension used for template
-     */
+    /** extension used for template */
     interface TemplateExtension {
         /**
          * Gets the extensions's object identifier.
@@ -41,12 +36,10 @@ public interface EnrollmentContext {
         String getId();
 
         /**
-         * Gets the extensions's DER-encoded value. Note, this is the bytes that are
-         * encoded as an OCTET STRING. It does not include the OCTET STRING tag and
-         * length.
+         * Gets the extensions's DER-encoded value. Note, this is the bytes that are encoded as an OCTET STRING. It does
+         * not include the OCTET STRING tag and length.
          *
-         * @return a copy of the extension's value, or {@code null} if no extension
-         *         value is present.
+         * @return a copy of the extension's value, or {@code null} if no extension value is present.
          */
         byte[] getValue();
 
@@ -59,28 +52,24 @@ public interface EnrollmentContext {
     }
 
     /**
-     * key pair for the new certificate; is is used for signature-based POPO, and
-     * the corresponding public key is put in the certificate template. Is not
-     * required if message body type is 4(p10cr).
+     * key pair for the new certificate; is is used for signature-based POPO, and the corresponding public key is put in
+     * the certificate template. Is not required if message body type is 4(p10cr).
      *
-     * @return key pair or <code>null</code> if central key generation should be
-     *         requested
+     * @return key pair or <code>null</code> if central key generation should be requested
      */
     KeyPair getCertificateKeypair();
 
     /**
-     * p10cr CertificationRequest message body. Ignored if message body type is not
-     * 4(p10cr).
+     * p10cr CertificationRequest message body. Ignored if message body type is not 4(p10cr).
      *
      * @return the p10cr CertificationRequest message body or <code>null</code>.
      */
     default byte[] getCertificationRequest() {
-        return null;
+        return new byte[0];
     }
 
     /**
-     * provide VerificationContext used to validate the newly enrolled certificate
-     * and build the enrollment chain
+     * provide VerificationContext used to validate the newly enrolled certificate and build the enrollment chain
      *
      * @return an VerificationContext related to the enrolled certificate
      */
@@ -96,21 +85,17 @@ public interface EnrollmentContext {
     }
 
     /**
-     * extensions to be added to the CRMF template. Ignored if message body type is
-     * 4(p10cr).
+     * extensions to be added to the CRMF template. Ignored if message body type is 4(p10cr).
      *
-     * @return list of extensions or <code>null</code> if extensions should taken
-     *         from {@link #getOldCert()} or absent
+     * @return list of extensions or <code>null</code> if extensions should taken from {@link #getOldCert()} or absent
      */
     List<TemplateExtension> getExtensions();
 
     /**
-     * a KUR contains a id-regCtrl-oldCertID control holding issuer and serialNumber
-     * of the certificate to be updated. Here an old certificate can be provided.
-     * Ignored if message body type is 4(p10cr).
+     * a KUR contains a id-regCtrl-oldCertID control holding issuer and serialNumber of the certificate to be updated.
+     * Here an old certificate can be provided. Ignored if message body type is 4(p10cr).
      *
-     * @return certificate to be updated or <code>null</code> if the control
-     *         id-regCtrl-oldCertID should'nt be used.
+     * @return certificate to be updated or <code>null</code> if the control id-regCtrl-oldCertID should'nt be used.
      */
     X509Certificate getOldCert();
 
@@ -122,9 +107,8 @@ public interface EnrollmentContext {
     boolean getRequestImplictConfirm();
 
     /**
-     * subject to be inserted in the CRMF template or <code>null</code> if subject
-     * should taken from {@link #getOldCert()} or absent. Ignored if message body
-     * type is 4(p10cr).
+     * subject to be inserted in the CRMF template or <code>null</code> if subject should taken from
+     * {@link #getOldCert()} or absent. Ignored if message body type is 4(p10cr).
      *
      * @return the subject or <code>null</code>
      */

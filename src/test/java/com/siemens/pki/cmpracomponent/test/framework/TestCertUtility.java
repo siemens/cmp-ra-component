@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2020 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -21,12 +21,25 @@ import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.*;
+import java.security.InvalidKeyException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.Provider;
+import java.security.PublicKey;
+import java.security.SecureRandom;
+import java.security.SignatureException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import org.bouncycastle.asn1.ASN1Encoding;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.DEROctetString;
@@ -34,9 +47,7 @@ import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * A utility class for certificate handling
- */
+/** A utility class for certificate handling */
 public class TestCertUtility {
 
     public static final Provider BOUNCY_CASTLE_PROVIDER = CertUtility.getBouncyCastleProvider();
@@ -52,8 +63,7 @@ public class TestCertUtility {
      *
      * @param cert certificate to convert
      * @return converted certificate
-     * @throws CertificateException if certificate could not be converted from CMP
-     *                              Certificate
+     * @throws CertificateException if certificate could not be converted from CMP Certificate
      */
     public static X509Certificate certificateFromCmpCertificate(final CMPCertificate cert) throws Exception {
         try {
@@ -68,8 +78,7 @@ public class TestCertUtility {
      *
      * @param encoded byte string to encode
      * @return converted certificate
-     * @throws CertificateException if certificate could not be converted from
-     *                              encoded
+     * @throws CertificateException if certificate could not be converted from encoded
      */
     public static X509Certificate certificateFromEncoded(final byte[] encoded) throws Exception {
         return (X509Certificate) getCertificateFactory().generateCertificate(new ByteArrayInputStream(encoded));
@@ -80,8 +89,7 @@ public class TestCertUtility {
      *
      * @param certs certificates to convert
      * @return converted certificate
-     * @throws CertificateException if certificate could not be converted from CMP
-     *                              Certificate
+     * @throws CertificateException if certificate could not be converted from CMP Certificate
      */
     public static List<X509Certificate> certificatesFromCmpCertificates(final CMPCertificate[] certs) throws Exception {
         try {
@@ -100,8 +108,7 @@ public class TestCertUtility {
      *
      * @param cert certificate to convert
      * @return converted certificate
-     * @throws CertificateException if certificate could not be converted from CMP
-     *                              Certificate
+     * @throws CertificateException if certificate could not be converted from CMP Certificate
      */
     public static CMPCertificate cmpCertificateFromCertificate(final Certificate cert) throws CertificateException {
         return CMPCertificate.getInstance(cert.getEncoded());
@@ -112,8 +119,7 @@ public class TestCertUtility {
      *
      * @param certs certificates to convert
      * @return converted certificate
-     * @throws CertificateException if certificate could not be converted from CMP
-     *                              Certificate
+     * @throws CertificateException if certificate could not be converted from CMP Certificate
      */
     public static CMPCertificate[] cmpCertificatesFromCertificates(final List<X509Certificate> certs)
             throws CertificateException {
@@ -159,9 +165,8 @@ public class TestCertUtility {
      * Function to retrieve the static certificate factory object
      *
      * @return static certificate factory object
-     * @throws CertificateException thrown if the certificate factory could not be
-     *                              instantiated
-     * @throws Exception            in case of an error
+     * @throws CertificateException thrown if the certificate factory could not be instantiated
+     * @throws Exception in case of an error
      */
     public static synchronized CertificateFactory getCertificateFactory() throws Exception {
         if (certificateFactory == null) {
@@ -175,11 +180,9 @@ public class TestCertUtility {
      *
      * @param cert certificate to be checked
      * @return <code>true</code> if the certificate is self-signed
-     * @throws CertificateException     if the certificate could not be parsed
-     * @throws NoSuchAlgorithmException if the public key could not be extracted
-     *                                  from the certificate
-     * @throws NoSuchProviderException  if the public key could not be extracted
-     *                                  from the certificate
+     * @throws CertificateException if the certificate could not be parsed
+     * @throws NoSuchAlgorithmException if the public key could not be extracted from the certificate
+     * @throws NoSuchProviderException if the public key could not be extracted from the certificate
      */
     public static boolean isSelfSigned(final X509Certificate cert)
             throws CertificateException, NoSuchAlgorithmException, NoSuchProviderException {
@@ -200,7 +203,7 @@ public class TestCertUtility {
      * @param filename name of the file to load from
      * @return all found certificates
      * @throws CertificateException if the certificate could not be parsed
-     * @throws Exception            if the certificate file could not be loaded
+     * @throws Exception if the certificate file could not be loaded
      */
     public static synchronized List<X509Certificate> loadCertificatesFromFile(final String filename) throws Exception {
         try (InputStream is = ConfigFileLoader.getConfigFileAsStream(filename)) {
@@ -281,8 +284,7 @@ public class TestCertUtility {
      * load a keystore from a JKS, PKCS#12 or PEM file
      *
      * @param filename name of the file to load from
-     * @param password password to open a JKS or PKCS#12 keystore, not needed for
-     *                 PEM files
+     * @param password password to open a JKS or PKCS#12 keystore, not needed for PEM files
      * @return truststore build from given file
      * @throws Exception in case of error
      */
@@ -308,8 +310,8 @@ public class TestCertUtility {
      * Load key store (JKS or PKCS #12) from the specified file.
      *
      * @param keyStoreType type of key store, either "JKS" or "PKCS12"
-     * @param is           input stream of the key store file
-     * @param password     key store password
+     * @param is input stream of the key store file
+     * @param password key store password
      * @return key store
      * @throws KeyStoreException if key store could not be loaded from file
      */

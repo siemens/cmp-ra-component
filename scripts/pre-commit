@@ -1,5 +1,0 @@
-#!/bin/bash
-
-echo "Applying auto-formatting"
-mvn spotless:apply
-echo "Done"

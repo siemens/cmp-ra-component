@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2025 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -83,14 +83,10 @@ import org.bouncycastle.pqc.asn1.PQCObjectIdentifiers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * A utility class providing functions for dumping messages.
- */
+/** A utility class providing functions for dumping messages. */
 public class MessageDumper {
 
-    /**
-     * OID Descriptor class
-     */
+    /** OID Descriptor class */
     public static class OidDescription {
         private final String id;
         private final String declaringPackage;
@@ -101,8 +97,8 @@ public class MessageDumper {
          * Constructor for OID Descriptor class
          *
          * @param declaringClass declaring class of the OID
-         * @param id             ID
-         * @param oid            ASN.1 representation of the OID
+         * @param id ID
+         * @param oid ASN.1 representation of the OID
          */
         public OidDescription(final Class<?> declaringClass, final String id, final ASN1ObjectIdentifier oid) {
             this.declaringPackage =
@@ -114,6 +110,7 @@ public class MessageDumper {
 
         /**
          * get declaring class
+         *
          * @return declaring class
          */
         public String getBcDeclaration() {
@@ -244,7 +241,6 @@ public class MessageDumper {
      * Dump PKI message to a string.
      *
      * @param msg PKI message to be dumped
-     *
      * @return string representation of the PKI message
      */
 
@@ -384,11 +380,10 @@ public class MessageDumper {
     }
 
     /**
-     * Extract Relative Distinguished Names (RDNs) of a given type from a X500 Name
-     * e.g. certificate subject.
+     * Extract Relative Distinguished Names (RDNs) of a given type from a X500 Name e.g. certificate subject.
      *
      * @param x500Name X.500 Name e.g. certificate subject.
-     * @param rdnType  RDN Type to be extracted e.g. CN
+     * @param rdnType RDN Type to be extracted e.g. CN
      * @return RDNs of the requested type found in the X.500 name
      */
     public static final List<String> extractRdnAsStringArray(
@@ -420,9 +415,7 @@ public class MessageDumper {
         return ret;
     }
 
-    /**
-     * // load ObjectIdentifiers defined somewhere in BouncyCastle
-     */
+    /** // load ObjectIdentifiers defined somewhere in BouncyCastle */
     private static synchronized void initNameOidMaps() {
         if (oidToKeyMap != null) {
             // already initialized
@@ -530,6 +523,7 @@ public class MessageDumper {
 
     /**
      * convert {@link PKIStatusInfo} to logging string
+     *
      * @param status the PKIStatusInfo
      * @return logging string
      */
