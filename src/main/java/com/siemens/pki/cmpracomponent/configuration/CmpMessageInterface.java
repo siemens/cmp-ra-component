@@ -76,10 +76,12 @@ public interface CmpMessageInterface {
     }
 
     /**
-     * provide configuration for protection mode of outgoing messages. Responses
-     * to MAC-based requests at Downstream are always reprotected using the same
-     * credentials if {@link CmpMessageInterface#isEnforceReprotectMode()}
-     * returns <code>false</code>.
+     * provide configuration for protection mode of outgoing messages.
+     * When responding to request messages with successfully verified
+     * MAC-based protection, the corresponding response messages are protected
+     * using the same MAC-based algorithm, credentials, and parameters
+     * (regardless of the configuration related to reprotection or output credentials)
+     * if {@link CmpMessageInterface#isEnforceReprotectMode()} returns <code>false</code>.
      *
      * @return protection mode
      */
@@ -91,7 +93,7 @@ public interface CmpMessageInterface {
      * MAC-based protected.
      * @return <code>true</code>, if reprotection can be enforced,
      * <code>false</code> if response to an MAC-based protected request should
-     * be protected using the same credentials
+     * be protected in the same way (with same MAC credentials etc.) as the request.
      */
     default boolean isEnforceReprotectMode() {
         return false;
