@@ -30,8 +30,11 @@ import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.GeneralSecurityException;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.Signature;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -68,6 +71,7 @@ import org.bouncycastle.asn1.cmp.PollReqContent;
 import org.bouncycastle.asn1.cmp.ProtectedPart;
 import org.bouncycastle.asn1.cmp.RevDetails;
 import org.bouncycastle.asn1.cmp.RevReqContent;
+import org.bouncycastle.asn1.cms.EnvelopedData;
 import org.bouncycastle.asn1.crmf.CertReqMessages;
 import org.bouncycastle.asn1.crmf.CertReqMsg;
 import org.bouncycastle.asn1.crmf.CertRequest;
@@ -75,8 +79,11 @@ import org.bouncycastle.asn1.crmf.CertTemplate;
 import org.bouncycastle.asn1.crmf.CertTemplateBuilder;
 import org.bouncycastle.asn1.crmf.Controls;
 import org.bouncycastle.asn1.crmf.EncryptedKey;
+import org.bouncycastle.asn1.crmf.POPOPrivKey;
 import org.bouncycastle.asn1.crmf.POPOSigningKey;
 import org.bouncycastle.asn1.crmf.ProofOfPossession;
+import org.bouncycastle.asn1.crmf.SubsequentMessage;
+import org.bouncycastle.asn1.nist.NISTObjectIdentifiers;
 import org.bouncycastle.asn1.x500.RDN;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
@@ -84,8 +91,13 @@ import org.bouncycastle.asn1.x509.Certificate;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.ExtensionsGenerator;
 import org.bouncycastle.asn1.x509.GeneralName;
-import org.bouncycastle.cert.cmp.CMPException;
+import org.bouncycastle.cms.CMSAlgorithm;
+import org.bouncycastle.cms.CMSEnvelopedData;
+import org.bouncycastle.cms.CMSEnvelopedDataGenerator;
 import org.bouncycastle.cms.CMSException;
+import org.bouncycastle.cms.CMSProcessableByteArray;
+import org.bouncycastle.cms.jcajce.JceCMSContentEncryptorBuilder;
+import org.bouncycastle.cms.jcajce.JceKEMRecipientInfoGenerator;
 import org.bouncycastle.operator.DefaultDigestAlgorithmIdentifierFinder;
 import org.bouncycastle.operator.DigestAlgorithmIdentifierFinder;
 import org.bouncycastle.operator.DigestCalculator;
@@ -252,8 +264,8 @@ public class PkiMessageGenerator {
      *
      * @param headerProvider     PKI header
      * @param protectionProvider PKI protection
-     * @param newRecipient       outgoing recipient or <code>null</code> if recipient
-     *                           from headerProvider should be used
+     * @param newRecipient       outgoing recipient or <code>null</code> if
+     *                           recipient from headerProvider should be used
      * @param body               message body
      * @param issuingChain       chain of enrolled certificate to append at the
      *                           extraCerts
@@ -317,16 +329,20 @@ public class PkiMessageGenerator {
      * @throws Exception in case of error
      */
     public static PKIBody generateCertConfBody(final CMPCertificate certificate) throws Exception {
-        final AlgorithmIdentifier digAlg =
-                DIG_ALG_FINDER.find(certificate.getX509v3PKCert().getSignatureAlgorithm());
-        if (digAlg == null) {
-            throw new CMPException("cannot find algorithm for digest from signature");
-        }
-
-        final DigestCalculator digester = BC_DIGEST_CALCULATOR_PROVIDER.get(digAlg);
+        final AlgorithmIdentifier signatureAlgorithm =
+                certificate.getX509v3PKCert().getSignatureAlgorithm();
+        final AlgorithmIdentifier digAlgFromCert =
+                ifNotNull(signatureAlgorithm, x -> DIG_ALG_FINDER.find(signatureAlgorithm));
+        final AlgorithmIdentifier digAlgForHash =
+                computeDefaultIfNull(digAlgFromCert, () -> new AlgorithmIdentifier(NISTObjectIdentifiers.id_sha256));
+        final DigestCalculator digester = BC_DIGEST_CALCULATOR_PROVIDER.get(digAlgForHash);
         digester.getOutputStream().write(certificate.getEncoded(ASN1Encoding.DER));
         final ASN1Sequence content = new DERSequence(new CertStatus[] {
-            new CertStatus(digester.getDigest(), BigInteger.ZERO, new PKIStatusInfo(PKIStatus.granted))
+            new CertStatus(
+                    digester.getDigest(),
+                    BigInteger.ZERO,
+                    new PKIStatusInfo(PKIStatus.granted),
+                    digAlgFromCert != null ? null : digAlgForHash)
         });
         return new PKIBody(PKIBody.TYPE_CERT_CONFIRM, CertConfirmContent.getInstance(content));
     }
@@ -399,6 +415,59 @@ public class PkiMessageGenerator {
     }
 
     /**
+     * generate a IP, CP or KUP body for returning an KEM encrypted cerificate
+     *
+     * @param bodyType             bodyType PKIBody.TYPE_INIT_REP,
+     *                             PKIBody.TYPE_CERT_REP or
+     *                             PKIBody.TYPE_KEY_UPDATE_REP
+     * @param certificateToEncrypt the certificate to encrypt and return
+     * @return a IP, CP or KUP body
+     * @throws CertificateEncodingException in case of general error
+     * @throws CMSException                 in case of error in CMS processing
+     */
+    public static PKIBody generateEncryptedIpCpKupBody(final int bodyType, X509Certificate certificateToEncrypt)
+            throws CertificateEncodingException, CMSException {
+        // encrypt certificate
+        // KDF2
+        //        AlgorithmIdentifier kdfAlgorithm = new AlgorithmIdentifier(
+        //                X9ObjectIdentifiers.id_kdf_kdf2,
+        //                new AlgorithmIdentifier(NISTObjectIdentifiers.id_sha256, DERNull.INSTANCE));
+        // KDF3
+        //        AlgorithmIdentifier kdfAlgorithm = new AlgorithmIdentifier(
+        //                X9ObjectIdentifiers.id_kdf_kdf3,
+        //                new AlgorithmIdentifier(NISTObjectIdentifiers.id_sha256, DERNull.INSTANCE));
+        // SHAKE256
+        AlgorithmIdentifier kdfAlgorithm = new AlgorithmIdentifier(NISTObjectIdentifiers.id_shake256);
+
+        CMSEnvelopedDataGenerator envGen = new CMSEnvelopedDataGenerator();
+        // Issuer + serialnumber
+        //        JceKEMRecipientInfoGenerator recipientInfoGenerator = new
+        // JceKEMRecipientInfoGenerator(certificateToEncrypt, CMSAlgorithm.AES256_WRAP);
+        // Subject Pulic Key
+        JceKEMRecipientInfoGenerator recipientInfoGenerator = new JceKEMRecipientInfoGenerator(
+                certificateToEncrypt.getPublicKey().getEncoded(),
+                certificateToEncrypt.getPublicKey(),
+                CMSAlgorithm.AES256_WRAP);
+        envGen.addRecipientInfoGenerator(recipientInfoGenerator.setKDF(kdfAlgorithm));
+        CMSProcessableByteArray content = new CMSProcessableByteArray(certificateToEncrypt.getEncoded());
+        final CMSEnvelopedData cmsEnvData = envGen.generate(
+                content,
+                new JceCMSContentEncryptorBuilder(CMSAlgorithm.AES256_CBC)
+                        .setProvider(CertUtility.getBouncyCastleProvider())
+                        .build());
+        EnvelopedData encryptedCertAsEnvelope =
+                EnvelopedData.getInstance(cmsEnvData.toASN1Structure().getContent());
+        final CertResponse[] response = {
+            new CertResponse(
+                    PkiMessageGenerator.CERT_REQ_ID_0,
+                    new PKIStatusInfo(PKIStatus.granted),
+                    new CertifiedKeyPair(new CertOrEncCert(new EncryptedKey(encryptedCertAsEnvelope))),
+                    null)
+        };
+        return new PKIBody(bodyType, new CertRepMessage(null, response));
+    }
+
+    /**
      * generate a IP, CP or KUP body containing an error
      *
      * @param bodyType     PKIBody.TYPE_INIT_REP, PKIBody.TYPE_CERT_REP or
@@ -434,12 +503,19 @@ public class PkiMessageGenerator {
         if (privateKey == null) {
             return new PKIBody(bodyType, new CertReqMessages(new CertReqMsg(certReq, new ProofOfPossession(), null)));
         }
-        final Signature sig = Signature.getInstance(AlgorithmHelper.getSigningAlgNameFromKey(privateKey));
-        sig.initSign(privateKey);
-        sig.update(certReq.getEncoded(ASN1Encoding.DER));
-        final ProofOfPossession popo = new ProofOfPossession(new POPOSigningKey(
-                null, AlgorithmHelper.getSigningAlgIdFromKey(privateKey), new DERBitString(sig.sign())));
-        return new PKIBody(bodyType, new CertReqMessages(new CertReqMsg(certReq, popo, null)));
+        try {
+            final Signature sig = AlgorithmHelper.getSignature(AlgorithmHelper.getSigningAlgNameFromKey(privateKey));
+            sig.initSign(privateKey);
+            sig.update(certReq.getEncoded(ASN1Encoding.DER));
+            final ProofOfPossession popo = new ProofOfPossession(new POPOSigningKey(
+                    null, AlgorithmHelper.getSigningAlgIdFromKey(privateKey), new DERBitString(sig.sign())));
+            return new PKIBody(bodyType, new CertReqMessages(new CertReqMsg(certReq, popo, null)));
+        } catch (NoSuchAlgorithmException ex) {
+            // POP signing not supported, try KEM
+            final ProofOfPossession popo = new ProofOfPossession(
+                    ProofOfPossession.TYPE_KEY_ENCIPHERMENT, new POPOPrivKey(SubsequentMessage.encrCert));
+            return new PKIBody(bodyType, new CertReqMessages(new CertReqMsg(certReq, popo, null)));
+        }
     }
 
     /**
@@ -464,6 +540,7 @@ public class PkiMessageGenerator {
 
     /**
      * generate a PollReq body
+     *
      * @return a PollReq body
      */
     public static PKIBody generatePollReq() {
