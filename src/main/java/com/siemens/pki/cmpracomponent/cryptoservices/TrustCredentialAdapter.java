@@ -19,6 +19,7 @@ package com.siemens.pki.cmpracomponent.cryptoservices;
 
 import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import com.siemens.pki.cmpracomponent.util.ConfigLogger;
+import java.io.IOException;
 import java.net.URI;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.NoSuchAlgorithmException;
@@ -27,6 +28,7 @@ import java.security.cert.CertPathBuilder;
 import java.security.cert.CertPathBuilderException;
 import java.security.cert.CertStore;
 import java.security.cert.CertStoreParameters;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.CollectionCertStoreParameters;
 import java.security.cert.PKIXBuilderParameters;
 import java.security.cert.PKIXCertPathBuilderResult;
@@ -36,12 +38,19 @@ import java.security.cert.TrustAnchor;
 import java.security.cert.X509CRL;
 import java.security.cert.X509CertSelector;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.bouncycastle.asn1.x509.SubjectAltPublicKeyInfo;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.cert.CertException;
+import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +61,6 @@ import org.slf4j.LoggerFactory;
  */
 public class TrustCredentialAdapter {
 
-    // private static final BouncyCastleProvider PROVIDER = CertUtility.getBouncyCastleProvider();
     private static final String PROVIDER = "SUN";
 
     private static final String FALSE_STRING = "false";
@@ -67,6 +75,7 @@ public class TrustCredentialAdapter {
 
     /**
      * ctor
+     *
      * @param config specific configuration
      * @param interfaceName CMP interface name for logging
      */
@@ -100,12 +109,17 @@ public class TrustCredentialAdapter {
      *                                    validation
      * @return the validated chain without trust anchor but with cert or
      *         <code>null</code> if the validation failed
-     * @throws NoSuchProviderException if SUN provider is not available
+     * @throws NoSuchProviderException if provider is not available
+     * @throws IOException in case of encoding error
+     * @throws CertificateEncodingException in case of encoding error
+     * @throws CertException in case of encoding error
+     * @throws OperatorCreationException if certificate validation fails
      */
     @SuppressWarnings("unchecked")
     public synchronized List<? extends X509Certificate> validateCertAgainstTrust(
             final X509Certificate cert, final List<X509Certificate> additionalIntermediateCerts)
-            throws NoSuchProviderException {
+            throws NoSuchProviderException, CertificateEncodingException, IOException, CertException,
+                    OperatorCreationException {
         final Collection<X509Certificate> trustedCertificates = ConfigLogger.logOptional(
                 interfaceName, "VerificationContext.getTrustedCertificates()", config::getTrustedCertificates);
         if (trustedCertificates == null) {
@@ -232,6 +246,26 @@ public class TrustCredentialAdapter {
                         || !config.isIntermediateCertAcceptable(aktCert)) {
                     return null;
                 }
+            }
+            // check alternative signature
+            final JcaContentVerifierProviderBuilder verifier = new JcaContentVerifierProviderBuilder();
+            List<X509CertificateHolder> altChain = new ArrayList<>(resultChain.size() + 1);
+            final X509CertificateHolder rootHolder = new X509CertificateHolder(
+                    result.getTrustAnchor().getTrustedCert().getEncoded());
+            altChain.add(rootHolder);
+            for (X509Certificate aktCert : resultChain) {
+                altChain.add(1, new X509CertificateHolder(aktCert.getEncoded()));
+            }
+
+            SubjectAltPublicKeyInfo altLastKey = SubjectAltPublicKeyInfo.fromExtensions(rootHolder.getExtensions());
+            for (X509CertificateHolder aktHolder : altChain) {
+                if (altLastKey != null) {
+                    SubjectPublicKeyInfo lastKey = SubjectPublicKeyInfo.getInstance(altLastKey.getEncoded());
+                    if (!aktHolder.isAlternativeSignatureValid(verifier.build(lastKey))) {
+                        return null;
+                    }
+                }
+                altLastKey = SubjectAltPublicKeyInfo.fromExtensions(aktHolder.getExtensions());
             }
             return resultChain;
         } catch (final CertPathBuilderException certExcpt) {
