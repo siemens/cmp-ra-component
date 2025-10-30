@@ -52,6 +52,7 @@ public class PersistencyContext {
     private CMPCertificate enrolledCertificate;
     private boolean implicitConfirmGranted;
     private byte[] requestedPublicKey;
+    private boolean markedAsPreparingGenm;
 
     @JsonIgnore
     private List<CMPCertificate> issuingChain;
@@ -216,6 +217,12 @@ public class PersistencyContext {
     public boolean isImplicitConfirmGranted() {
         return implicitConfirmGranted;
     }
+    /**
+     * mark the currently processed GENM as preliminary for a remaining transaction
+     */
+    public void markAsPreparingGenm() {
+        markedAsPreparingGenm = true;
+    }
 
     /**
      * store  already sent extra certs in case of compression
@@ -373,5 +380,9 @@ public class PersistencyContext {
      */
     public boolean isRespondedCertMustBeEncrypted() {
         return respondedCertMustBeEncrypted;
+    }
+
+    boolean isMarkedAsPreparingGenm() {
+        return markedAsPreparingGenm;
     }
 }

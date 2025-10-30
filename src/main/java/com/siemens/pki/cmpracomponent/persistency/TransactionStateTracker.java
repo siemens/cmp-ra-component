@@ -447,7 +447,8 @@ class TransactionStateTracker {
                     throw new CmpValidationException(
                             INTERFACE_NAME,
                             PKIFailureInfo.transactionIdInUse,
-                            "transaction in wrong state for " + MessageDumper.msgAsShortString(message));
+                            "transaction in wrong state " + persistencyContext.getLastTransactionState() + " for "
+                                    + MessageDumper.msgAsShortString(message));
                 }
                 persistencyContext.setLastTransactionState(LastTransactionState.REVOCATION_CONFIRMED);
                 return;
@@ -459,7 +460,8 @@ class TransactionStateTracker {
                     throw new CmpValidationException(
                             INTERFACE_NAME,
                             PKIFailureInfo.transactionIdInUse,
-                            "transaction in wrong state for " + MessageDumper.msgAsShortString(message));
+                            "transaction in wrong state " + persistencyContext.getLastTransactionState() + " for "
+                                    + MessageDumper.msgAsShortString(message));
                 }
                 persistencyContext.setLastTransactionState(LastTransactionState.REVOCATION_CONFIRMED);
                 return;
@@ -472,9 +474,14 @@ class TransactionStateTracker {
                     throw new CmpValidationException(
                             INTERFACE_NAME,
                             PKIFailureInfo.transactionIdInUse,
-                            "transaction in wrong state for " + MessageDumper.msgAsShortString(message));
+                            "transaction in wrong state " + persistencyContext.getLastTransactionState() + " for "
+                                    + MessageDumper.msgAsShortString(message));
                 }
-                persistencyContext.setLastTransactionState(LastTransactionState.GENREP_RETURNED);
+                if (persistencyContext.isMarkedAsPreparingGenm()) {
+                    persistencyContext.setLastTransactionState(LastTransactionState.INITIAL_STATE);
+                } else {
+                    persistencyContext.setLastTransactionState(LastTransactionState.GENREP_RETURNED);
+                }
                 return;
             case GEN_POLLING:
                 if (isPollRequest(message) || isPollResponse(message)) {
@@ -484,7 +491,8 @@ class TransactionStateTracker {
                     throw new CmpValidationException(
                             INTERFACE_NAME,
                             PKIFailureInfo.transactionIdInUse,
-                            "transaction in wrong state for " + MessageDumper.msgAsShortString(message));
+                            "transaction in wrong state " + persistencyContext.getLastTransactionState() + " for "
+                                    + MessageDumper.msgAsShortString(message));
                 }
                 persistencyContext.setLastTransactionState(LastTransactionState.GENREP_RETURNED);
                 return;
@@ -492,7 +500,7 @@ class TransactionStateTracker {
                 throw new CmpValidationException(
                         INTERFACE_NAME,
                         PKIFailureInfo.transactionIdInUse,
-                        "transaction in wrong state (" + persistencyContext.getLastTransactionState() + ") for "
+                        "transaction in wrong state " + persistencyContext.getLastTransactionState() + " for "
                                 + MessageDumper.msgAsShortString(message));
         }
     }
