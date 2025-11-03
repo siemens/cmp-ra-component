@@ -51,25 +51,16 @@ tasks.cyclonedxDirectBom {
     // Exclude all test-related configurations using regex
     skipConfigs = [".*test.*", ".*Test.*"]
 
-    // Skip specific projects from aggregation
-    skipProjects = ["test-utils", "integration-tests"]
-
     // Set application metadata
     projectType = "application"
-    componentName = "my-microservice"
-    componentVersion = "2.0.0-SNAPSHOT"
-
-    // Schema configuration
-    schemaVersion = org.cyclonedx.model.schema.SchemaVersion.VERSION_16
+    componentName = project.artifactId
+    componentVersion = project.version
 
     // Metadata options
     includeBomSerialNumber = true
     includeLicenseText = true
     includeMetadataResolution = true
     includeBuildSystem = true
-
-    // Custom build system URL template
-    //buildSystemEnvironmentVariable = '${CI_PIPELINE_URL}/jobs/${CI_JOB_ID}'
 
     // Custom output locations
     jsonOutput = file("build/reports/sbom/${project.name}-sbom.json")
@@ -113,7 +104,7 @@ jacocoTestReport {
 
 dependencyCheck {
     outputDirectory = "$buildDir/security-reports"
-    formats = ['HTML', 'XML', 'JSON', 'CSV', 'SAFIR']
+    formats = ['HTML' /*, 'XML', 'JSON', 'CSV', 'SAFIR'*/ ]
     
     /*CVSS (Common Vulnerability Scoring System) scores range from 0 to 10:
         0.0–3.9: Low severity
@@ -129,6 +120,7 @@ dependencyCheck {
     analyzers {
         assemblyEnabled = false
         nodeAuditEnabled = false
+        ossIndexEnabled = false
     }
     
     autoUpdate = true

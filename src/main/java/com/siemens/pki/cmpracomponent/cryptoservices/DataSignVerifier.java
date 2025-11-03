@@ -65,38 +65,6 @@ public class DataSignVerifier extends TrustCredentialAdapter {
         return verifySignature(encodedSignedData, (cert, additionalCerts) -> true);
     }
 
-    /*
-    private static byte[] verifySignature(
-    		final byte[] encodedSignedData,
-    		final BiPredicate<X509CertificateHolder, List<X509Certificate>> trustValidator)
-    		throws CMSException, IOException, CertificateException {
-
-    	final CMSSignedData signedData = new CMSSignedData(
-    			new ContentInfo(CMSObjectIdentifiers.signedData, SignedData.getInstance(encodedSignedData)));
-    	final SignerInformationStore signers = signedData.getSignerInfos();
-    	final Store<X509CertificateHolder> certs = signedData.getCertificates();
-    	final List<X509Certificate> allCerts = new ArrayList<>();
-    	for (final X509CertificateHolder aktCert : certs.getMatches(null)) {
-    		allCerts.add(CertUtility.asX509Certificate(aktCert.getEncoded()));
-    	}
-    	for (final SignerInformation signerInfo : signers) {
-    		@SuppressWarnings("unchecked")
-    		final Collection<X509CertificateHolder> certCollection = certs.getMatches(signerInfo.getSID());
-    		final X509CertificateHolder cert = certCollection.iterator().next();
-    		try {
-    			if (signerInfo.verify(builder.build(cert)) && trustValidator.test(cert, allCerts)) {
-    				final CMSTypedData cmsData = signedData.getSignedContent();
-    				final ByteArrayOutputStream bOut = new ByteArrayOutputStream();
-    				cmsData.write(bOut);
-    				return bOut.toByteArray();
-    			}
-    		} catch (final Exception exception) {
-    			// try next signer
-    		}
-    	}
-    	return new byte[0];
-    }*/
-
     private static byte[] verifySignature(
             final byte[] encodedSignedData,
             final BiPredicate<X509CertificateHolder, List<X509Certificate>> trustValidator)
@@ -120,19 +88,12 @@ public class DataSignVerifier extends TrustCredentialAdapter {
 
         for (SignerInformation signerInfo : signers) {
 
-            // Collection<X509CertificateHolder> certs = certStore.getMatches(signerInfo.getSID());
-
             @SuppressWarnings("unchecked")
-			Collection<? extends X509CertificateHolder> certs = certStore.getMatches(signerInfo.getSID());
-
-            List<X509CertificateHolder> certList = certs.stream()
-                    .filter(X509CertificateHolder.class::isInstance)
-                    .map(X509CertificateHolder.class::cast)
-                    .toList();
+            Collection<X509CertificateHolder> certs = certStore.getMatches(signerInfo.getSID());
 
             if (certs.isEmpty()) continue;
 
-            X509CertificateHolder certHolder = certList.iterator().next();
+            X509CertificateHolder certHolder = certs.iterator().next();
             boolean isVerified = false;
 
             try {
