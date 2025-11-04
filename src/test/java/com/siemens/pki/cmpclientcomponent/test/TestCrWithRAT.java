@@ -410,8 +410,7 @@ public class TestCrWithRAT extends EnrollmentTestcaseBase {
         };
     }
 
-    @Override
-    ClientContext getClientContext(final int enrollmentType, KeyPair keyPair, byte[] certificationRequest) {
+    ClientContext getRatClientContext(final int enrollmentType, KeyPair keyPair, boolean requestImplicitConfirm) {
         return new ClientContext() {
 
             @Override
@@ -481,11 +480,6 @@ public class TestCrWithRAT extends EnrollmentTestcaseBase {
                     }
 
                     @Override
-                    public byte[] getCertificationRequest() {
-                        return certificationRequest;
-                    }
-
-                    @Override
                     public VerificationContext getEnrollmentTrust() {
                         return enrollmentCredentials;
                     }
@@ -507,7 +501,7 @@ public class TestCrWithRAT extends EnrollmentTestcaseBase {
 
                     @Override
                     public boolean getRequestImplictConfirm() {
-                        return false;
+                        return requestImplicitConfirm;
                     }
 
                     @Override
@@ -534,10 +528,32 @@ public class TestCrWithRAT extends EnrollmentTestcaseBase {
     public void testCr() throws Exception {
         final EnrollmentResult ret = getSignatureBasedCmpClient(
                         "theCertProfileForOnlineEnrollment",
-                        getClientContext(
+                        getRatClientContext(
                                 PKIBody.TYPE_CERT_REQ,
                                 ConfigurationFactory.getKeyGenerator().generateKeyPair(),
-                                null),
+                                false),
+                        UPSTREAM_TRUST_PATH)
+                .invokeEnrollment();
+        final ASN1OctetString extValue = ASN1OctetString.getInstance(
+                ret.getEnrolledCertificate().getExtensionValue(AttestationObjectIdentifiers.id_aa_ar.getId()));
+        final AttestationResultBundle attestationResultBundle =
+                AttestationResultBundle.getInstance(extValue.getOctets());
+        assertNotNull(attestationResultBundle);
+        assertNotNull(attestationResultBundle.getCerts());
+        for (AttestationResult result : attestationResultBundle.getResults()) {
+            assertNotNull(result.getType());
+            assertNotNull(result.getStmt());
+        }
+    }
+
+    @Test
+    public void testCrWithImplicitConfirm() throws Exception {
+        final EnrollmentResult ret = getSignatureBasedCmpClient(
+                        "theCertProfileForOnlineEnrollment",
+                        getRatClientContext(
+                                PKIBody.TYPE_CERT_REQ,
+                                ConfigurationFactory.getKeyGenerator().generateKeyPair(),
+                                true),
                         UPSTREAM_TRUST_PATH)
                 .invokeEnrollment();
         final ASN1OctetString extValue = ASN1OctetString.getInstance(
