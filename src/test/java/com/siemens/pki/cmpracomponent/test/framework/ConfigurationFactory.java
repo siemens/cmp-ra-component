@@ -101,7 +101,7 @@ public class ConfigurationFactory {
                 enrollmentTrust);
     }
 
-    public static Configuration buildPasswordbasedDownstreamConfigurationWithoutResponseValidation() throws Exception {
+    public static Configuration buildPasswordbasedDownstreamConfigurationWithoutResponseProtection() throws Exception {
 
         final VerificationContext downstreamTrust = new PasswordValidationCredentials(TestUtils.PASSWORD);
 

@@ -120,7 +120,7 @@ public class CmpClientTestcaseBase {
 
             @Override
             public VerificationContext getInputVerification() {
-                return null;
+                return new PasswordValidationCredentials(protection.getSharedSecret());
             }
 
             @Override

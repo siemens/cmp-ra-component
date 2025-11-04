@@ -21,6 +21,7 @@ import static org.junit.Assert.assertNotNull;
 
 import com.siemens.pki.cmpclientcomponent.main.CmpClient.EnrollmentResult;
 import com.siemens.pki.cmpracomponent.configuration.Configuration;
+import com.siemens.pki.cmpracomponent.msgvalidation.CmpValidationException;
 import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
 import com.siemens.pki.cmpracomponent.test.framework.SharedSecret;
 import com.siemens.pki.cmpracomponent.test.framework.TestUtils;
@@ -34,21 +35,29 @@ public class TestPasswordBasedIrWithoutResponseValidation extends EnrollmentTest
     @Before
     public void setUp() throws Exception {
         final Configuration config =
-                ConfigurationFactory.buildPasswordbasedDownstreamConfigurationWithoutResponseValidation();
+                ConfigurationFactory.buildPasswordbasedDownstreamConfigurationWithoutResponseProtection();
         launchCmpCaAndRa(config);
     }
 
-    @Test
-    public void testIrWithoutResponseValidation() throws Exception {
-        final EnrollmentResult ret = getPasswordBasedCmpClientWithoutResponseValidation(
-                        "theCertProfileForOnlineEnrollmentWithoutResponseValidation",
-                        getClientContext(
-                                PKIBody.TYPE_CERT_REQ,
-                                ConfigurationFactory.getKeyGenerator().generateKeyPair(),
-                                null),
-                        new SharedSecret("PASSWORDBASEDMAC", TestUtils.PASSWORD),
-                        null)
-                .invokeEnrollment();
-        assertNotNull(ret);
+    /**
+     *
+     * @throws Throwable if unprotected response is received
+     */
+    @Test(expected = CmpValidationException.class)
+    public void testIrWithoutResponseValidation() throws Throwable {
+        try {
+            final EnrollmentResult ret = getPasswordBasedCmpClientWithoutResponseValidation(
+                            "theCertProfileForOnlineEnrollmentWithoutResponseValidation",
+                            getClientContext(
+                                    PKIBody.TYPE_CERT_REQ,
+                                    ConfigurationFactory.getKeyGenerator().generateKeyPair(),
+                                    null),
+                            new SharedSecret("PASSWORDBASEDMAC", TestUtils.PASSWORD),
+                            null)
+                    .invokeEnrollment();
+            assertNotNull(ret);
+        } catch (RuntimeException ex) {
+            throw ex.getCause();
+        }
     }
 }
