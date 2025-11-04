@@ -51,10 +51,6 @@ public class AttestationResultBundle extends ASN1Object {
         }
     }
 
-    public AttestationResultBundle(AttestationResult[] results) {
-        this(results, null);
-    }
-
     public AttestationResultBundle(AttestationResult[] results, Certificate[] certs) {
         this.results = new ASN1EncodableVector();
         this.results.addAll(results);

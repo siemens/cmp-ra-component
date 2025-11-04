@@ -228,7 +228,7 @@ class RaDownstream {
                 final Extensions newExtensions = new Extensions(Stream.concat(
                                 Arrays.stream(extensions.getExtensionOIDs())
                                         .filter(oid -> !oid.equals(AttestationObjectIdentifiers.id_aa_evidence))
-                                        .map(oid -> extensions.getExtension(oid)),
+                                        .map(extensions::getExtension),
                                 Arrays.asList(ratExtension).stream())
                         .toArray(Extension[]::new));
                 certTemplate = new CertTemplateBuilder()
@@ -935,7 +935,7 @@ class RaDownstream {
 
     private Extension processRatVerification(
             final RatVerifierAdapter verifyAdapter, final byte[] transactionId, Extensions extensions)
-            throws CmpProcessingException, InterruptedException, IOException {
+            throws IOException {
         if (extensions == null) {
             return null;
         }

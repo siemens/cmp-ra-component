@@ -148,19 +148,6 @@ class TransactionStateTracker {
         }
     }
 
-    private boolean isCertResponseWithWaitingIndication(final PKIMessage msg) {
-        try {
-            return ((CertRepMessage) msg.getBody().getContent())
-                            .getResponse()[0]
-                            .getStatus()
-                            .getStatus()
-                            .intValue()
-                    == PKIStatus.WAITING;
-        } catch (final Exception ex) {
-            return false;
-        }
-    }
-
     private boolean isConfirmConfirm(final PKIMessage msg) {
         return msg.getBody().getType() == PKIBody.TYPE_CONFIRM;
     }
@@ -378,7 +365,7 @@ class TransactionStateTracker {
                             PKIFailureInfo.badMessageCheck,
                             "request was not answered by cert response for " + MessageDumper.msgAsShortString(message));
                 }
-                if (isCertResponseWithWaitingIndication(message)) {
+                if (isWaitingIndication(message)) {
                     persistencyContext.setLastTransactionState(LastTransactionState.CERTIFICATE_POLLING);
                     return;
                 }
