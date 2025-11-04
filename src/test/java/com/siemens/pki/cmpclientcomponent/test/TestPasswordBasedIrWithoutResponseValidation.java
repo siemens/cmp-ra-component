@@ -29,7 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 // just to cover skip and forceReprotect
-public class TestBasswordBasedIrWithoutResponseValidation extends EnrollmentTestcaseBase {
+public class TestPasswordBasedIrWithoutResponseValidation extends EnrollmentTestcaseBase {
 
     @Before
     public void setUp() throws Exception {
