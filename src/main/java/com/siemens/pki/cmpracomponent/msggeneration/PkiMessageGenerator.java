@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -30,8 +30,11 @@ import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.GeneralSecurityException;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.Signature;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -68,6 +71,7 @@ import org.bouncycastle.asn1.cmp.PollReqContent;
 import org.bouncycastle.asn1.cmp.ProtectedPart;
 import org.bouncycastle.asn1.cmp.RevDetails;
 import org.bouncycastle.asn1.cmp.RevReqContent;
+import org.bouncycastle.asn1.cms.EnvelopedData;
 import org.bouncycastle.asn1.crmf.CertReqMessages;
 import org.bouncycastle.asn1.crmf.CertReqMsg;
 import org.bouncycastle.asn1.crmf.CertRequest;
@@ -75,8 +79,11 @@ import org.bouncycastle.asn1.crmf.CertTemplate;
 import org.bouncycastle.asn1.crmf.CertTemplateBuilder;
 import org.bouncycastle.asn1.crmf.Controls;
 import org.bouncycastle.asn1.crmf.EncryptedKey;
+import org.bouncycastle.asn1.crmf.POPOPrivKey;
 import org.bouncycastle.asn1.crmf.POPOSigningKey;
 import org.bouncycastle.asn1.crmf.ProofOfPossession;
+import org.bouncycastle.asn1.crmf.SubsequentMessage;
+import org.bouncycastle.asn1.nist.NISTObjectIdentifiers;
 import org.bouncycastle.asn1.x500.RDN;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
@@ -84,8 +91,13 @@ import org.bouncycastle.asn1.x509.Certificate;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.ExtensionsGenerator;
 import org.bouncycastle.asn1.x509.GeneralName;
-import org.bouncycastle.cert.cmp.CMPException;
+import org.bouncycastle.cms.CMSAlgorithm;
+import org.bouncycastle.cms.CMSEnvelopedData;
+import org.bouncycastle.cms.CMSEnvelopedDataGenerator;
 import org.bouncycastle.cms.CMSException;
+import org.bouncycastle.cms.CMSProcessableByteArray;
+import org.bouncycastle.cms.jcajce.JceCMSContentEncryptorBuilder;
+import org.bouncycastle.cms.jcajce.JceKEMRecipientInfoGenerator;
 import org.bouncycastle.operator.DefaultDigestAlgorithmIdentifierFinder;
 import org.bouncycastle.operator.DigestAlgorithmIdentifierFinder;
 import org.bouncycastle.operator.DigestCalculator;
@@ -93,31 +105,39 @@ import org.bouncycastle.operator.bc.BcDigestCalculatorProvider;
 
 /**
  * a generator for PKI messages conforming to Lightweight CMP Profile <a href=
- * "https://datatracker.ietf.org/doc/draft-ietf-lamps-lightweight-cmp-profile/">Lihtweight CMP profile"</a>
+ * "https://datatracker.ietf.org/doc/draft-ietf-lamps-lightweight-cmp-profile/">Lihtweight
+ * CMP profile"</a>
  */
 public class PkiMessageGenerator {
 
     /**
      * see rfc4210, D.1.4
-     *
-     * <p>A constant representing the <code>NULL-DN</code> (NULL distinguished name).
+     * <p>
+     * A constant representing the <code>NULL-DN</code> (NULL distinguished name).
      */
     public static final GeneralName NULL_DN = new GeneralName(new X500Name(new RDN[0]));
-    /** the certReqId is always 0 */
+    /**
+     * the certReqId is always 0
+     */
     public static final ASN1Integer CERT_REQ_ID_0 = new ASN1Integer(0);
-    /** needed to generate a cert hash */
+    /**
+     * needed to generate a cert hash
+     */
     private static final BcDigestCalculatorProvider BC_DIGEST_CALCULATOR_PROVIDER = new BcDigestCalculatorProvider();
 
-    /** needed to generate a cert hash */
+    /**
+     * needed to generate a cert hash
+     */
     private static final DigestAlgorithmIdentifierFinder DIG_ALG_FINDER = new DefaultDigestAlgorithmIdentifierFinder();
 
     /**
      * build a {@link HeaderProvider} out the header of a message
      *
      * @param pvno CMP version number to set
-     * @param msg message to use for header rebuilding
-     * @return a new build {@link HeaderProvider} holding the MessageTime, Recipient, RecipNonce, Sender, SenderNonce,
-     *     TransactionID and GeneralInfo of the msg
+     * @param msg  message to use for header rebuilding
+     * @return a new build {@link HeaderProvider} holding the MessageTime,
+     *         Recipient, RecipNonce, Sender, SenderNonce, TransactionID and
+     *         GeneralInfo of the msg
      */
     public static HeaderProvider buildForwardingHeaderProvider(final int pvno, final PKIMessage msg) {
         return new HeaderProvider() {
@@ -169,8 +189,9 @@ public class PkiMessageGenerator {
      * build a {@link HeaderProvider} out the header of a message
      *
      * @param msg message to use for header rebuilding
-     * @return a new build {@link HeaderProvider} holding the MessageTime, Recipient, RecipNonce, Sender, SenderNonce,
-     *     TransactionID and GeneralInfo of the msg
+     * @return a new build {@link HeaderProvider} holding the MessageTime,
+     *         Recipient, RecipNonce, Sender, SenderNonce, TransactionID and
+     *         GeneralInfo of the msg
      */
     public static HeaderProvider buildForwardingHeaderProvider(final PKIMessage msg) {
         return buildForwardingHeaderProvider(msg.getHeader().getPvno().intValueExact(), msg);
@@ -180,8 +201,9 @@ public class PkiMessageGenerator {
      * build a {@link HeaderProvider} for a response to a given message message
      *
      * @param msg message to answer
-     * @return a new build {@link HeaderProvider} response holding the MessageTime, TransactionID, Recipient from
-     *     Sender, RecipNonce from SenderNonce of the msg and a fresh SenderNonce
+     * @return a new build {@link HeaderProvider} response holding the MessageTime,
+     *         TransactionID, Recipient from Sender, RecipNonce from SenderNonce of
+     *         the msg and a fresh SenderNonce
      */
     public static HeaderProvider buildRespondingHeaderProvider(final PKIMessage msg) {
         return new HeaderProvider() {
@@ -240,11 +262,13 @@ public class PkiMessageGenerator {
     /**
      * generate and protect a new CMP message
      *
-     * @param headerProvider PKI header
+     * @param headerProvider     PKI header
      * @param protectionProvider PKI protection
-     * @param newRecipient outgoing recipient or <code>null</code> if recipient from headerProvider should be used
-     * @param body message body
-     * @param issuingChain chain of enrolled certificate to append at the extraCerts
+     * @param newRecipient       outgoing recipient or <code>null</code> if
+     *                           recipient from headerProvider should be used
+     * @param body               message body
+     * @param issuingChain       chain of enrolled certificate to append at the
+     *                           extraCerts
      * @return a fully build and protected message
      * @throws GeneralSecurityException in case of error
      * @throws IOException in case of encoding error
@@ -285,9 +309,9 @@ public class PkiMessageGenerator {
     /**
      * generate and protect a new CMP message
      *
-     * @param headerProvider PKI header
+     * @param headerProvider     PKI header
      * @param protectionProvider PKI protection
-     * @param body message body
+     * @param body               message body
      * @return a fully build and protected message
      * @throws Exception in case of error
      */
@@ -305,16 +329,20 @@ public class PkiMessageGenerator {
      * @throws Exception in case of error
      */
     public static PKIBody generateCertConfBody(final CMPCertificate certificate) throws Exception {
-        final AlgorithmIdentifier digAlg =
-                DIG_ALG_FINDER.find(certificate.getX509v3PKCert().getSignatureAlgorithm());
-        if (digAlg == null) {
-            throw new CMPException("cannot find algorithm for digest from signature");
-        }
-
-        final DigestCalculator digester = BC_DIGEST_CALCULATOR_PROVIDER.get(digAlg);
+        final AlgorithmIdentifier signatureAlgorithm =
+                certificate.getX509v3PKCert().getSignatureAlgorithm();
+        final AlgorithmIdentifier digAlgFromCert =
+                ifNotNull(signatureAlgorithm, x -> DIG_ALG_FINDER.find(signatureAlgorithm));
+        final AlgorithmIdentifier digAlgForHash =
+                computeDefaultIfNull(digAlgFromCert, () -> new AlgorithmIdentifier(NISTObjectIdentifiers.id_sha256));
+        final DigestCalculator digester = BC_DIGEST_CALCULATOR_PROVIDER.get(digAlgForHash);
         digester.getOutputStream().write(certificate.getEncoded(ASN1Encoding.DER));
         final ASN1Sequence content = new DERSequence(new CertStatus[] {
-            new CertStatus(digester.getDigest(), BigInteger.ZERO, new PKIStatusInfo(PKIStatus.granted))
+            new CertStatus(
+                    digester.getDigest(),
+                    BigInteger.ZERO,
+                    new PKIStatusInfo(PKIStatus.granted),
+                    digAlgFromCert != null ? null : digAlgForHash)
         });
         return new PKIBody(PKIBody.TYPE_CERT_CONFIRM, CertConfirmContent.getInstance(content));
     }
@@ -322,7 +350,7 @@ public class PkiMessageGenerator {
     /**
      * generate Error body
      *
-     * @param failInfo failinfo from {@link PKIFailureInfo}
+     * @param failInfo     failinfo from {@link PKIFailureInfo}
      * @param errorDetails a string describing the problem
      * @return an error body
      */
@@ -337,7 +365,8 @@ public class PkiMessageGenerator {
     /**
      * generate a IP, CP or KUP body for returning a certificate
      *
-     * @param bodyType PKIBody.TYPE_INIT_REP, PKIBody.TYPE_CERT_REP or PKIBody.TYPE_KEY_UPDATE_REP
+     * @param bodyType    PKIBody.TYPE_INIT_REP, PKIBody.TYPE_CERT_REP or
+     *                    PKIBody.TYPE_KEY_UPDATE_REP
      * @param certificate the certificate to return
      * @return a IP, CP or KUP body
      */
@@ -353,15 +382,17 @@ public class PkiMessageGenerator {
     }
 
     /**
-     * generate a IP, CP or KUP body for returning a certificate and the related private key
+     * generate a IP, CP or KUP body for returning a certificate and the related
+     * private key
      *
-     * @param bodyType PKIBody.TYPE_INIT_REP, PKIBody.TYPE_CERT_REP or PKIBody.TYPE_KEY_UPDATE_REP
-     * @param certificate the certificate to return
-     * @param privateKey the private key to return
+     * @param bodyType     PKIBody.TYPE_INIT_REP, PKIBody.TYPE_CERT_REP or
+     *                     PKIBody.TYPE_KEY_UPDATE_REP
+     * @param certificate  the certificate to return
+     * @param privateKey   the private key to return
      * @param keyEncryptor CMS encryptor used for private key transport
-     * @param keySigner CMS signer used for private key transport
+     * @param keySigner    CMS signer used for private key transport
      * @return a IP, CP or KUP body
-     * @throws Exception in case of general error
+     * @throws Exception    in case of general error
      * @throws CMSException in case of error in CMS processing
      */
     public static PKIBody generateIpCpKupBody(
@@ -384,10 +415,64 @@ public class PkiMessageGenerator {
     }
 
     /**
+     * generate a IP, CP or KUP body for returning an KEM encrypted cerificate
+     *
+     * @param bodyType             bodyType PKIBody.TYPE_INIT_REP,
+     *                             PKIBody.TYPE_CERT_REP or
+     *                             PKIBody.TYPE_KEY_UPDATE_REP
+     * @param certificateToEncrypt the certificate to encrypt and return
+     * @return a IP, CP or KUP body
+     * @throws CertificateEncodingException in case of general error
+     * @throws CMSException                 in case of error in CMS processing
+     */
+    public static PKIBody generateEncryptedIpCpKupBody(final int bodyType, X509Certificate certificateToEncrypt)
+            throws CertificateEncodingException, CMSException {
+        // encrypt certificate
+        // KDF2
+        //        AlgorithmIdentifier kdfAlgorithm = new AlgorithmIdentifier(
+        //                X9ObjectIdentifiers.id_kdf_kdf2,
+        //                new AlgorithmIdentifier(NISTObjectIdentifiers.id_sha256, DERNull.INSTANCE));
+        // KDF3
+        //        AlgorithmIdentifier kdfAlgorithm = new AlgorithmIdentifier(
+        //                X9ObjectIdentifiers.id_kdf_kdf3,
+        //                new AlgorithmIdentifier(NISTObjectIdentifiers.id_sha256, DERNull.INSTANCE));
+        // SHAKE256
+        AlgorithmIdentifier kdfAlgorithm = new AlgorithmIdentifier(NISTObjectIdentifiers.id_shake256);
+
+        CMSEnvelopedDataGenerator envGen = new CMSEnvelopedDataGenerator();
+        // Issuer + serialnumber
+        //        JceKEMRecipientInfoGenerator recipientInfoGenerator = new
+        // JceKEMRecipientInfoGenerator(certificateToEncrypt, CMSAlgorithm.AES256_WRAP);
+        // Subject Pulic Key
+        JceKEMRecipientInfoGenerator recipientInfoGenerator = new JceKEMRecipientInfoGenerator(
+                certificateToEncrypt.getPublicKey().getEncoded(),
+                certificateToEncrypt.getPublicKey(),
+                CMSAlgorithm.AES256_WRAP);
+        envGen.addRecipientInfoGenerator(recipientInfoGenerator.setKDF(kdfAlgorithm));
+        CMSProcessableByteArray content = new CMSProcessableByteArray(certificateToEncrypt.getEncoded());
+        final CMSEnvelopedData cmsEnvData = envGen.generate(
+                content,
+                new JceCMSContentEncryptorBuilder(CMSAlgorithm.AES256_CBC)
+                        .setProvider(CertUtility.getBouncyCastleProvider())
+                        .build());
+        EnvelopedData encryptedCertAsEnvelope =
+                EnvelopedData.getInstance(cmsEnvData.toASN1Structure().getContent());
+        final CertResponse[] response = {
+            new CertResponse(
+                    PkiMessageGenerator.CERT_REQ_ID_0,
+                    new PKIStatusInfo(PKIStatus.granted),
+                    new CertifiedKeyPair(new CertOrEncCert(new EncryptedKey(encryptedCertAsEnvelope))),
+                    null)
+        };
+        return new PKIBody(bodyType, new CertRepMessage(null, response));
+    }
+
+    /**
      * generate a IP, CP or KUP body containing an error
      *
-     * @param bodyType PKIBody.TYPE_INIT_REP, PKIBody.TYPE_CERT_REP or PKIBody.TYPE_KEY_UPDATE_REP
-     * @param failInfo failinfo from {@link PKIFailureInfo}
+     * @param bodyType     PKIBody.TYPE_INIT_REP, PKIBody.TYPE_CERT_REP or
+     *                     PKIBody.TYPE_KEY_UPDATE_REP
+     * @param failInfo     failinfo from {@link PKIFailureInfo}
      * @param errorDetails a string describing the problem
      * @return a IP, CP or KUP body
      */
@@ -401,10 +486,12 @@ public class PkiMessageGenerator {
     /**
      * generate a IR, CR or KUR body
      *
-     * @param bodyType PKIBody.TYPE_INIT_REQ, PKIBody.TYPE_CERT_REQ or PKIBody.TYPE_KEY_UPDATE_REQ
+     * @param bodyType     PKIBody.TYPE_INIT_REQ, PKIBody.TYPE_CERT_REQ or
+     *                     PKIBody.TYPE_KEY_UPDATE_REQ
      * @param certTemplate template describing the request
-     * @param controls additional controls for KUR
-     * @param privateKey private key to build the POPO, if set to null, POPO is set to raVerified
+     * @param controls     additional controls for KUR
+     * @param privateKey   private key to build the POPO, if set to null, POPO is
+     *                     set to raVerified
      * @return a IR, CR or KUR body
      * @throws GeneralSecurityException in case of error
      * @throws IOException in case of encoding error
@@ -416,12 +503,19 @@ public class PkiMessageGenerator {
         if (privateKey == null) {
             return new PKIBody(bodyType, new CertReqMessages(new CertReqMsg(certReq, new ProofOfPossession(), null)));
         }
-        final Signature sig = Signature.getInstance(AlgorithmHelper.getSigningAlgNameFromKey(privateKey));
-        sig.initSign(privateKey);
-        sig.update(certReq.getEncoded(ASN1Encoding.DER));
-        final ProofOfPossession popo = new ProofOfPossession(new POPOSigningKey(
-                null, AlgorithmHelper.getSigningAlgIdFromKey(privateKey), new DERBitString(sig.sign())));
-        return new PKIBody(bodyType, new CertReqMessages(new CertReqMsg(certReq, popo, null)));
+        try {
+            final Signature sig = AlgorithmHelper.getSignature(AlgorithmHelper.getSigningAlgNameFromKey(privateKey));
+            sig.initSign(privateKey);
+            sig.update(certReq.getEncoded(ASN1Encoding.DER));
+            final ProofOfPossession popo = new ProofOfPossession(new POPOSigningKey(
+                    null, AlgorithmHelper.getSigningAlgIdFromKey(privateKey), new DERBitString(sig.sign())));
+            return new PKIBody(bodyType, new CertReqMessages(new CertReqMsg(certReq, popo, null)));
+        } catch (NoSuchAlgorithmException ex) {
+            // POP signing not supported, try KEM
+            final ProofOfPossession popo = new ProofOfPossession(
+                    ProofOfPossession.TYPE_KEY_ENCIPHERMENT, new POPOPrivKey(SubsequentMessage.encrCert));
+            return new PKIBody(bodyType, new CertReqMessages(new CertReqMsg(certReq, popo, null)));
+        }
     }
 
     /**
@@ -436,7 +530,8 @@ public class PkiMessageGenerator {
     /**
      * generate a PollRep body
      *
-     * @param checkAfterTime time in seconds to elapse before a new pollReq may be sent by the EE
+     * @param checkAfterTime time in seconds to elapse before a new pollReq may be
+     *                       sent by the EE
      * @return a PolRepBody
      */
     public static PKIBody generatePollRep(final int checkAfterTime) {
@@ -456,7 +551,7 @@ public class PkiMessageGenerator {
      * generate a response body with a waiting indication
      *
      * @param interfaceName name of processing interface for trace purposes
-     * @param requestBody body of related request
+     * @param requestBody   body of related request
      * @return a IP, CP, KUP or ERROR body
      */
     public static PKIBody generateResponseBodyWithWaiting(final PKIBody requestBody, final String interfaceName) {
@@ -493,7 +588,7 @@ public class PkiMessageGenerator {
     /**
      * generate a RR body
      *
-     * @param issuer issuer of certificate to revoke
+     * @param issuer       issuer of certificate to revoke
      * @param serialNumber serialNumber of certificate to revoke
      * @return generated RR body
      * @throws IOException in case of ASN.1 processing errors
@@ -505,8 +600,8 @@ public class PkiMessageGenerator {
     /**
      * generate a RR body
      *
-     * @param issuer issuer of certificate to revoke
-     * @param serialNumber serialNumber of certificate to revoke
+     * @param issuer           issuer of certificate to revoke
+     * @param serialNumber     serialNumber of certificate to revoke
      * @param revocationReason the reason for this revocation
      * @return generated RR body
      * @throws IOException in case of ASN.1 processing errors
@@ -525,7 +620,7 @@ public class PkiMessageGenerator {
      * generate a new unprotected CMP message
      *
      * @param headerProvider PKI header
-     * @param body message body
+     * @param body           message body
      * @return a fully build and not protected message
      * @throws GeneralSecurityException in case of error
      * @throws IOException in case of encoding error

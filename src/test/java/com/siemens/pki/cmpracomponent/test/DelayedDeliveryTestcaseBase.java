@@ -21,7 +21,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import com.siemens.pki.cmpracomponent.configuration.Configuration;
-import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.main.CmpRaComponent;
 import com.siemens.pki.cmpracomponent.main.CmpRaComponent.CmpRaInterface;
 import com.siemens.pki.cmpracomponent.main.CmpRaComponent.UpstreamExchange;
@@ -32,7 +31,6 @@ import com.siemens.pki.cmpracomponent.test.framework.ConfigFileLoader;
 import com.siemens.pki.cmpracomponent.test.framework.HeaderProviderForTest;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.io.File;
-import java.security.Security;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.function.Function;
@@ -58,7 +56,6 @@ public class DelayedDeliveryTestcaseBase {
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        Security.addProvider(CertUtility.getBouncyCastleProvider());
         ConfigFileLoader.setConfigFileBase(CONFIG_DIRECTORY);
     }
 

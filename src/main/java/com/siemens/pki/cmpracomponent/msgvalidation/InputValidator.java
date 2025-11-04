@@ -86,7 +86,10 @@ public class InputValidator implements ValidatorIF<MessageContext> {
                     certProfile,
                     in.getBody().getType());
             config.apply(certProfile, in.getBody().getType());
-            new MessageBodyValidator(interfaceName, isRaVerifiedAcceptable, cmpInterface, certProfile).validate(in);
+            if (new MessageBodyValidator(interfaceName, isRaVerifiedAcceptable, cmpInterface, certProfile)
+                    .validate(in)) {
+                persistencyContext.setRespondedCertMustBeEncrypted();
+            }
             final ProtectionValidator protectionValidator = new ProtectionValidator(
                     interfaceName,
                     ConfigLogger.logOptional(

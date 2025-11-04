@@ -21,7 +21,9 @@ import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
+import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.Provider;
@@ -32,7 +34,10 @@ import java.security.SignatureException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
+import java.security.cert.X509CRL;
 import java.security.cert.X509Certificate;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -41,10 +46,16 @@ import org.bouncycastle.asn1.ASN1Encoding;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.cmp.CMPCertificate;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.cert.jcajce.JcaX509ContentVerifierProviderBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+import org.bouncycastle.pkcs.PKCSException;
 
 /** A utility class for certificate handling */
 public class CertUtility {
+
     private static final SecureRandom RANDOM = new SecureRandom();
     private static Provider BOUNCY_CASTLE_PROVIDER;
     private static CertificateFactory certificateFactory;
@@ -164,6 +175,18 @@ public class CertUtility {
     }
 
     /**
+     * create an {@link X509CRL} from a byte string
+     *
+     * @param encodedCrl DER encoded CRL
+     * @return parsed CRL
+     * @throws GeneralSecurityException in case of parsing error
+     */
+    public static X509CRL parseCrl(byte[] encodedCrl) throws GeneralSecurityException {
+        return (X509CRL) CertificateFactory.getInstance("X.509", CertUtility.getBouncyCastleProvider())
+                .generateCRL(new ByteArrayInputStream(encodedCrl));
+    }
+
+    /**
      * Function to retrieve the static certificate factory object
      *
      * @return static certificate factory object
@@ -199,6 +222,39 @@ public class CertUtility {
         }
     }
 
+    // utility class
+    private CertUtility() {}
+
+    /**
+     * extract PublicKey from SubjectPublicKeyInfo
+     * @param subjectPublicKeyInfo the subjectPublicKeyInfo
+     * @return extracted PublicKey
+     * @throws NoSuchAlgorithmException if PublicKey algorithm is not known
+     * @throws IOException if subjectPublicKeyInfo could not parsed
+     * @throws InvalidKeySpecException  if the given key specificationis inappropriate for this key factory to produce a public key.
+     */
+    public static PublicKey parsePublicKey(final SubjectPublicKeyInfo subjectPublicKeyInfo)
+            throws NoSuchAlgorithmException, IOException, InvalidKeySpecException {
+        return KeyFactory.getInstance(
+                        subjectPublicKeyInfo.getAlgorithm().getAlgorithm().toString(),
+                        CertUtility.getBouncyCastleProvider())
+                .generatePublic(new X509EncodedKeySpec(subjectPublicKeyInfo.getEncoded(ASN1Encoding.DER)));
+    }
+
+    /**
+     * check integrity of an PKCS#10 request
+     * @param p10Request request to check
+     * @return <code>true</code> if request is valid
+     * @throws PKCSException if request could not be parsed
+     * @throws OperatorCreationException if the signature cannot be processed or is inappropriate
+     */
+    public static boolean validateP10Request(final PKCS10CertificationRequest p10Request)
+            throws PKCSException, OperatorCreationException {
+        return p10Request.isSignatureValid(new JcaX509ContentVerifierProviderBuilder()
+                .setProvider(CertUtility.getBouncyCastleProvider())
+                .build(p10Request.getSubjectPublicKeyInfo()));
+    }
+
     private static class BouncyCastleInitializer {
         private static synchronized Provider getInstance() {
             return Arrays.stream(Security.getProviders())
@@ -207,6 +263,4 @@ public class CertUtility {
                     .orElseGet(BouncyCastleProvider::new);
         }
     }
-    // utility class
-    private CertUtility() {}
 }

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -17,16 +17,22 @@
  */
 package com.siemens.pki.cmpracomponent.persistency;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.Version;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.siemens.pki.cmpracomponent.configuration.PersistencyInterface;
+import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
+import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import org.bouncycastle.asn1.ASN1Object;
@@ -35,19 +41,10 @@ import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.PKIMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.core.JacksonException;
-import tools.jackson.core.JsonGenerator;
-import tools.jackson.core.JsonParser;
-import tools.jackson.core.Version;
-import tools.jackson.databind.DeserializationContext;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.SerializationContext;
-import tools.jackson.databind.ValueDeserializer;
-import tools.jackson.databind.ValueSerializer;
-import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.databind.module.SimpleModule;
 
-/** a manager for {@link PersistencyContext instances} */
+/**
+ * a manager for {@link PersistencyContext instances}
+ */
 public class PersistencyContextManager {
 
     /**
@@ -55,7 +52,7 @@ public class PersistencyContextManager {
      *
      * @param <T> specific type to deserialize
      */
-    public static class Asn1ObjectDeserializer<T extends ASN1Object> extends ValueDeserializer<T> {
+    public static class Asn1ObjectDeserializer<T extends ASN1Object> extends JsonDeserializer<T> {
 
         private final Class<T> clazz;
 
@@ -65,7 +62,7 @@ public class PersistencyContextManager {
 
         @SuppressWarnings("unchecked")
         @Override
-        public T deserialize(final JsonParser p, final DeserializationContext ctxt) {
+        public T deserialize(final JsonParser p, final DeserializationContext ctxt) throws IOException {
             final byte[] binaryValue = p.getBinaryValue();
             if (binaryValue == null || binaryValue.length == 0) {
                 return null;
@@ -77,9 +74,8 @@ public class PersistencyContextManager {
                     | InvocationTargetException
                     | NoSuchMethodException
                     | SecurityException e) {
-                e.printStackTrace();
+                throw new IOException(e);
             }
-            return null;
         }
 
         @Override
@@ -88,9 +84,13 @@ public class PersistencyContextManager {
         }
     }
 
-    /** Serializer for {@link ASN1Object} */
-    public static class Asn1ObjectSerializer extends ValueSerializer<ASN1Object> {
-        /** ctor */
+    /**
+     * Serializer for {@link ASN1Object}
+     */
+    public static class Asn1ObjectSerializer extends JsonSerializer<ASN1Object> {
+        /**
+         * ctor
+         */
         public Asn1ObjectSerializer() {}
 
         @Override
@@ -100,25 +100,20 @@ public class PersistencyContextManager {
 
         @Override
         public void serialize(
-                final ASN1Object value, final JsonGenerator jsonGenerator, final SerializationContext provider) {
+                final ASN1Object value, final JsonGenerator jsonGenerator, final SerializerProvider provider)
+                throws IOException {
             if (value == null) {
                 jsonGenerator.writeNull();
             } else {
-                try {
-                    jsonGenerator.writeBinary(value.getEncoded());
-                } catch (JacksonException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
+                jsonGenerator.writeBinary(value.getEncoded());
             }
         }
     }
 
-    /** Serializer for {@link PrivateKey}s */
-    public static class KeySerializer extends ValueSerializer<PrivateKey> {
+    /**
+     * Serializer for {@link PrivateKey}s
+     */
+    public static class KeySerializer extends JsonSerializer<PrivateKey> {
 
         private final SecretKeySpec secretKey;
 
@@ -133,27 +128,26 @@ public class PersistencyContextManager {
 
         @Override
         public void serialize(
-                final PrivateKey key, final JsonGenerator jsonGenerator, final SerializationContext provider) {
+                final PrivateKey key, final JsonGenerator jsonGenerator, final SerializerProvider provider)
+                throws IOException {
             if (key == null) {
                 jsonGenerator.writeNull();
             }
             try {
                 // private key obfuscation
-                final Cipher c = Cipher.getInstance(KEY_WRAP_CIPHER);
+                final Cipher c = Cipher.getInstance(KEY_WRAP_CIPHER, CertUtility.getBouncyCastleProvider());
                 c.init(Cipher.WRAP_MODE, secretKey, iv);
                 jsonGenerator.writeBinary(c.wrap(key));
-            } catch (NoSuchAlgorithmException
-                    | NoSuchPaddingException
-                    | InvalidKeyException
-                    | IllegalBlockSizeException
-                    | InvalidAlgorithmParameterException e) {
-                e.printStackTrace();
+            } catch (GeneralSecurityException e) {
+                throw new IOException(e);
             }
         }
     }
 
-    /** Deserializer for {@link PrivateKey}s */
-    public static class PrivateKeyDeserializer extends ValueDeserializer<PrivateKey> {
+    /**
+     * Deserializer for {@link PrivateKey}s
+     */
+    public static class PrivateKeyDeserializer extends JsonDeserializer<PrivateKey> {
         private final SecretKeySpec secretKey;
 
         private PrivateKeyDeserializer(final SecretKeySpec secretKey) {
@@ -161,13 +155,13 @@ public class PersistencyContextManager {
         }
 
         @Override
-        public PrivateKey deserialize(final JsonParser p, final DeserializationContext ctxt) {
+        public PrivateKey deserialize(final JsonParser p, final DeserializationContext ctxt) throws IOException {
             final byte[] binaryValue = p.getBinaryValue();
             if (binaryValue == null || binaryValue.length == 0) {
                 return null;
             }
             try {
-                final Cipher c = Cipher.getInstance(KEY_WRAP_CIPHER);
+                final Cipher c = Cipher.getInstance(KEY_WRAP_CIPHER, CertUtility.getBouncyCastleProvider());
                 c.init(Cipher.UNWRAP_MODE, secretKey, iv);
                 for (final String keyType : new String[] {"RSA", "EC", "Ed448", "Ed25519"}) {
                     try {
@@ -178,13 +172,9 @@ public class PersistencyContextManager {
                 }
                 LOGGER.error("cold not load private key");
                 return null;
-            } catch (final InvalidKeyException
-                    | NoSuchAlgorithmException
-                    | NoSuchPaddingException
-                    | InvalidAlgorithmParameterException e) {
-                e.printStackTrace();
+            } catch (final GeneralSecurityException e1) {
+                throw new IOException(e1);
             }
-            return null;
         }
     }
 
@@ -192,9 +182,7 @@ public class PersistencyContextManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PersistencyContextManager.class);
 
-    private final JsonMapper.Builder builder = JsonMapper.builder().findAndAddModules();
-
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
     private static final IvParameterSpec iv = new IvParameterSpec("The IV for PrivK".getBytes());
 
@@ -203,7 +191,8 @@ public class PersistencyContextManager {
     /**
      * ctor
      *
-     * @param wrappedInterface external {@link PersistencyInterface} to use for store and load
+     * @param wrappedInterface external {@link PersistencyInterface} to use for
+     *                         store and load
      */
     public PersistencyContextManager(final PersistencyInterface wrappedInterface) {
         this.wrappedInterface = wrappedInterface;
@@ -215,8 +204,7 @@ public class PersistencyContextManager {
         simpleModule.addDeserializer(CMPCertificate.class, new Asn1ObjectDeserializer<>(CMPCertificate.class));
         simpleModule.addDeserializer(PKIMessage.class, new Asn1ObjectDeserializer<>(PKIMessage.class));
         simpleModule.addDeserializer(PrivateKey.class, new PrivateKeyDeserializer(secretKey));
-        builder.addModule(simpleModule);
-        objectMapper = builder.build();
+        objectMapper.registerModule(simpleModule);
     }
 
     /**

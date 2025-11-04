@@ -74,10 +74,7 @@ public class KeyAgreementEncryptor extends CmsEncryptorBase {
                         "CkgKeyAgreementContext.getKeyEncryptionAlg()",
                         keyAgreementContext::getKeyEncryptionAlg)));
 
-        infGen.addRecipient(ConfigLogger.log(
-                interfaceName,
-                "CkgKeyAgreementContext.getRecipient(X509Certificate)",
-                () -> keyAgreementContext.getRecipient(protectingCert)));
-        addRecipientInfoGenerator(infGen.setProvider(CertUtility.getBouncyCastleProvider()));
+        infGen.addRecipient(keyAgreementContext.getRecipient(protectingCert));
+        addRecipientInfoGenerator(infGen.setProvider(getProvider()));
     }
 }

@@ -67,6 +67,6 @@ public class KeyTransportEncryptor extends CmsEncryptorBase {
                                 .createSubjectKeyIdentifier(publicKey)
                                 .getKeyIdentifier(),
                         publicKey)
-                .setProvider(CertUtility.getBouncyCastleProvider()));
+                .setProvider(getProvider()));
     }
 }

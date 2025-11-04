@@ -44,6 +44,17 @@ public interface SignatureCredentialContext extends CredentialContext {
     PrivateKey getPrivateKey();
 
     /**
+     * provide the alternative private key for the end certificate, see X.509 (2019)
+     * section 9.8
+     *
+     * @return private key for first certificate returned by
+     *         {@link #getCertificateChain()}
+     */
+    default PrivateKey getAlternativePrivateKey() {
+        return null;
+    }
+
+    /**
      * provide name or OID of signature algorithm, see <a
      * href=https://docs.oracle.com/en/java/javase/11/docs/specs/security/standard-names.html#signature-algorithms>Signature
      * Algorithms</a>

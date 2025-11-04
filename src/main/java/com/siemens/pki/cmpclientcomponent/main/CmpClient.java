@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2023 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -40,12 +40,10 @@ import com.siemens.pki.cmpracomponent.protection.MacProtection;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
 import com.siemens.pki.cmpracomponent.protection.SignatureBasedProtection;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
 import java.security.cert.X509CRL;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -63,6 +61,7 @@ import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
 import org.bouncycastle.asn1.cmp.CRLSource;
 import org.bouncycastle.asn1.cmp.CRLStatus;
+import org.bouncycastle.asn1.cmp.CertOrEncCert;
 import org.bouncycastle.asn1.cmp.CertRepMessage;
 import org.bouncycastle.asn1.cmp.CertReqTemplateContent;
 import org.bouncycastle.asn1.cmp.CertResponse;
@@ -76,6 +75,7 @@ import org.bouncycastle.asn1.cmp.PKIMessage;
 import org.bouncycastle.asn1.cmp.PKIStatus;
 import org.bouncycastle.asn1.cmp.RevRepContent;
 import org.bouncycastle.asn1.cmp.RootCaKeyUpdateContent;
+import org.bouncycastle.asn1.cms.ContentInfo;
 import org.bouncycastle.asn1.cms.EnvelopedData;
 import org.bouncycastle.asn1.crmf.AttributeTypeAndValue;
 import org.bouncycastle.asn1.crmf.CertId;
@@ -89,17 +89,28 @@ import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.asn1.x509.GeneralNames;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.asn1.x509.Time;
+import org.bouncycastle.cms.CMSEnvelopedData;
+import org.bouncycastle.cms.CMSException;
+import org.bouncycastle.cms.RecipientInformation;
+import org.bouncycastle.cms.RecipientInformationStore;
+import org.bouncycastle.cms.jcajce.JceKEMEnvelopedRecipient;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** a CMP client implementation */
+/**
+ * a CMP client implementation
+ *
+ */
 public class CmpClient
         implements CrlUpdateRetrievalHandler,
                 GetCaCertificatesHandler,
                 GetCertificateRequestTemplateHandler,
                 GetRootCaCertificateUpdateHandler {
-    /** result of an enrollment transaction */
+    /**
+     * result of an enrollment transaction
+     *
+     */
     public interface EnrollmentResult {
         /**
          * get enrolled certificate
@@ -109,7 +120,8 @@ public class CmpClient
         X509Certificate getEnrolledCertificate();
 
         /**
-         * get certificate chain (1st intermediate certificate up to root certificate) of the enrolled certificate
+         * get certificate chain (1st intermediate certificate up to root certificate)
+         * of the enrolled certificate
          *
          * @return the certificate chain of the enrolled certificate
          */
@@ -134,11 +146,17 @@ public class CmpClient
     /**
      * ctor
      *
-     * @param certProfile certificate profile to be used for enrollment. <code>null</code> if no certificate profile
-     *     should be used.
-     * @param upstreamExchange the {@link UpstreamExchange} interface implemented by the wrapping application.
-     * @param upstreamConfiguration configuration for the upstream CMP interface towards the CA
-     * @param clientContext client specific configuration
+     * @param certProfile           certificate profile to be used for enrollment.
+     *                              <code>null</code> if no certificate profile
+     *                              should be used.
+     *
+     * @param upstreamExchange      the {@link UpstreamExchange} interface
+     *                              implemented by the wrapping application.
+     *
+     * @param upstreamConfiguration configuration for the upstream CMP interface
+     *                              towards the CA
+     *
+     * @param clientContext         client specific configuration
      * @throws Exception in case of error
      */
     public CmpClient(
@@ -180,7 +198,9 @@ public class CmpClient
         return ret.length > 0 ? ret[0] : null;
     }
 
-    /** invoke a Get CA certificates GENM request {@inheritDoc} */
+    /**
+     * invoke a Get CA certificates GENM request {@inheritDoc}
+     */
     @Override
     public List<X509Certificate> getCaCertificates() {
         final PKIBody requestBody = new PKIBody(
@@ -205,7 +225,9 @@ public class CmpClient
         return null;
     }
 
-    /** invoke a Get certificate request template GENM request {@inheritDoc} */
+    /**
+     * invoke a Get certificate request template GENM request {@inheritDoc}
+     */
     @Override
     public byte[] getCertificateRequestTemplate() {
         final PKIBody requestBody = new PKIBody(
@@ -283,12 +305,11 @@ public class CmpClient
                             if (infoValue == null) {
                                 return null;
                             }
-                            final CertificateFactory certificateFactory = CertUtility.getCertificateFactory();
                             final ASN1Sequence crls = ASN1Sequence.getInstance(infoValue);
                             final List<X509CRL> ret = new ArrayList<>(crls.size());
                             for (final ASN1Encodable aktCrl : crls) {
-                                ret.add((X509CRL) certificateFactory.generateCRL(new ByteArrayInputStream(
-                                        aktCrl.toASN1Primitive().getEncoded())));
+                                ret.add(CertUtility.parseCrl(
+                                        aktCrl.toASN1Primitive().getEncoded()));
                             }
                             return ret;
                         }
@@ -302,7 +323,9 @@ public class CmpClient
         return null;
     }
 
-    /** invoke a Get root CA certificate update GENM request {@inheritDoc} */
+    /**
+     * invoke a Get root CA certificate update GENM request {@inheritDoc}
+     */
     @Override
     public RootCaCertificateUpdateResponse getRootCaCertificateUpdate(final X509Certificate oldRootCaCertificate) {
 
@@ -479,8 +502,33 @@ public class CmpClient
                 return null;
             }
             final CertifiedKeyPair certifiedKeyPair = certResponse.getCertifiedKeyPair();
-            final CMPCertificate enrolledCertificate =
-                    certifiedKeyPair.getCertOrEncCert().getCertificate();
+            CertOrEncCert certOrEncCert = certifiedKeyPair.getCertOrEncCert();
+            CMPCertificate enrolledCertificate = null;
+            if (certOrEncCert.hasEncryptedCertificate()) {
+                JceKEMEnvelopedRecipient jkr = new JceKEMEnvelopedRecipient(certificateKeypair.getPrivate());
+                EnvelopedData envelopedData =
+                        (EnvelopedData) certOrEncCert.getEncryptedCert().getValue();
+                final CMSEnvelopedData cmsEnvelopedData = new CMSEnvelopedData(
+                        new ContentInfo(envelopedData.getEncryptedContentInfo().getContentType(), envelopedData));
+                final RecipientInformationStore recipients = cmsEnvelopedData.getRecipientInfos();
+                for (RecipientInformation recipient : recipients.getRecipients()) {
+                    // in case of multiple recipients we try until we find a
+                    // recipient fitting our key
+                    try {
+                        byte[] content = recipient.getContent(jkr);
+                        enrolledCertificate = CMPCertificate.getInstance(content);
+                        break;
+                    } catch (CMSException ex) {
+                        LOGGER.debug("unable to decrypt recipient, try next", ex);
+                    }
+                }
+            } else {
+                enrolledCertificate = certOrEncCert.getCertificate();
+            }
+            if (enrolledCertificate == null) {
+                LOGGER.error("could not extract enrolled certificate from response");
+                return null;
+            }
 
             if (enrollmentType != PKIBody.TYPE_P10_CERT_REQ && enrolledPrivateKey == null) {
                 // central key generation in place, decrypt private key

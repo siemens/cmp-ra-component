@@ -62,7 +62,7 @@ public class PasswordEncryptor extends CmsEncryptorBase {
                                 interfaceName,
                                 "SharedSecretCredentialContext.getSharedSecret()",
                                 encryptionCredentials::getSharedSecret)))
-                .setProvider(CertUtility.getBouncyCastleProvider())
+                .setProvider(getProvider())
                 .setPasswordConversionScheme(PasswordRecipient.PKCS5_SCHEME2_UTF8)
                 .setPRF(AlgorithmHelper.getPrf(ConfigLogger.log(
                         interfaceName, "SharedSecretCredentialContext.getPrf()", encryptionCredentials::getPrf)))

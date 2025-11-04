@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -40,7 +40,9 @@ import org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoGeneratorBuilder;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.util.CollectionStore;
 
-/** a signer to produce CMS SignedData */
+/**
+ * a signer to produce CMS SignedData
+ */
 public class DataSigner {
 
     private final ASN1ObjectIdentifier id_ct_KP_aKeyPackage = new ASN1ObjectIdentifier("1.2.16.840.1.101.2.1.2.78.5");
@@ -51,10 +53,10 @@ public class DataSigner {
      * ctor
      *
      * @param credentialService credentials used for signing
-     * @throws OperatorCreationException in case of error
+     * @throws OperatorCreationException    in case of error
      * @throws CertificateEncodingException in case of error
-     * @throws IOException in case of error
-     * @throws CMSException in case of error
+     * @throws IOException                  in case of error
+     * @throws CMSException                 in case of error
      */
     public DataSigner(final BaseCredentialService credentialService)
             throws OperatorCreationException, CertificateEncodingException, IOException, CMSException {
@@ -79,13 +81,13 @@ public class DataSigner {
     /**
      * ctor
      *
-     * @param privateKey private key used for signing
+     * @param privateKey     private key used for signing
      * @param endCertificate certificate used for signing
      * @param interfaceName CMP interface name for logging
      * @throws CertificateEncodingException in case of error
-     * @throws OperatorCreationException in case of error
-     * @throws IOException in case of error
-     * @throws CMSException in case of error
+     * @throws OperatorCreationException    in case of error
+     * @throws IOException                  in case of error
+     * @throws CMSException                 in case of error
      */
     public DataSigner(final PrivateKey privateKey, final X509Certificate endCertificate, String interfaceName)
             throws CertificateEncodingException, OperatorCreationException, IOException, CMSException {
@@ -124,7 +126,7 @@ public class DataSigner {
      * @param privateKey a private key to encapsulate and sign
      * @return the SignedData
      * @throws CMSException in case of an CMS processing error
-     * @throws IOException in case of ASN.1 encoding error
+     * @throws IOException  in case of ASN.1 encoding error
      */
     public SignedData signPrivateKey(final PrivateKey privateKey) throws CMSException, IOException {
         return signData(PrivateKeyInfo.getInstance(privateKey.getEncoded()).getEncoded(ASN1Encoding.DER));

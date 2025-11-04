@@ -21,14 +21,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
+import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
 import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
 import com.siemens.pki.cmpracomponent.test.framework.HeaderProviderForTest;
 import com.siemens.pki.cmpracomponent.test.framework.TestCertUtility;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
-import java.io.ByteArrayInputStream;
 import java.security.cert.CRL;
-import java.security.cert.CertificateFactory;
 import java.util.Date;
 import java.util.function.Function;
 import org.bouncycastle.asn1.ASN1Integer;
@@ -101,9 +100,8 @@ public class TestSupportMessages extends CmpTestcaseBase {
         assertEquals("crlsOid", crlsOid, itav[0].getInfoType());
 
         final ASN1Sequence sequenceOfCrl = (ASN1Sequence) itav[0].getInfoValue().toASN1Primitive();
-        final CRL crl = CertificateFactory.getInstance("X.509")
-                .generateCRL(new ByteArrayInputStream(
-                        sequenceOfCrl.getObjectAt(0).toASN1Primitive().getEncoded()));
+        final CRL crl = CertUtility.parseCrl(
+                sequenceOfCrl.getObjectAt(0).toASN1Primitive().getEncoded());
         assertNotNull("CRL", crl);
     }
 

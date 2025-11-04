@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -18,19 +18,18 @@
 package com.siemens.pki.cmpracomponent.msgvalidation;
 
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
+import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.util.ConfigLogger;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.InvalidKeyException;
-import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.spec.InvalidKeySpecException;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.Date;
 import java.util.Objects;
 import java.util.function.BiPredicate;
@@ -70,22 +69,20 @@ import org.bouncycastle.asn1.pkcs.CertificationRequest;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.Extensions;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
-import org.bouncycastle.cert.jcajce.JcaX509ContentVerifierProviderBuilder;
-import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
-import org.bouncycastle.pkcs.PKCSException;
 
-/** A CMP message validator to ensure CMP messages conform to RFC 4210. */
-public class MessageBodyValidator implements ValidatorIF<String> {
+/**
+ * A CMP message validator to ensure CMP messages conform to RFC 4210.
+ */
+public class MessageBodyValidator implements ValidatorIF<Boolean> {
     private static final String CERT_REQ_ID_MUST_BE_0 = "CertReqId must be 0";
 
-    /** */
+    /**
+     *
+     */
     private static final ASN1Integer ASN1INTEGER_0 = new ASN1Integer(0);
 
     private static final BigInteger MINUS_ONE = BigInteger.ONE.negate();
-
-    private static final JcaX509ContentVerifierProviderBuilder jcaX509ContentVerifierProviderBuilder =
-            new JcaX509ContentVerifierProviderBuilder().setProvider(CertUtility.getBouncyCastleProvider());
 
     private final String interfaceName;
 
@@ -98,10 +95,11 @@ public class MessageBodyValidator implements ValidatorIF<String> {
     /**
      * ctor
      *
-     * @param interfaceName name used in error messages and logging
+     * @param interfaceName          name used in error messages and logging
      * @param isRaVerifiedAcceptable should RaVerified accepted in POPO?
-     * @param cmpInterfaceConfig specific interface (downstream/upstream) configuration
-     * @param certProfile certificate profile of this transaction
+     * @param cmpInterfaceConfig     specific interface (downstream/upstream)
+     *                               configuration
+     * @param certProfile            certificate profile of this transaction
      */
     public MessageBodyValidator(
             final String interfaceName,
@@ -176,13 +174,16 @@ public class MessageBodyValidator implements ValidatorIF<String> {
     }
 
     /**
-     * Validates the given <code>message</code> to ensure that it conforms to the CMP profile.
+     * Validates the given <code>message</code> to ensure that it conforms to the
+     * CMP profile.
      *
      * @param message the CMP message to validate
+     *
+     * @return <code>true</code> if certificate in CP must be encrypted for POP
      * @throws BaseCmpException if validation failed
      */
     @Override
-    public String validate(final PKIMessage message) throws BaseCmpException {
+    public Boolean validate(final PKIMessage message) throws BaseCmpException {
         try {
             if (cmpInterfaceConfig != null) {
                 final ASN1GeneralizedTime messageTime = message.getHeader().getMessageTime();
@@ -205,8 +206,7 @@ public class MessageBodyValidator implements ValidatorIF<String> {
                 case PKIBody.TYPE_INIT_REQ:
                 case PKIBody.TYPE_CERT_REQ:
                 case PKIBody.TYPE_KEY_UPDATE_REQ:
-                    validateCrmfCertReq(bodyType, (CertReqMessages) content, certProfile, bodyType);
-                    break;
+                    return validateCrmfCertReq(bodyType, (CertReqMessages) content, certProfile, bodyType);
                 case PKIBody.TYPE_P10_CERT_REQ:
                     validateP10CertReq((CertificationRequest) content);
                     break;
@@ -258,7 +258,7 @@ public class MessageBodyValidator implements ValidatorIF<String> {
                     PKIFailureInfo.systemFailure,
                     "internal error in message validation: " + thr.getLocalizedMessage());
         }
-        return certProfile;
+        return false;
     }
 
     private void validateCertConfirm(final CertConfirmContent content) throws BaseCmpException {
@@ -279,7 +279,11 @@ public class MessageBodyValidator implements ValidatorIF<String> {
             validatePositivePkiStatusInfo(response.getStatus());
             final CertOrEncCert certOrEncCert = certifiedKeyPair.getCertOrEncCert();
             assertValueNotNull(certOrEncCert, PKIFailureInfo.badDataFormat, "CertOrEncCert");
-            assertValueNotNull(certOrEncCert.getCertificate(), PKIFailureInfo.badDataFormat, "Certificate");
+            if (certOrEncCert.hasEncryptedCertificate()) {
+                assertValueNotNull(certOrEncCert.getEncryptedCert(), PKIFailureInfo.badDataFormat, "EncryptedCert");
+            } else {
+                assertValueNotNull(certOrEncCert.getCertificate(), PKIFailureInfo.badDataFormat, "Certificate");
+            }
         } else {
             validateNegativePkiStatusInfo(response.getStatus());
         }
@@ -289,7 +293,7 @@ public class MessageBodyValidator implements ValidatorIF<String> {
         // always ASN1Null
     }
 
-    private void validateCrmfCertReq(
+    private boolean validateCrmfCertReq(
             final int enrollmentType, final CertReqMessages content, final String certProfile, final int bodyType)
             throws CmpValidationException {
         final CertReqMsg[] certReqMsgs = content.toCertReqMsgArray();
@@ -343,19 +347,11 @@ public class MessageBodyValidator implements ValidatorIF<String> {
                                 popoSigningKey.getPoposkInput(),
                                 PKIFailureInfo.badPOP,
                                 "PoposkInput must be absent");
-                        final PublicKey publicKey = KeyFactory.getInstance(
-                                        publicKeyInfo
-                                                .getAlgorithm()
-                                                .getAlgorithm()
-                                                .toString(),
-                                        CertUtility.getBouncyCastleProvider())
-                                .generatePublic(new X509EncodedKeySpec(publicKeyInfo.getEncoded(ASN1Encoding.DER)));
-                        final Signature sig = Signature.getInstance(
-                                popoSigningKey
-                                        .getAlgorithmIdentifier()
-                                        .getAlgorithm()
-                                        .getId(),
-                                CertUtility.getBouncyCastleProvider());
+                        final PublicKey publicKey = CertUtility.parsePublicKey(publicKeyInfo);
+                        final Signature sig = AlgorithmHelper.getSignature(popoSigningKey
+                                .getAlgorithmIdentifier()
+                                .getAlgorithm()
+                                .getId());
                         sig.initVerify(publicKey);
                         sig.update(certReq.getEncoded(ASN1Encoding.DER));
                         if (!sig.verify(popoSigningKey.getSignature().getBytes())) {
@@ -374,11 +370,14 @@ public class MessageBodyValidator implements ValidatorIF<String> {
                                 "exception while calculating POPO: " + ex.getLocalizedMessage());
                     }
                     break;
+                case ProofOfPossession.TYPE_KEY_ENCIPHERMENT:
+                    return true;
                 default:
                     throw new CmpEnrollmentException(
                             enrollmentType, interfaceName, PKIFailureInfo.badPOP, "unsupported POPO type");
             }
         }
+        return false;
     }
 
     private void validateErrorMsg(final ErrorMsgContent content) throws CmpValidationException {
@@ -420,12 +419,11 @@ public class MessageBodyValidator implements ValidatorIF<String> {
         final PKCS10CertificationRequest p10Request = new PKCS10CertificationRequest(content);
         assertValueNotNull(p10Request.getSubject(), PKIFailureInfo.badCertTemplate, "Subject");
         try {
-            if (!p10Request.isSignatureValid(
-                    jcaX509ContentVerifierProviderBuilder.build(p10Request.getSubjectPublicKeyInfo()))) {
+            if (!CertUtility.validateP10Request(p10Request)) {
                 throw new CmpValidationException(
                         interfaceName, PKIFailureInfo.badPOP, "PKCS#10 signature validation failed");
             }
-        } catch (OperatorCreationException | PKCSException e) {
+        } catch (Exception e) {
             throw new CmpValidationException(
                     interfaceName,
                     PKIFailureInfo.badPOP,

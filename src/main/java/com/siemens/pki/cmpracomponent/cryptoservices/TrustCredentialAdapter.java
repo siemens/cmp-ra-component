@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package com.siemens.pki.cmpracomponent.cryptoservices;
 
 import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import com.siemens.pki.cmpracomponent.util.ConfigLogger;
+import java.io.IOException;
 import java.net.URI;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.NoSuchAlgorithmException;
@@ -27,6 +28,7 @@ import java.security.cert.CertPathBuilder;
 import java.security.cert.CertPathBuilderException;
 import java.security.cert.CertStore;
 import java.security.cert.CertStoreParameters;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.CollectionCertStoreParameters;
 import java.security.cert.PKIXBuilderParameters;
 import java.security.cert.PKIXCertPathBuilderResult;
@@ -36,22 +38,29 @@ import java.security.cert.TrustAnchor;
 import java.security.cert.X509CRL;
 import java.security.cert.X509CertSelector;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.bouncycastle.asn1.x509.SubjectAltPublicKeyInfo;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.cert.CertException;
+import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Class for building a certification chain for given certificate and verifying it. Relies on a set of root CA
- * certificates and intermediate certificates that will be used for building the certification chain.
+ * Class for building a certification chain for given certificate and verifying
+ * it. Relies on a set of root CA certificates and intermediate certificates
+ * that will be used for building the certification chain.
  */
 public class TrustCredentialAdapter {
 
-    // private static final BouncyCastleProvider PROVIDER = CertUtility.getBouncyCastleProvider();
     private static final String PROVIDER = "SUN";
 
     private static final String FALSE_STRING = "false";
@@ -76,8 +85,8 @@ public class TrustCredentialAdapter {
     }
 
     /**
-     * additional check for intermediate certificates in chain. This method is called for each intermediate certificate
-     * after chain building.
+     * additional check for intermediate certificates in chain. This method is
+     * called for each intermediate certificate after chain building.
      *
      * @param cert the certificate to check
      * @return <code>true</code> if the certificate is acceptable
@@ -90,19 +99,27 @@ public class TrustCredentialAdapter {
     }
 
     /**
-     * Attempts to build a certification chain for given certificate and to verify it. Relies on a set of root CA
-     * certificates (trust anchors) and a set of intermediate certificates (to be used as part of the chain).
+     * Attempts to build a certification chain for given certificate and to verify
+     * it. Relies on a set of root CA certificates (trust anchors) and a set of
+     * intermediate certificates (to be used as part of the chain).
      *
-     * @param cert certificate for validation
-     * @param additionalIntermediateCerts set of intermediate certificates, must also include the certificate for
-     *     validation
-     * @return the validated chain without trust anchor but with cert or <code>null</code> if the validation failed
-     * @throws NoSuchProviderException if SUN provider is not available
+     * @param cert                        certificate for validation
+     * @param additionalIntermediateCerts set of intermediate certificates, must
+     *                                    also include the certificate for
+     *                                    validation
+     * @return the validated chain without trust anchor but with cert or
+     *         <code>null</code> if the validation failed
+     * @throws NoSuchProviderException if provider is not available
+     * @throws IOException in case of encoding error
+     * @throws CertificateEncodingException in case of encoding error
+     * @throws CertException in case of encoding error
+     * @throws OperatorCreationException if certificate validation fails
      */
     @SuppressWarnings("unchecked")
     public synchronized List<? extends X509Certificate> validateCertAgainstTrust(
             final X509Certificate cert, final List<X509Certificate> additionalIntermediateCerts)
-            throws NoSuchProviderException {
+            throws NoSuchProviderException, CertificateEncodingException, IOException, CertException,
+                    OperatorCreationException {
         final Collection<X509Certificate> trustedCertificates = ConfigLogger.logOptional(
                 interfaceName, "VerificationContext.getTrustedCertificates()", config::getTrustedCertificates);
         if (trustedCertificates == null) {
@@ -229,6 +246,26 @@ public class TrustCredentialAdapter {
                         || !config.isIntermediateCertAcceptable(aktCert)) {
                     return null;
                 }
+            }
+            // check alternative signature
+            final JcaContentVerifierProviderBuilder verifier = new JcaContentVerifierProviderBuilder();
+            List<X509CertificateHolder> altChain = new ArrayList<>(resultChain.size() + 1);
+            final X509CertificateHolder rootHolder = new X509CertificateHolder(
+                    result.getTrustAnchor().getTrustedCert().getEncoded());
+            altChain.add(rootHolder);
+            for (X509Certificate aktCert : resultChain) {
+                altChain.add(1, new X509CertificateHolder(aktCert.getEncoded()));
+            }
+
+            SubjectAltPublicKeyInfo altLastKey = SubjectAltPublicKeyInfo.fromExtensions(rootHolder.getExtensions());
+            for (X509CertificateHolder aktHolder : altChain) {
+                if (altLastKey != null) {
+                    SubjectPublicKeyInfo lastKey = SubjectPublicKeyInfo.getInstance(altLastKey.getEncoded());
+                    if (!aktHolder.isAlternativeSignatureValid(verifier.build(lastKey))) {
+                        return null;
+                    }
+                }
+                altLastKey = SubjectAltPublicKeyInfo.fromExtensions(aktHolder.getExtensions());
             }
             return resultChain;
         } catch (final CertPathBuilderException certExcpt) {

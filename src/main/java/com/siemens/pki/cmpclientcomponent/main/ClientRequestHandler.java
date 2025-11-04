@@ -72,7 +72,7 @@ class ClientRequestHandler {
 
         private final MessageHeaderValidator headerValidator;
 
-        private final ValidatorIF<String> bodyValidator;
+        private final ValidatorIF<Boolean> bodyValidator;
 
         private final VerificationContext inputVerification;
 
