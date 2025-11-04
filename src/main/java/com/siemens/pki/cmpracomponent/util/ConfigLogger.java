@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2024 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -25,7 +25,9 @@ import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** helper class for configuration access logging */
+/**
+ * helper class for configuration access logging
+ */
 public class ConfigLogger {
 
     private static final String EXCEPTION_CALLING = "exception while calling ";
@@ -56,13 +58,14 @@ public class ConfigLogger {
     /**
      * log access to mandatory configuration value
      *
-     * @param <T> return type of access function
-     * @param interfaceName related interface of configuration
+     * @param <T>                return type of access function
+     * @param interfaceName      related interface of configuration
      * @param accessFunctionName name of access function
-     * @param accessFunction the access function
-     * @param certProfile certificate profile extracted from the CMP request header generalInfo field or <code>null
-     *     </code> if no certificate profile was specified
-     * @param bodyType request/response PKI Message Body type
+     * @param accessFunction     the access function
+     * @param certProfile        certificate profile extracted from the CMP request
+     *                           header generalInfo field or <code>null</code> if no
+     *                           certificate profile was specified
+     * @param bodyType           request/response PKI Message Body type
      * @return return value of access function
      * @throws NullPointerException if return value was <code>null</code>
      */
@@ -94,10 +97,10 @@ public class ConfigLogger {
     /**
      * log access to mandatory configuration value
      *
-     * @param <T> return type of access function
-     * @param interfaceName related interface of configuration
+     * @param <T>                return type of access function
+     * @param interfaceName      related interface of configuration
      * @param accessFunctionName name of access function
-     * @param accessFunction the access function
+     * @param accessFunction     the access function
      * @return return value of access function
      * @throws NullPointerException if return value was <code>null</code>
      */
@@ -123,15 +126,17 @@ public class ConfigLogger {
     /**
      * log access to optional configuration value
      *
-     * @param <T> return type of access function
-     * @param interfaceName related interface of configuration
+     * @param <T>                return type of access function
+     * @param interfaceName      related interface of configuration
      * @param accessFunctionName name of access function
-     * @param accessFunction the access function
-     * @param certProfile certificate profile extracted from the CMP request header generalInfo field or <code>null
-     *     </code> if no certificate profile was specified
-     * @param bodyType request/response PKI Message Body type
+     * @param accessFunction     the access function
+     * @param certProfile        certificate profile extracted from the CMP request
+     *                           header generalInfo field or <code>null</code> if no
+     *                           certificate profile was specified
+     * @param bodyType           request/response PKI Message Body type
      * @return return value of access function
-     * @throws NullPointerException if return value of access function was <code>null</code>
+     * @throws NullPointerException if return value of access function was
+     *                              <code>null</code>
      */
     public static <T> T logOptional(
             String interfaceName,
@@ -155,12 +160,13 @@ public class ConfigLogger {
     /**
      * log access to optional configuration value
      *
-     * @param <T> return type of access function
-     * @param interfaceName related interface of configuration
+     * @param <T>                return type of access function
+     * @param interfaceName      related interface of configuration
      * @param accessFunctionName name of access function
-     * @param accessFunction the access function
+     * @param accessFunction     the access function
      * @return return value of access function
-     * @throws NullPointerException if return value of access function was <code>null</code>
+     * @throws NullPointerException if return value of access function was
+     *                              <code>null</code>
      */
     public static <T> T logOptional(String interfaceName, String accessFunctionName, Supplier<T> accessFunction) {
         T ret;

@@ -15,5 +15,7 @@
  *
  *  SPDX-License-Identifier: Apache-2.0
  */
-/** interfaces related to configuration */
+/**
+ * interfaces related to configuration
+ */
 package com.siemens.pki.cmpracomponent.configuration;

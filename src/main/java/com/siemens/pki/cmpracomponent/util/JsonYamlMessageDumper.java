@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2024 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -18,6 +18,20 @@
 package com.siemens.pki.cmpracomponent.util;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.Version;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.cfg.MapperBuilder;
+import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
+import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.ParseException;
@@ -25,6 +39,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.bouncycastle.asn1.ASN1Enumerated;
 import org.bouncycastle.asn1.ASN1GeneralizedTime;
 import org.bouncycastle.asn1.ASN1Integer;
@@ -41,32 +56,22 @@ import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.Extensions;
 import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
-import tools.jackson.core.JacksonException;
-import tools.jackson.core.JsonGenerator;
-import tools.jackson.core.Version;
-import tools.jackson.databind.MapperFeature;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.SerializationContext;
-import tools.jackson.databind.SerializationFeature;
-import tools.jackson.databind.ValueSerializer;
-import tools.jackson.databind.cfg.MapperBuilder;
-import tools.jackson.databind.cfg.MapperConfig;
-import tools.jackson.databind.introspect.AnnotatedMember;
-import tools.jackson.databind.introspect.JacksonAnnotationIntrospector;
-import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.databind.module.SimpleModule;
-import tools.jackson.dataformat.yaml.YAMLMapper;
 
-/** A utility class providing functions for dumping messages in JSON/YAML format. */
+/**
+ * A utility class providing functions for dumping messages in JSON/YAML format.
+ */
 public class JsonYamlMessageDumper {
 
     private static ObjectMapper jsonMapper;
 
     private static ObjectMapper yamlMapper;
 
-    /** Serializer for {@link InputStream} */
-    private static class InputStreamSerializer extends ValueSerializer<InputStream> {
-        /** */
+    /**
+     * Serializer for {@link InputStream}
+     */
+    private static class InputStreamSerializer extends JsonSerializer<InputStream> {
+        /**
+         */
         @Override
         public Class<InputStream> handledType() {
             return InputStream.class;
@@ -74,25 +79,20 @@ public class JsonYamlMessageDumper {
 
         @Override
         public void serialize(
-                final InputStream value, final JsonGenerator jsonGenerator, final SerializationContext provider) {
+                final InputStream value, final JsonGenerator jsonGenerator, final SerializerProvider provider)
+                throws IOException {
             if (value == null) {
                 jsonGenerator.writeNull();
                 return;
             }
-            try {
-                jsonGenerator.writeBinary(value.readAllBytes());
-            } catch (JacksonException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
+            jsonGenerator.writeBinary(value.readAllBytes());
         }
     }
 
-    /** Serializer for {@link PKIBody} */
-    private static class PKIBodySerializer extends ValueSerializer<PKIBody> {
+    /**
+     * Serializer for {@link PKIBody}
+     */
+    private static class PKIBodySerializer extends JsonSerializer<PKIBody> {
 
         @Override
         public Class<PKIBody> handledType() {
@@ -100,23 +100,25 @@ public class JsonYamlMessageDumper {
         }
 
         @Override
-        public void serialize(
-                final PKIBody value, final JsonGenerator jsonGenerator, final SerializationContext provider) {
+        public void serialize(final PKIBody value, final JsonGenerator jsonGenerator, final SerializerProvider provider)
+                throws IOException {
             if (value == null) {
                 jsonGenerator.writeNull();
                 return;
             }
             jsonGenerator.writeStartObject();
-            jsonGenerator.writeStringProperty("type", MessageDumper.msgTypeAsString(value));
-            jsonGenerator.writeStringProperty(
+            jsonGenerator.writeStringField("type", MessageDumper.msgTypeAsString(value));
+            jsonGenerator.writeStringField(
                     "ContentClass", value.getContent().getClass().getSimpleName());
-            jsonGenerator.writePOJOProperty("content", value.getContent());
+            jsonGenerator.writePOJOField("content", value.getContent());
             jsonGenerator.writeEndObject();
         }
     }
 
-    /** Serializer for {@link PKIStatusInfo} */
-    private static class PKIStatusInfoSerializer extends ValueSerializer<PKIStatusInfo> {
+    /**
+     * Serializer for {@link PKIStatusInfo}
+     */
+    private static class PKIStatusInfoSerializer extends JsonSerializer<PKIStatusInfo> {
 
         private static final String[] STATUS_STRING = new String[] {
             "GRANTED",
@@ -135,26 +137,29 @@ public class JsonYamlMessageDumper {
 
         @Override
         public void serialize(
-                final PKIStatusInfo value, final JsonGenerator jsonGenerator, final SerializationContext provider) {
+                final PKIStatusInfo value, final JsonGenerator jsonGenerator, final SerializerProvider provider)
+                throws IOException {
             if (value == null) {
                 jsonGenerator.writeNull();
                 return;
             }
             jsonGenerator.writeStartObject();
-            jsonGenerator.writeStringProperty(
+            jsonGenerator.writeStringField(
                     "status", STATUS_STRING[value.getStatus().intValue()]);
             if (value.getStatusString() != null) {
-                jsonGenerator.writePOJOProperty("statusString", value.getStatusString());
+                jsonGenerator.writePOJOField("statusString", value.getStatusString());
             }
             if (value.getFailInfo() != null) {
-                jsonGenerator.writePOJOProperty("failInfo", value.getFailInfo());
+                jsonGenerator.writePOJOField("failInfo", value.getFailInfo());
             }
             jsonGenerator.writeEndObject();
         }
     }
 
-    /** Serializer for {@link PollRepContent} */
-    private static class PollRepContentSeralizer extends ValueSerializer<PollRepContent> {
+    /**
+     * Serializer for {@link PollRepContent}
+     */
+    private static class PollRepContentSeralizer extends JsonSerializer<PollRepContent> {
 
         @Override
         public Class<PollRepContent> handledType() {
@@ -202,7 +207,8 @@ public class JsonYamlMessageDumper {
 
         @Override
         public void serialize(
-                final PollRepContent value, final JsonGenerator jsonGenerator, final SerializationContext provider) {
+                final PollRepContent value, final JsonGenerator jsonGenerator, final SerializerProvider provider)
+                throws IOException {
             if (value == null) {
                 jsonGenerator.writeNull();
                 return;
@@ -211,8 +217,10 @@ public class JsonYamlMessageDumper {
         }
     }
 
-    /** Serializer for {@link Extensions} */
-    private static class ExtensionsSeralizer extends ValueSerializer<Extensions> {
+    /**
+     * Serializer for {@link Extensions}
+     */
+    private static class ExtensionsSeralizer extends JsonSerializer<Extensions> {
 
         @Override
         public Class<Extensions> handledType() {
@@ -229,13 +237,14 @@ public class JsonYamlMessageDumper {
             public List<Extension> getEntries() {
                 return Arrays.stream(wrapped.getExtensionOIDs())
                         .map(wrapped::getExtension)
-                        .toList();
+                        .collect(Collectors.toList());
             }
         }
 
         @Override
         public void serialize(
-                final Extensions value, final JsonGenerator jsonGenerator, final SerializationContext provider) {
+                final Extensions value, final JsonGenerator jsonGenerator, final SerializerProvider provider)
+                throws IOException {
             if (value == null) {
                 jsonGenerator.writeNull();
                 return;
@@ -244,7 +253,7 @@ public class JsonYamlMessageDumper {
         }
     }
 
-    private static class PKIFreeTextSerializer extends ValueSerializer<PKIFreeText> {
+    private static class PKIFreeTextSerializer extends JsonSerializer<PKIFreeText> {
 
         @Override
         public Class<PKIFreeText> handledType() {
@@ -253,7 +262,8 @@ public class JsonYamlMessageDumper {
 
         @Override
         public void serialize(
-                final PKIFreeText value, final JsonGenerator jsonGenerator, final SerializationContext provider) {
+                final PKIFreeText value, final JsonGenerator jsonGenerator, final SerializerProvider provider)
+                throws IOException {
 
             if (value == null) {
                 jsonGenerator.writeNull();
@@ -262,14 +272,16 @@ public class JsonYamlMessageDumper {
             int size = value.size();
             jsonGenerator.writeStartArray();
             for (int i = 0; i < size; i++) {
-                jsonGenerator.writeObjectPropertyStart(value.getStringAtUTF8(i).toString());
+                jsonGenerator.writeObject(value.getStringAtUTF8(i).toString());
             }
             jsonGenerator.writeEndArray();
         }
     }
 
-    /** generic toString Serializer */
-    private static class GenericSerializer<T> extends ValueSerializer<T> {
+    /**
+     * generic toString Serializer
+     */
+    private static class GenericSerializer<T> extends JsonSerializer<T> {
 
         private final Class<T> handledType;
 
@@ -291,7 +303,8 @@ public class JsonYamlMessageDumper {
         }
 
         @Override
-        public void serialize(final T value, final JsonGenerator jsonGenerator, final SerializationContext provider) {
+        public void serialize(final T value, final JsonGenerator jsonGenerator, final SerializerProvider provider)
+                throws IOException {
             if (value == null) {
                 jsonGenerator.writeNull();
                 return;
@@ -300,8 +313,10 @@ public class JsonYamlMessageDumper {
         }
     }
 
-    /** Serializer for {@link SubjectPublicKeyInfoSerializer} */
-    private static class SubjectPublicKeyInfoSerializer extends ValueSerializer<SubjectPublicKeyInfo> {
+    /**
+     * Serializer for {@link SubjectPublicKeyInfoSerializer}
+     */
+    private static class SubjectPublicKeyInfoSerializer extends JsonSerializer<SubjectPublicKeyInfo> {
 
         @Override
         public Class<SubjectPublicKeyInfo> handledType() {
@@ -310,23 +325,22 @@ public class JsonYamlMessageDumper {
 
         @Override
         public void serialize(
-                final SubjectPublicKeyInfo value,
-                final JsonGenerator jsonGenerator,
-                final SerializationContext provider) {
+                final SubjectPublicKeyInfo value, final JsonGenerator jsonGenerator, final SerializerProvider provider)
+                throws IOException {
             if (value == null) {
                 jsonGenerator.writeNull();
                 return;
             }
             jsonGenerator.writeStartObject();
-            jsonGenerator.writeStringProperty(
+            jsonGenerator.writeStringField(
                     "Algorithm",
                     MessageDumper.getOidDescriptionForOid(value.getAlgorithm().getAlgorithm())
                             .toString());
             try {
                 ASN1Primitive parsedKey = value.parsePublicKey();
-                jsonGenerator.writePOJOProperty("ParsedKey", parsedKey);
+                jsonGenerator.writePOJOField("ParsedKey", parsedKey);
             } catch (IOException ex) {
-                jsonGenerator.writePOJOProperty("UnparsedKeyData", value.getPublicKeyData());
+                jsonGenerator.writePOJOField("UnparsedKeyData", value.getPublicKeyData());
             }
             jsonGenerator.writeEndObject();
         }
@@ -344,7 +358,7 @@ public class JsonYamlMessageDumper {
         }
         try {
             return getJsonMapper().writeValueAsString(msg);
-        } catch (JacksonException e) {
+        } catch (JsonProcessingException e) {
             return e.getLocalizedMessage();
         }
     }
@@ -361,12 +375,37 @@ public class JsonYamlMessageDumper {
         }
         try {
             return getYamlMapper().writeValueAsString(msg);
-        } catch (JacksonException e) {
+        } catch (JsonProcessingException e) {
             return e.getLocalizedMessage();
         }
     }
 
     private static ObjectMapper initMapper(MapperBuilder<?, ?> builder) {
+        ObjectMapper mapper = builder.enable(MapperFeature.AUTO_DETECT_IS_GETTERS)
+                .enable(SerializationFeature.INDENT_OUTPUT)
+                .configure(SerializationFeature.WRITE_SELF_REFERENCES_AS_NULL, true)
+                .configure(SerializationFeature.FAIL_ON_SELF_REFERENCES, false)
+                .configure(SerializationFeature.FAIL_ON_UNWRAPPED_TYPE_IDENTIFIERS, true)
+                .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
+                .serializationInclusion(Include.NON_NULL)
+                .annotationIntrospector(new JacksonAnnotationIntrospector() {
+                    private static final long serialVersionUID = 1L;
+
+                    @Override
+                    public boolean hasIgnoreMarker(AnnotatedMember m) {
+                        return m.getDeclaringClass() == ASN1Object.class || super.hasIgnoreMarker(m);
+                    }
+
+                    @Override
+                    public String findImplicitPropertyName(AnnotatedMember m) {
+                        String methodName = m.getName();
+                        if (methodName != null && methodName.startsWith("to") && methodName.endsWith("Array")) {
+                            return methodName.substring(2, methodName.length() - 5);
+                        }
+                        return super.findImplicitPropertyName(m);
+                    }
+                })
+                .build();
         final SimpleModule simpleModule = new SimpleModule("Dump", new Version(1, 0, 0, null, null, null));
         simpleModule.addSerializer(new PKIBodySerializer());
         simpleModule.addSerializer(new SubjectPublicKeyInfoSerializer());
@@ -393,36 +432,8 @@ public class JsonYamlMessageDumper {
                         .toString()));
         simpleModule.addSerializer(
                 new GenericSerializer<>(ASN1Enumerated.class, a -> a.getValue().toString()));
-        JsonMapper.Builder jbuilder = JsonMapper.builder().findAndAddModules();
-        jbuilder.addModule(simpleModule);
-
-        return builder.enable(MapperFeature.DETECT_PARAMETER_NAMES)
-                .enable(SerializationFeature.INDENT_OUTPUT)
-                .configure(SerializationFeature.WRITE_SELF_REFERENCES_AS_NULL, true)
-                .configure(SerializationFeature.FAIL_ON_SELF_REFERENCES, false)
-                .configure(SerializationFeature.FAIL_ON_UNWRAPPED_TYPE_IDENTIFIERS, true)
-                .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
-                .changeDefaultPropertyInclusion(incl -> incl.withValueInclusion(Include.NON_NULL))
-                .addModule(simpleModule)
-                // .serializationInclusion(Include.NON_NULL)
-                .annotationIntrospector(new JacksonAnnotationIntrospector() {
-                    private static final long serialVersionUID = 1L;
-
-                    @Override
-                    public boolean hasIgnoreMarker(MapperConfig<?> config, AnnotatedMember member) {
-                        return member.getDeclaringClass() == ASN1Object.class || super.hasIgnoreMarker(config, member);
-                    }
-
-                    @Override
-                    public String findImplicitPropertyName(MapperConfig<?> config, AnnotatedMember member) {
-                        String methodName = member.getName();
-                        if (methodName != null && methodName.startsWith("to") && methodName.endsWith("Array")) {
-                            return methodName.substring(2, methodName.length() - 5);
-                        }
-                        return super.findImplicitPropertyName(config, member);
-                    }
-                })
-                .build();
+        mapper.registerModule(simpleModule);
+        return mapper;
     }
 
     private static ObjectMapper getJsonMapper() {

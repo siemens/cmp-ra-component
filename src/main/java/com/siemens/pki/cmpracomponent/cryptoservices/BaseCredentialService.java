@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -24,7 +24,9 @@ import java.security.cert.X509Certificate;
 import java.util.List;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 
-/** base class for certificate based signing and encryption services */
+/**
+ * base class for certificate based signing and encryption services
+ */
 public class BaseCredentialService {
 
     private final SignatureCredentialContext config;
@@ -32,7 +34,6 @@ public class BaseCredentialService {
 
     /**
      * ctor
-     *
      * @param config related config
      * @param interfaceName CMP interface name for logging
      */
@@ -48,7 +49,6 @@ public class BaseCredentialService {
 
     /**
      * get end certificate
-     *
      * @return end certificate
      */
     public X509Certificate getEndCertificate() {
@@ -57,7 +57,6 @@ public class BaseCredentialService {
 
     /**
      * get private key related to end certificate
-     *
      * @return private key related to end certificate
      */
     public PrivateKey getPrivateKey() {

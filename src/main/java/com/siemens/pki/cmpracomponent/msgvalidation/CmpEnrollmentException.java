@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -20,21 +20,26 @@ package com.siemens.pki.cmpracomponent.msgvalidation;
 import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
 import org.bouncycastle.asn1.cmp.PKIBody;
 
-/** This exception is created if a CMP enrollment request message (IR, CR, KUR) validation failed. */
+/**
+ * This exception is created if a CMP enrollment request message (IR, CR, KUR)
+ * validation failed.
+ */
 public class CmpEnrollmentException extends CmpValidationException {
 
     private static final long serialVersionUID = 1L;
 
-    /** triggering enrollmentType */
+    /**
+     * triggering enrollmentType
+     *
+     */
     private final int enrollmentType;
 
     /**
      * ctor
-     *
      * @param enrollmentType PKI message type of enrollment request
-     * @param interfaceName interface name used as prefix message text
-     * @param failInfo CMP failInfo proposed for CMP error message
-     * @param errorDetails description of some details related to the error
+     * @param interfaceName  interface name used as prefix message text
+     * @param failInfo       CMP failInfo proposed for CMP error message
+     * @param errorDetails   description of some details related to the error
      */
     public CmpEnrollmentException(
             final int enrollmentType, final String interfaceName, final int failInfo, final String errorDetails) {

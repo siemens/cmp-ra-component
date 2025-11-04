@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -32,7 +32,9 @@ import org.bouncycastle.asn1.pkcs.CertificationRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** upstream for PKCS#10/X.509 CAs */
+/**
+ * upstream for PKCS#10/X.509 CAs
+ */
 public class P10X509RaUpstream implements RaUpstream {
 
     private static final String INTERFACE_NAME = "P10X509 upstream";
@@ -43,7 +45,6 @@ public class P10X509RaUpstream implements RaUpstream {
 
     /**
      * ctor
-     *
      * @param upstreamExchange CA upstream
      */
     P10X509RaUpstream(final CmpFuncEx<CertificationRequest, CMPCertificate> upstreamExchange) {

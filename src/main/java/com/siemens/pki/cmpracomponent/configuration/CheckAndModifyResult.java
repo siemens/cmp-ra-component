@@ -1,5 +1,7 @@
+package com.siemens.pki.cmpracomponent.configuration;
+
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -15,16 +17,19 @@
  *
  *  SPDX-License-Identifier: Apache-2.0
  */
-package com.siemens.pki.cmpracomponent.configuration;
 
-/** result of a call to {@link InventoryInterface#checkAndModifyCertRequest(byte[], String, byte[], String, byte[])} */
+/**
+ * result of a call to
+ * {@link InventoryInterface#checkAndModifyCertRequest(byte[], String, byte[], String, byte[])}
+ */
 public interface CheckAndModifyResult {
 
     /**
      * return <code>null</code> or updated CertTemplate of the request
      *
-     * @return updated CertTemplate of the request or <code>null</code> if the called service agrees to the template.
-     *     The CertTemplate must be ASN.1 DER encoded.
+     * @return updated CertTemplate of the request or <code>null</code> if the
+     *         called service agrees to the template. The CertTemplate must be ASN.1
+     *         DER encoded.
      */
     byte[] getUpdatedCertTemplate();
 

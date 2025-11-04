@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -17,9 +17,7 @@
  */
 package com.siemens.pki.cmpracomponent.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
@@ -35,16 +33,7 @@ import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.DERSequence;
-import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
-import org.bouncycastle.asn1.cmp.CRLSource;
-import org.bouncycastle.asn1.cmp.CRLStatus;
-import org.bouncycastle.asn1.cmp.CertReqTemplateContent;
-import org.bouncycastle.asn1.cmp.GenMsgContent;
-import org.bouncycastle.asn1.cmp.GenRepContent;
-import org.bouncycastle.asn1.cmp.InfoTypeAndValue;
-import org.bouncycastle.asn1.cmp.PKIBody;
-import org.bouncycastle.asn1.cmp.PKIMessage;
-import org.bouncycastle.asn1.cmp.RootCaKeyUpdateContent;
+import org.bouncycastle.asn1.cmp.*;
 import org.bouncycastle.asn1.crmf.AttributeTypeAndValue;
 import org.bouncycastle.asn1.crmf.Controls;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -120,19 +109,22 @@ public class TestSupportMessages extends CmpTestcaseBase {
         if (LOGGER.isDebugEnabled()) {
             // avoid unnecessary call of MessageDumper.dumpPkiMessage, if debug isn't
             // enabled
-            LOGGER.debug("send {}", MessageDumper.dumpPkiMessage(genm));
+            LOGGER.debug("send" + MessageDumper.dumpPkiMessage(genm));
         }
         final PKIMessage genr = getEeClient().apply(genm);
         if (LOGGER.isDebugEnabled()) {
             // avoid unnecessary call of MessageDumper.dumpPkiMessage, if debug isn't
             // enabled
-            LOGGER.debug("got {}", MessageDumper.dumpPkiMessage(genr));
+            LOGGER.debug("got" + MessageDumper.dumpPkiMessage(genr));
         }
         assertEquals("message type", PKIBody.TYPE_GEN_REP, genr.getBody().getType());
         final GenRepContent content = (GenRepContent) genr.getBody().getContent();
         final InfoTypeAndValue[] itav = content.toInfoTypeAndValueArray();
         assertEquals("number of itavs", 1, itav.length);
         assertEquals("getCaCertOid", getCaCertOid, itav[0].getInfoType());
+        // id-it-caCerts OBJECT IDENTIFIER ::= {1 3 6 1 5 5 7 4 17}
+        // CaCerts ::= SEQUENCE OF CMPCertificate
+        // }
         final ASN1Sequence value = (ASN1Sequence) itav[0].getInfoValue();
         assertEquals("number of returned certificates", 20, value.size());
     }
@@ -157,13 +149,13 @@ public class TestSupportMessages extends CmpTestcaseBase {
         if (LOGGER.isDebugEnabled()) {
             // avoid unnecessary call of MessageDumper.dumpPkiMessage, if debug isn't
             // enabled
-            LOGGER.debug("send {}", MessageDumper.dumpPkiMessage(genm));
+            LOGGER.debug("send" + MessageDumper.dumpPkiMessage(genm));
         }
         final PKIMessage genr = getEeClient().apply(genm);
         if (LOGGER.isDebugEnabled()) {
             // avoid unnecessary call of MessageDumper.dumpPkiMessage, if debug isn't
             // enabled
-            LOGGER.debug("got {}", MessageDumper.dumpPkiMessage(genr));
+            LOGGER.debug("got" + MessageDumper.dumpPkiMessage(genr));
         }
         assertEquals("message type", PKIBody.TYPE_ERROR, genr.getBody().getType());
     }
@@ -184,12 +176,12 @@ public class TestSupportMessages extends CmpTestcaseBase {
         if (LOGGER.isDebugEnabled()) {
             // avoid unnecessary call of MessageDumper.dumpPkiMessage, if debug isn't
             // enabled
-            LOGGER.debug("send {}", MessageDumper.dumpPkiMessage(genm));
+            LOGGER.debug("send" + MessageDumper.dumpPkiMessage(genm));
         }
         final PKIMessage genr = eeCmpClient.apply(genm);
         if (LOGGER.isDebugEnabled()) {
             // avoid unnecessary string processing, if debug isn't enabled
-            LOGGER.debug("got {}", MessageDumper.dumpPkiMessage(genr));
+            LOGGER.debug("got" + MessageDumper.dumpPkiMessage(genr));
         }
         assertEquals("message type", PKIBody.TYPE_GEN_REP, genr.getBody().getType());
         final GenRepContent content = (GenRepContent) genr.getBody().getContent();
@@ -225,12 +217,12 @@ public class TestSupportMessages extends CmpTestcaseBase {
                 genmBody);
         if (LOGGER.isDebugEnabled()) {
             // avoid unnecessary string processing, if debug isn't enabled
-            LOGGER.debug("send {}", MessageDumper.dumpPkiMessage(genm));
+            LOGGER.debug("send" + MessageDumper.dumpPkiMessage(genm));
         }
         final PKIMessage genr = getEeClient().apply(genm);
         if (LOGGER.isDebugEnabled()) {
             // avoid unnecessary string processing, if debug isn't enabled
-            LOGGER.debug("got {}", MessageDumper.dumpPkiMessage(genr));
+            LOGGER.debug("got" + MessageDumper.dumpPkiMessage(genr));
         }
         assertEquals("message type", PKIBody.TYPE_GEN_REP, genr.getBody().getType());
         final GenRepContent content = (GenRepContent) genr.getBody().getContent();

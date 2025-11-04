@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -48,7 +48,10 @@ import org.bouncycastle.asn1.x509.GeneralName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** the {@link MsgOutputProtector} sets the right protection for outgoing messages */
+/**
+ * the {@link MsgOutputProtector} sets the right protection for outgoing
+ * messages
+ */
 public class MsgOutputProtector {
 
     private static final CMPCertificate[] EMPTY_CERTIFCATE_ARRAY = {};
@@ -68,11 +71,11 @@ public class MsgOutputProtector {
 
     /**
      * ctor
-     *
-     * @param config specific configuration
-     * @param interfaceName name of interface used in logging messages
-     * @param messageContext reference to transaction specific {@link MessageContext}
-     * @throws CmpProcessingException in case of inconsistent configuration
+     * @param config             specific configuration
+     * @param interfaceName      name of interface used in logging messages
+     * @param messageContext     reference to transaction specific
+     *                           {@link MessageContext}
+     * @throws CmpProcessingException   in case of inconsistent configuration
      * @throws GeneralSecurityException in case of broken configuration
      */
     public MsgOutputProtector(
@@ -107,11 +110,10 @@ public class MsgOutputProtector {
 
     /**
      * ctor
-     *
-     * @param config specific configuration
-     * @param interfaceName name of interface used in logging messages
-     * @param credentialContext credentialContext from related request, if request was password protected
-     * @throws CmpProcessingException in case of inconsistent configuration
+     * @param config             specific configuration
+     * @param interfaceName      name of interface used in logging messages
+     * @param credentialContext  credentialContext from related request, if request was password protected
+     * @throws CmpProcessingException   in case of inconsistent configuration
      * @throws GeneralSecurityException in case of broken configuration
      */
     public MsgOutputProtector(
@@ -134,7 +136,6 @@ public class MsgOutputProtector {
 
     /**
      * generate and protect a request
-     *
      * @param headerProvider the header to use
      * @param body body of new message
      * @return new message
@@ -160,7 +161,7 @@ public class MsgOutputProtector {
      * generate and protect a response to a request
      *
      * @param request request to answer
-     * @param body body of new message
+     * @param body    body of new message
      * @return new message
      * @throws GeneralSecurityException in case of error
      * @throws IOException in case of encoding error
@@ -172,7 +173,6 @@ public class MsgOutputProtector {
     }
     /**
      * get used ProtectionProvider
-     *
      * @return ProtectionProvider
      */
     public ProtectionProvider getProtector() {
@@ -182,8 +182,9 @@ public class MsgOutputProtector {
     /**
      * protect a PKI message before sending out
      *
-     * @param in message to send
-     * @param issuingChain trust chain of issued certificate to add to extracerts or <code>null</code>
+     * @param in           message to send
+     * @param issuingChain trust chain of issued certificate to add to extracerts or
+     *                     <code>null</code>
      * @return protected message ready to send
      * @throws IOException in case of encoding problem
      * @throws GeneralSecurityException in case of processing error

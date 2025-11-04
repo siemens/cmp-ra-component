@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -38,12 +38,14 @@ import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.GeneralName;
 
-/** a {@link ProtectionProvider} enforcing a CMP message with signature based protection */
+/**
+ * a {@link ProtectionProvider} enforcing a CMP message with signature based
+ * protection
+ */
 public class SignatureBasedProtection extends BaseCredentialService implements ProtectionProvider {
 
     /**
      * ctor
-     *
      * @param config specific configuration
      * @param interfaceName CMP interface name for logging
      */

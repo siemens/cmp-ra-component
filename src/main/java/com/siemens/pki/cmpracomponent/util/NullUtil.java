@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -19,12 +19,13 @@ package com.siemens.pki.cmpracomponent.util;
 
 import java.util.function.Supplier;
 
-/** utility functions to handle <code>null</code> values */
+/**
+ * utility functions to handle <code>null</code> values
+ */
 public class NullUtil {
 
     /**
      * function with one argument throwing an exception
-     *
      * @param <T> argument type
      * @param <R> result type
      * @param <E> exception type
@@ -32,7 +33,6 @@ public class NullUtil {
     public interface ExFunction<T, R, E extends Exception> {
         /**
          * execute function
-         *
          * @param arg function argument
          * @return result
          * @throws E in case of error
@@ -42,7 +42,6 @@ public class NullUtil {
 
     /**
      * compute a default value if value is <code>null</code>
-     *
      * @param <T> value type
      * @param value value to check for <code>null</code>
      * @param defaultSupplier funtion to call if value is <code>null</code>
@@ -54,7 +53,6 @@ public class NullUtil {
 
     /**
      * provide a default value if if value is <code>null</code>
-     *
      * @param <T> value type
      * @param value value to check for <code>null</code>
      * @param defaultValue value to use if provided value is <code>null</code>
@@ -66,7 +64,6 @@ public class NullUtil {
 
     /**
      * evaluate a function if a parameter is not <code>null</code>
-     *
      * @param <T> funtion result type
      * @param <R> value type
      * @param <E> exception thrown by function

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -103,7 +103,9 @@ import org.bouncycastle.pkcs.PKCSException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** representation of a downstream interface of a RA */
+/**
+ * representation of a downstream interface of a RA
+ */
 class RaDownstream {
 
     private static <T, R, E extends Exception> Function<T, R> wrap(ExFunction<T, R, E> checkedFunction) {
@@ -132,8 +134,8 @@ class RaDownstream {
 
     /**
      * @param persistencyContextManager persistency interface
-     * @param config specific configuration
-     * @param upstream related upstream interface handler
+     * @param config                    specific configuration
+     * @param upstream                  related upstream interface handler
      * @param supportedmessagetypes
      */
     RaDownstream(

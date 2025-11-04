@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -27,18 +27,22 @@ import java.security.cert.X509Certificate;
 import org.bouncycastle.asn1.cmp.PKIFailureInfo;
 import org.bouncycastle.cms.jcajce.JceKeyAgreeRecipientInfoGenerator;
 
-/** encryptor which uses the key agreement key management technique for encryption */
+/**
+ * encryptor which uses the key agreement key management technique for
+ * encryption
+ */
 public class KeyAgreementEncryptor extends CmsEncryptorBase {
 
     /**
      * ctor
-     *
-     * @param config specific configuration
-     * @param protectingCert the public key certificate for the targeted recipients.
-     * @param interfaceName CMP interface name for logging
+     * @param config             specific configuration
+     * @param protectingCert     the public key certificate for the targeted
+     *                           recipients.
+     * @param interfaceName      CMP interface name for logging
      * @param initialRequestType type of initial request (cr, ir, kur)
-     * @throws CmpEnrollmentException if configuration is missing
-     * @throws NoSuchAlgorithmException if some predefined algorithms are not supported
+     * @throws CmpEnrollmentException   if configuration is missing
+     * @throws NoSuchAlgorithmException if some predefined algorithms are not
+     *                                  supported
      */
     public KeyAgreementEncryptor(
             final CkgContext config,

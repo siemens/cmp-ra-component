@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -27,26 +27,30 @@ import java.util.Collections;
 import java.util.EnumSet;
 
 /**
- * an instance of an {@link VerificationContext} provides all attributes required to verify external credentials. For
- * technical background have a look to the <a href=
- * "https://docs.oracle.com/en/java/javase/11/security/java-pki-programmers-guide.html">Java PKI Programmer's Guide</a>.
- * The {@link VerificationContext} is internally used to set up an PKIX {@link CertPathBuilder} for certificate chain
+ * an instance of an {@link VerificationContext} provides all attributes
+ * required to verify external credentials. For technical background have a look
+ * to the <a href=
+ * "https://docs.oracle.com/en/java/javase/11/security/java-pki-programmers-guide.html">Java
+ * PKI Programmer's Guide</a>. The {@link VerificationContext} is internally
+ * used to set up an PKIX {@link CertPathBuilder} for certificate chain
  * validation
  */
 public interface VerificationContext {
 
     /**
-     * optionally provide additional intermediate certificates which can be used for certificate chain building
+     * optionally provide additional intermediate certificates which can be used for
+     * certificate chain building
      *
-     * @return intermediate certificates useful for chain building in context of validation or <code>null</code>
+     * @return intermediate certificates useful for chain building in context of
+     *         validation or <code>null</code>
      */
     default Collection<X509Certificate> getAdditionalCerts() {
         return Collections.emptyList();
     }
 
     /**
-     * optionally provide additional Certificate Revocation Lists used for verification as governed by
-     * {@link #getPKIXRevocationCheckerOptions()}
+     * optionally provide additional Certificate Revocation Lists used for
+     * verification as governed by {@link #getPKIXRevocationCheckerOptions()}
      *
      * @return CRLs used in validation procedure or <code>null</code>
      */
@@ -55,8 +59,8 @@ public interface VerificationContext {
     }
 
     /**
-     * optionally provide the location of the OCSP responder used for verification as governed by
-     * {@link #getPKIXRevocationCheckerOptions()}.
+     * optionally provide the location of the OCSP responder used for verification
+     * as governed by {@link #getPKIXRevocationCheckerOptions()}.
      *
      * @return OCSP responder location or <code>null</code>
      */
@@ -65,8 +69,8 @@ public interface VerificationContext {
     }
 
     /**
-     * optionally provide options to control the revocation checking mechanism. For details see
-     * {@link PKIXRevocationChecker.Option}.
+     * optionally provide options to control the revocation checking mechanism. For
+     * details see {@link PKIXRevocationChecker.Option}.
      *
      * @return revocation checking options or <code>null</code>
      */
@@ -75,23 +79,25 @@ public interface VerificationContext {
     }
 
     /**
-     * provide a shared secret if trust validation based on a shared secret should be supported for the given client
-     * senderKID
+     * provide a shared secret if trust validation based on a shared secret should
+     * be supported for the given client senderKID
      *
-     * @param senderKID identifies the key material used for verifying the message protection if available, <code>null
-     *     </code> otherwise.
-     * @return a trusted shared secret or <code>null</code> if no shared secret verification should be used for this
-     *     sender
+     * @param senderKID identifies the key material used for verifying the message
+     *                  protection if available, <code>null</code> otherwise.
+     * @return a trusted shared secret or <code>null</code> if no shared secret
+     *         verification should be used for this sender
      */
     default byte[] getSharedSecret(final byte[] senderKID) {
         return null;
     }
 
     /**
-     * provide all trusted certificates if signature-based trust validation should be supported
+     * provide all trusted certificates if signature-based trust validation should
+     * be supported
      *
-     * @return the trusted certificates used in the validation procedure or <code>null</code> if no certificate based
-     *     verification should be used.
+     * @return the trusted certificates used in the validation procedure or
+     *         <code>null</code> if no certificate based verification should be
+     *         used.
      */
     default Collection<X509Certificate> getTrustedCertificates() {
         return Collections.emptyList();
@@ -107,7 +113,8 @@ public interface VerificationContext {
     }
 
     /**
-     * control use of the for the CRL Distribution Points (CDP) certificate extension
+     * control use of the for the CRL Distribution Points (CDP) certificate
+     * extension
      *
      * @return <code>true</code> if CDP entries should be used
      */
@@ -116,8 +123,8 @@ public interface VerificationContext {
     }
 
     /**
-     * additional check for intermediate certificates in chain. This method is called for each intermediate certificate
-     * after chain building.
+     * additional check for intermediate certificates in chain. This method is
+     * called for each intermediate certificate after chain building.
      *
      * @param cert the certificate to check
      * @return <code>true</code> if the certificate is acceptable

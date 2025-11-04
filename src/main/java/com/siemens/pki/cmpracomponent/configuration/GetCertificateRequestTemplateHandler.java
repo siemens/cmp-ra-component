@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -17,13 +17,18 @@
  */
 package com.siemens.pki.cmpracomponent.configuration;
 
-/** support message handler supporting Get certificate request template genm requests */
+/**
+ * support message handler supporting Get certificate request template genm
+ * requests
+ */
 public interface GetCertificateRequestTemplateHandler extends SupportMessageHandlerInterface {
 
     /**
-     * handle an Get certificate request template GENM and return a ASN.1 DER encoded template
+     * handle an Get certificate request template GENM and return a ASN.1 DER
+     * encoded template
      *
-     * @return template to be returned or <code>null</code> if the returned infoValue should be absent
+     * @return template to be returned or <code>null</code> if the returned
+     *         infoValue should be absent
      */
     byte[] getCertificateRequestTemplate();
 }

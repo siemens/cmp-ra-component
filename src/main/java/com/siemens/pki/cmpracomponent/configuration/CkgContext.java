@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -19,7 +19,9 @@ package com.siemens.pki.cmpracomponent.configuration;
 
 import org.bouncycastle.cms.CMSAlgorithm;
 
-/** base interface on central key generation configuration */
+/**
+ * base interface on central key generation configuration
+ */
 public interface CkgContext {
 
     /**
@@ -46,15 +48,16 @@ public interface CkgContext {
     CkgKeyTransportContext getKeyTransportContext();
 
     /**
-     * get a context to support password-based key management technique for key encryption
+     * get a context to support password-based key management technique for key
+     * encryption
      *
      * @return a password context
      */
     CkgPasswordContext getPasswordContext();
 
     /**
-     * Provide credentials to sign the central generated private key. This shall be done also for the CkgPasswordContext
-     * instance.
+     * Provide credentials to sign the central generated private key. This shall be
+     * done also for the CkgPasswordContext instance.
      *
      * @return credentials to sign the central generated private key
      */

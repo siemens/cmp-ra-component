@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2023 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -61,7 +61,11 @@ import org.bouncycastle.asn1.x509.GeneralName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** low level client request functions */
+/**
+ *
+ * low level client request functions
+ *
+ */
 class ClientRequestHandler {
 
     class ValidatorAndProtector {
@@ -140,11 +144,17 @@ class ClientRequestHandler {
     private final ValidatorAndProtector nestedValidatorAndProtector;
 
     /**
-     * @param certProfile certificate profile to be used for enrollment. <code>null</code> if no certificate profile
-     *     should be used.
-     * @param upstreamExchange the {@link UpstreamExchange} interface implemented by the wrapping application.
-     * @param upstreamConfiguration configuration for the upstream CMP interface towards the CA
-     * @param clientContext client specific configuration
+     * @param certProfile           certificate profile to be used for enrollment.
+     *                              <code>null</code> if no certificate profile
+     *                              should be used.
+     *
+     * @param upstreamExchange      the {@link UpstreamExchange} interface
+     *                              implemented by the wrapping application.
+     *
+     * @param upstreamConfiguration configuration for the upstream CMP interface
+     *                              towards the CA
+     *
+     * @param clientContext         client specific configuration
      * @throws Exception
      */
     ClientRequestHandler(

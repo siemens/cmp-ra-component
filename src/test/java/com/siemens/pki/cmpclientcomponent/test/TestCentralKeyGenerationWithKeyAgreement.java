@@ -1,5 +1,6 @@
+package com.siemens.pki.cmpclientcomponent.test;
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2021 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -15,7 +16,6 @@
  *
  *  SPDX-License-Identifier: Apache-2.0
  */
-package com.siemens.pki.cmpclientcomponent.test;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertNotNull;
@@ -518,7 +518,9 @@ public class TestCentralKeyGenerationWithKeyAgreement extends EnrollmentTestcase
         upstreamExchange = launchCmpCaAndRa(buildSignatureBasedDownstreamConfiguration());
     }
 
-    /** Central Key Generation/Using Key Agreement Key Management Technique */
+    /**
+     * Central Key Generation/Using Key Agreement Key Management Technique
+     */
     @Test
     public void testCrWithKeyAgreement() throws Exception {
         final EnrollmentResult ret = getSignatureBasedCmpClient(

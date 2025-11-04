@@ -1,3 +1,5 @@
+<!--- License: Apache 2.0 -->
+
 # generic CMP RA and CMP client component
 
 The generic CMP component supports the implementation of Java applications
@@ -330,7 +332,3 @@ at `target/site/apidocs/com/siemens/pki/cmpracomponent/main/CmpRaComponent.html`
 # Acknowledgements
 
 This work was partly funded by the German Federal Ministry of Education and Research in the project Quoryptan through grant number **16KIS2033**.
-
-# License
-
-This project is licensed under the https://www.apache.org/licenses/LICENSE-2.0.

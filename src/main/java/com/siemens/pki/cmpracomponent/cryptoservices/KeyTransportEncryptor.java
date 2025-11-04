@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -28,17 +28,21 @@ import org.bouncycastle.asn1.cmp.PKIFailureInfo;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.cms.jcajce.JceKeyTransRecipientInfoGenerator;
 
-/** encryptor which uses the key transport key management technique for encryption */
+/**
+ * encryptor which uses the key transport key management technique for
+ * encryption
+ */
 public class KeyTransportEncryptor extends CmsEncryptorBase {
     /**
      * ctor
-     *
-     * @param config specific configuration
-     * @param protectingCert the public key certificate for the targeted recipients.
-     * @param interfaceName CMP interface name for logging
+     * @param config             specific configuration
+     * @param protectingCert     the public key certificate for the targeted
+     *                           recipients.
+     * @param interfaceName      CMP interface name for logging
      * @param initialRequestType type of initial request (cr, ir, kur)
-     * @throws NoSuchAlgorithmException if some predefined algorithms are not supported
-     * @throws CmpEnrollmentException if configuration is missing
+     * @throws NoSuchAlgorithmException if some predefined algorithms are not
+     *                                  supported
+     * @throws CmpEnrollmentException   if configuration is missing
      */
     public KeyTransportEncryptor(
             final CkgContext config,

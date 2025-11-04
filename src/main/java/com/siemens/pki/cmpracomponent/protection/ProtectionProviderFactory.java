@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -26,7 +26,9 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 
-/** a factory for {@link ProtectionProvider} */
+/**
+ * a factory for {@link ProtectionProvider}
+ */
 public class ProtectionProviderFactory {
 
     /**
@@ -36,8 +38,8 @@ public class ProtectionProviderFactory {
      * @param interfaceName CMP interface name for logging
      * @return a new {@link ProtectionProvider}
      * @throws NoSuchAlgorithmException in case of unknown algorithm
-     * @throws InvalidKeyException in case of internal error
-     * @throws InvalidKeySpecException in case of internal error
+     * @throws InvalidKeyException      in case of internal error
+     * @throws InvalidKeySpecException  in case of internal error
      */
     public static ProtectionProvider createProtectionProvider(final CredentialContext config, String interfaceName)
             throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException {

@@ -1,20 +1,3 @@
-/*
- *  Copyright (c) 2025 Siemens AG
- *
- *  Licensed under the Apache License, Version 2.0 (the "License"); you may
- *  not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *  http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- *  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *  SPDX-License-Identifier: Apache-2.0
- */
 package com.siemens.pki.cmpracomponent.protection;
 
 import com.siemens.pki.cmpracomponent.configuration.SharedSecretCredentialContext;
@@ -24,8 +7,8 @@ import org.bouncycastle.asn1.pkcs.PBKDF2Params;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 
 /**
- * an instance implementing {@link com.siemens.pki.cmpracomponent.configuration.SharedSecretCredentialContext} provides
- * all attributes needed for shared secret based CMP protection of outgoing messages
+ * an instance implementing {@link com.siemens.pki.cmpracomponent.configuration.SharedSecretCredentialContext}
+ * provides all attributes needed for shared secret based CMP protection of outgoing messages
  */
 public class OutputSharedSecretCredentials implements SharedSecretCredentialContext {
 
@@ -40,10 +23,9 @@ public class OutputSharedSecretCredentials implements SharedSecretCredentialCont
 
     /**
      * Constructor for password-based MAC protection
-     *
-     * @param pbmParameter PBM parameter
+     * @param pbmParameter  PBM parameter
      * @param senderKID sender key identifier
-     * @param sharedSecret shared secret
+     * @param sharedSecret  shared secret
      */
     public OutputSharedSecretCredentials(
             final PBMParameter pbmParameter, final byte[] senderKID, final byte[] sharedSecret) {
@@ -60,7 +42,6 @@ public class OutputSharedSecretCredentials implements SharedSecretCredentialCont
 
     /**
      * Constructor for PMAC1 protection
-     *
      * @param pbkdf2Params parameters for PBKDF2 key derivation function
      * @param macAlgorithm MAC algorithm
      * @param senderKID sender key identifer

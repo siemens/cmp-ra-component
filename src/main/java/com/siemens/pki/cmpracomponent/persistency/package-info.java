@@ -15,5 +15,7 @@
  *
  *  SPDX-License-Identifier: Apache-2.0
  */
-/** persistency services */
+/**
+ * persistency services
+ */
 package com.siemens.pki.cmpracomponent.persistency;

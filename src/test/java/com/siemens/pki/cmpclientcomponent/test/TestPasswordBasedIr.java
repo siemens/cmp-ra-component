@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2023 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -51,7 +51,8 @@ public class TestPasswordBasedIr extends EnrollmentTestcaseBase {
     }
 
     /**
-     * Enrolling an End Entity to a New PKI/Using MAC-Based Protection for Enrollment
+     * Enrolling an End Entity to a New PKI/Using MAC-Based Protection for
+     * Enrollment
      *
      * @throws Exception in case of error
      */

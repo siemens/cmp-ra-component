@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2023 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -41,7 +41,10 @@ import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Ignore;
 import org.junit.Test;
 
-/** initial creation of test credentials */
+/**
+ * initial creation of test credentials
+ *
+ */
 public class TestCreateTestCertificateChains {
 
     private static final String SIGNATURE_ALGORITHM = "SHA512WITHECDSA";

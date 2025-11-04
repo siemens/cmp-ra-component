@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -31,8 +31,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This class validates the signature or password based protection of all incoming messages and generates proper error
- * responses on failed validation.
+ * This class validates the signature or password based protection of all
+ * incoming messages and generates proper error responses on failed validation.
  */
 public class ProtectionValidator implements ValidatorIF<CredentialContext> {
 
@@ -44,9 +44,8 @@ public class ProtectionValidator implements ValidatorIF<CredentialContext> {
 
     /**
      * ctor
-     *
      * @param interfaceName interface name used in error messages
-     * @param config specific configuration
+     * @param config        specific configuration
      */
     public ProtectionValidator(final String interfaceName, final VerificationContext config) {
         this.interfaceName = interfaceName;
@@ -57,7 +56,8 @@ public class ProtectionValidator implements ValidatorIF<CredentialContext> {
      * Check a incoming message for correct protection
      *
      * @param message message to check
-     * @throws CmpProcessingException in case of error or failed protection validation
+     * @throws CmpProcessingException in case of error or failed protection
+     *                                validation
      */
     @Override
     public CredentialContext validate(final PKIMessage message) throws BaseCmpException {

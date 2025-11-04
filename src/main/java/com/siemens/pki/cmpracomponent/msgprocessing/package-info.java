@@ -15,5 +15,7 @@
  *
  *  SPDX-License-Identifier: Apache-2.0
  */
-/** {@link org.bouncycastle.asn1.cmp.PKIMessage} processing functions */
+/**
+ * {@link org.bouncycastle.asn1.cmp.PKIMessage} processing functions
+ */
 package com.siemens.pki.cmpracomponent.msgprocessing;

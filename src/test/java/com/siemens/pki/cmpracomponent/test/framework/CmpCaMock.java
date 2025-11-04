@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2020 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -65,7 +65,9 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** a mocked Certificate Authority */
+/**
+ * a mocked Certificate Authority
+ */
 public class CmpCaMock implements CmpRaComponent.UpstreamExchange {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CmpCaMock.class);

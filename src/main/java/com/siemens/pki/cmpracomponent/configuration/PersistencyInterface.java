@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -21,9 +21,10 @@ import com.siemens.pki.cmpracomponent.persistency.DefaultPersistencyImplementati
 import java.util.Date;
 
 /**
- * an implementation of the {@link PersistencyInterface} is used to persist the state of all active transactions over RA
- * component restarts and to share the state of all active transactions between multiple RA instances in case of load
- * balancing or high availability scenarios
+ * an implementation of the {@link PersistencyInterface} is used to persist the
+ * state of all active transactions over RA component restarts and to share the
+ * state of all active transactions between multiple RA instances in case of
+ * load balancing or high availability scenarios
  */
 public interface PersistencyInterface {
 
@@ -37,8 +38,8 @@ public interface PersistencyInterface {
     }
 
     /**
-     * provide an AES key to wrap private keys in saved messages. The AES key needs to be stable over the transactions
-     * lifetime.
+     * provide an AES key to wrap private keys in saved messages. The AES key needs
+     * to be stable over the transactions lifetime.
      *
      * @return an AES key (16 bytes)
      */
@@ -50,19 +51,21 @@ public interface PersistencyInterface {
      * get the last saved message related to a specific transaction.
      *
      * @param transactionId Id of a specific transaction
-     * @return last saved message or <code>null</code> if no message was saved for this transaction
+     * @return last saved message or <code>null</code> if no message was saved for
+     *         this transaction
      */
     default byte[] getLastSavedMessage(final byte[] transactionId) {
         return DefaultPersistencyImplementation.getInstance().getLastSavedMessage(transactionId);
     }
 
     /**
-     * save the last PKI request or response related to a specific transaction. Any previously saved message related to
-     * the same transaction is dropped.
+     * save the last PKI request or response related to a specific transaction. Any
+     * previously saved message related to the same transaction is dropped.
      *
      * @param transactionId Id of a specific transaction
-     * @param message message to save
-     * @param expirationTime time when the save message should expire
+     * @param message       message to save
+     * @param expirationTime
+     *            time when the save message should expire
      */
     default void saveLastMessage(final byte[] transactionId, final byte[] message, final Date expirationTime) {
         DefaultPersistencyImplementation.getInstance().saveLastMessage(transactionId, message, expirationTime);

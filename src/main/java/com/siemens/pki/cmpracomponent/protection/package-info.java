@@ -15,5 +15,8 @@
  *
  *  SPDX-License-Identifier: Apache-2.0
  */
-/** functions for applying {@link org.bouncycastle.asn1.cmp.PKIMessage} protection */
+/**
+ * functions for applying {@link org.bouncycastle.asn1.cmp.PKIMessage}
+ * protection
+ */
 package com.siemens.pki.cmpracomponent.protection;

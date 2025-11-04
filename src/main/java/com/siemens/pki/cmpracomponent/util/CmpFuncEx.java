@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -21,8 +21,7 @@ import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
 
 /**
  * a CMP related request/response function throwing {@link BaseCmpException}s
- *
- * @param <T> type of the first function argument
+ * @param <T> type of  the first function argument
  * @param <R> function result type
  */
 public interface CmpFuncEx<T, R> {
@@ -30,11 +29,14 @@ public interface CmpFuncEx<T, R> {
     /**
      * Applies this function to the given arguments.
      *
-     * @param t the first function argument
-     * @param certProfile certificate profile extracted from the CMP request header generalInfo field or <code>null
-     *     </code> if no certificate profile was found in the header.
-     * @param bodyTypeOfFirstRequest PKIBody type of the first request in this transaction. e.g. 0 for ir, 3 for cr, 7
-     *     for kur.
+     * @param t                      the first function argument
+     * @param certProfile            certificate profile extracted from the CMP
+     *                               request header generalInfo field or
+     *                               <code>null</code> if no certificate profile was
+     *                               found in the header.
+     * @param bodyTypeOfFirstRequest PKIBody type of the first request in this
+     *                               transaction. e.g. 0 for ir, 3 for cr, 7 for
+     *                               kur.
      * @return the function result
      * @throws BaseCmpException in case of error
      */

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -20,13 +20,17 @@ package com.siemens.pki.cmpracomponent.configuration;
 import java.security.cert.X509Certificate;
 import java.util.List;
 
-/** support message handler supporting Get CA certificates GENM requests */
+/**
+ * support message handler supporting Get CA certificates GENM requests
+ */
 public interface GetCaCertificatesHandler extends SupportMessageHandlerInterface {
 
     /**
-     * handle an Get CA certificates GENM request and return certificates to build the related GENP response
+     * handle an Get CA certificates GENM request and return certificates to build
+     * the related GENP response
      *
-     * @return certificates to be returned or <code>null</code> if the returned infoValue should be absent
+     * @return certificates to be returned or <code>null</code> if the returned
+     *         infoValue should be absent
      */
     List<X509Certificate> getCaCertificates();
 }

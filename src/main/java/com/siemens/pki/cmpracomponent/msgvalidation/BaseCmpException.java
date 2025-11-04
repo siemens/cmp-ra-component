@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -23,15 +23,21 @@ import org.bouncycastle.asn1.cmp.PKIFailureInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** base of all CMP exceptions */
+/**
+ * base of all CMP exceptions
+ */
 public class BaseCmpException extends Exception {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BaseCmpException.class);
 
     private static final long serialVersionUID = 1;
-    /** failInfo */
+    /**
+     * failInfo
+     */
     protected final int failInfo;
-    /** errorDetails */
+    /**
+     * errorDetails
+     */
     protected final String errorDetails;
 
     protected BaseCmpException(final String interfaceName, final Exception ex) {
@@ -50,11 +56,10 @@ public class BaseCmpException extends Exception {
 
     /**
      * ctor
-     *
      * @param interfaceName interface name used as prefix message text
-     * @param failInfo CMP failInfo proposed for CMP error message
-     * @param errorDetails description of some details related to the error
-     * @param ex the underlying exception
+     * @param failInfo      CMP failInfo proposed for CMP error message
+     * @param errorDetails  description of some details related to the error
+     * @param ex            the underlying exception
      */
     protected BaseCmpException(
             final String interfaceName, final int failInfo, final String errorDetails, final Throwable ex) {
@@ -78,7 +83,6 @@ public class BaseCmpException extends Exception {
 
     /**
      * get as error {@link PKIBody}
-     *
      * @return an error body
      */
     public PKIBody asErrorBody() {

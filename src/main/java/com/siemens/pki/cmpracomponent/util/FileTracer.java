@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -37,10 +37,11 @@ import org.slf4j.LoggerFactory;
 
 /**
  * message logger utility.
- *
- * <p>If the system property "dumpdir" points to a writable directory, every message at upstream and downstream is
- * logged 3 times (as binary,as PEM, as ASN.1 text trace). Each transaction goes to a separate sub directory directory
- * below "dumpdir".
+ * <p>
+ * If the system property "dumpdir" points to a writable directory, every
+ * message at upstream and downstream is logged 3 times (as binary,as PEM, as
+ * ASN.1 text trace). Each transaction goes to a separate sub directory
+ * directory below "dumpdir".
  */
 public class FileTracer {
 
@@ -71,8 +72,7 @@ public class FileTracer {
     }
 
     /**
-     * use this to parse DER-encoded messages from a given filename
-     *
+     * use this to parse  DER-encoded messages from a given filename
      * @param args arg[0] file name for DER encoded {@link PKIMessage} to load
      */
     public static void main(String[] args) {
@@ -85,9 +85,9 @@ public class FileTracer {
 
     /**
      * (re-)intialize the {@link FileTracer}
-     *
      * @param dumpDirName directory to dump to
-     * @param dumpFormat dump format to use, one or more of "pem,txt,der,asn1,json,yaml" concatinated in one string
+     * @param dumpFormat  dump format to use, one or more of
+     *                    "pem,txt,der,asn1,json,yaml" concatinated in one string
      */
     public static void init(final String dumpDirName, final String dumpFormat) {
         enablePemDump = dumpFormat.contains("pem");
@@ -115,7 +115,7 @@ public class FileTracer {
     /**
      * dump a message to the dumpdir
      *
-     * @param msg message to dump
+     * @param msg           message to dump
      * @param interfaceName file name prefix to use
      * @return directory where the log goes in
      */

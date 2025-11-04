@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -46,8 +46,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This class validates the signature based protection of all incoming messages and generates proper error responses on
- * failed validation.
+ * This class validates the signature based protection of all incoming messages
+ * and generates proper error responses on failed validation.
  */
 class SignatureProtectionValidator implements ValidatorIF<Void> {
     private static final Logger LOGGER = LoggerFactory.getLogger(SignatureProtectionValidator.class);

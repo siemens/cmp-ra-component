@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Siemens AG
+ *  Copyright (c) 2022 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -34,7 +34,9 @@ import org.bouncycastle.cms.jcajce.JceKeyTransEnvelopedRecipient;
 import org.bouncycastle.cms.jcajce.JceKeyTransRecipientId;
 import org.bouncycastle.cms.jcajce.JcePasswordEnvelopedRecipient;
 
-/** CMS data decryption */
+/**
+ * CMS data decryption
+ */
 public class CmsDecryptor {
 
     private static final RecipientId passRecipientId = new PasswordRecipientId();
@@ -68,8 +70,8 @@ public class CmsDecryptor {
     }
 
     /**
-     * Extract the original data that was encrypted from the EnvelopedData structure by using the recipient matching the
-     * passed in parameters.
+     * Extract the original data that was encrypted from the EnvelopedData structure
+     * by using the recipient matching the passed in parameters.
      *
      * @param envelopedData the EnvelopedData structure.
      * @return the original data that was enveloped as a byte[].

@@ -15,5 +15,7 @@
  *
  *  SPDX-License-Identifier: Apache-2.0
  */
-/** the top level RA instantiation functions */
+/**
+ * the top level RA instantiation functions
+ */
 package com.siemens.pki.cmpracomponent.main;
