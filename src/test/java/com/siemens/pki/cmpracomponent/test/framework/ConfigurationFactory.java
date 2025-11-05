@@ -95,9 +95,25 @@ public class ConfigurationFactory {
                 downstreamCredentials,
                 ReprotectMode.reprotect,
                 downstreamTrust,
+                false,
                 upstreamCredentials,
                 upstreamTrust,
                 enrollmentTrust);
+    }
+
+    public static Configuration buildPasswordbasedDownstreamConfigurationWithoutResponseProtection() throws Exception {
+
+        final VerificationContext downstreamTrust = new PasswordValidationCredentials(TestUtils.PASSWORD);
+
+        final CredentialContext upstreamCredentials =
+                new TrustChainAndPrivateKey("credentials/CMP_LRA_UPSTREAM_Keystore.p12", "Password".toCharArray());
+        final VerificationContext upstreamTrust =
+                new SignatureValidationCredentials("credentials/CMP_CA_Root.pem", null);
+        final SignatureValidationCredentials enrollmentTrust =
+                new SignatureValidationCredentials("credentials/ENROLL_Root.pem", null);
+
+        return buildSimpleRaConfiguration(
+                null, ReprotectMode.strip, downstreamTrust, true, upstreamCredentials, upstreamTrust, enrollmentTrust);
     }
 
     public static Configuration buildPbmac1DownstreamConfiguration() throws Exception {
@@ -115,6 +131,7 @@ public class ConfigurationFactory {
                 downstreamCredentials,
                 ReprotectMode.reprotect,
                 downstreamTrust,
+                false,
                 upstreamCredentials,
                 upstreamTrust,
                 enrollmentTrust);
@@ -136,6 +153,7 @@ public class ConfigurationFactory {
                 downstreamCredentials,
                 ReprotectMode.reprotect,
                 downstreamTrust,
+                false,
                 upstreamCredentials,
                 upstreamTrust,
                 enrollmentTrust);
@@ -198,6 +216,7 @@ public class ConfigurationFactory {
                 downstreamCredentials,
                 ReprotectMode.keep,
                 downstreamTrust,
+                false,
                 upstreamCredentials,
                 upstreamTrust,
                 enrollmentTrust);
@@ -488,6 +507,7 @@ public class ConfigurationFactory {
             final CredentialContext downstreamCredentials,
             ReprotectMode reprotectMode,
             final VerificationContext downstreamTrust,
+            boolean isEnforceReprotectMode,
             final CredentialContext upstreamCredentials,
             final VerificationContext upstreamTrust,
             final SignatureValidationCredentials enrollmentTrust) {
@@ -542,6 +562,11 @@ public class ConfigurationFactory {
                     @Override
                     public ReprotectMode getReprotectMode() {
                         return reprotectMode;
+                    }
+
+                    @Override
+                    public boolean isEnforceReprotectMode() {
+                        return isEnforceReprotectMode;
                     }
 
                     @Override

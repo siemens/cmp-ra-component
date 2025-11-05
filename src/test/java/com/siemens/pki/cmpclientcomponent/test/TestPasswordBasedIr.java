@@ -37,7 +37,7 @@ public class TestPasswordBasedIr extends EnrollmentTestcaseBase {
     }
 
     @Test
-    public void testIr() throws Exception {
+    public void testIrPASSWORDBASEDMAC() throws Exception {
         final EnrollmentResult ret = getPasswordBasedCmpClient(
                         "theCertProfileForOnlineEnrollment",
                         getClientContext(
