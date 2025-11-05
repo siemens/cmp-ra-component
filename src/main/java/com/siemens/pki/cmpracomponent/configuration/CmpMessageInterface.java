@@ -88,11 +88,13 @@ public interface CmpMessageInterface {
     ReprotectMode getReprotectMode();
 
     /**
-     * enforce protection mode of outgoing messages as given by
-     * {@link #getReprotectMode()} even if the last incoming message was
-     * MAC-based protected.
-     * @return <code>true</code>, if reprotection can be enforced,
-     * <code>false</code> if response to an MAC-based protected request should
+     * on downstream interfaces, optionally disable special automatic re-protection of
+     * outgoing messages when responding to a request that had MAC-based protection.
+     * This configuration item is ignored on upstream interfaces.
+     * @return <code>true</code>, if reprotection shall be handled as given by
+     * {@link #getReprotectMode()} (using, e.g., supplied credentials for signature-based protection)
+     * even when responding to a request with MAC-based protection.
+     * <code>false</code> if response to a request with MAC-based protection should
      * be protected in the same way (with same MAC credentials etc.) as the request.
      */
     default boolean isEnforceReprotectMode() {
