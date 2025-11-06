@@ -61,7 +61,7 @@ public interface ClientAttestationContext {
 
     /**
      * Siemens proprietary extension to carry additional data
-     * @return additional data <code>null</code>
+     * @return additional data or <code>null</code>
      */
     default byte[] getNonceRequestVendorextension() {
         return null;
