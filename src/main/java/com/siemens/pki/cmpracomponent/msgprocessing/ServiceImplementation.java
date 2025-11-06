@@ -52,6 +52,7 @@ import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1EncodableVector;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.ASN1UTF8String;
@@ -313,8 +314,10 @@ class ServiceImplementation {
                     ifNotNull(aktRequest.getLen(), ASN1Integer::getValue),
                     ifNotNull(aktRequest.getType(), ASN1ObjectIdentifier::getId),
                     ifNotNull(aktRequest.getHint(), ASN1UTF8String::getString),
+                    ifNotNull(aktRequest.getVendorextension(), ASN1OctetString::getOctets),
                     aktRequest.getEncoded());
-            responses[i] = new NonceResponse(ret.getNonce(), ret.getExpiry(), ret.getType(), ret.getHint());
+            responses[i] = new NonceResponse(
+                    ret.getNonce(), ret.getExpiry(), ret.getType(), ret.getHint(), ret.getVendorextension());
         }
         persistencyContext.markAsPreparingGenm();
         return new PKIBody(

@@ -58,6 +58,14 @@ public interface ClientAttestationContext {
     default String getNonceRequestType() {
         return null;
     }
+
+    /**
+     * Siemens proprietary extension to carry additional data
+     * @return additional data <code>null</code>
+     */
+    default byte[] getNonceRequestVendorextension() {
+        return null;
+    }
     /**
      * get certs to include in {@link EvidenceBundle}
      * @return certs

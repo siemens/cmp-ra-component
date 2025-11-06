@@ -224,6 +224,7 @@ public class TestCrWithRAT extends EnrollmentTestcaseBase {
                             BigInteger len,
                             String type,
                             String hint,
+                            byte[] vendorextension,
                             byte[] encodedNonceRequest) {
                         LOGGER.debug(
                                 "generateNonce called with certprofile: {}, type: {}",
@@ -244,6 +245,11 @@ public class TestCrWithRAT extends EnrollmentTestcaseBase {
                             @Override
                             public String getHint() {
                                 return "responded hint: " + hint;
+                            }
+
+                            @Override
+                            public byte[] getVendorextension() {
+                                return vendorextension;
                             }
 
                             @Override
@@ -433,6 +439,11 @@ public class TestCrWithRAT extends EnrollmentTestcaseBase {
                     }
 
                     @Override
+                    public byte[] getNonceRequestVendorextension() {
+                        return "vendor extension".getBytes();
+                    }
+
+                    @Override
                     public Certificate[] getEvidenceBundleCerts() {
                         // just provide some certificates
                         final SignatureValidationCredentials enrollmentTrust =
@@ -457,6 +468,8 @@ public class TestCrWithRAT extends EnrollmentTestcaseBase {
                         NonceResponse nonceResponse = NonceResponse.getInstance(attestationNonce);
                         assertNotNull(nonceResponse.getExpiry());
                         assertNotNull(nonceResponse.getHint());
+                        assertNotNull(nonceResponse.getVendorextension());
+
                         try {
                             return new EvidenceStatement(
                                             nonceResponse.getType().branch("88"),

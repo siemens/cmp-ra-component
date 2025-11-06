@@ -47,6 +47,8 @@ import org.bouncycastle.asn1.DERUTF8String;
  * -- indicates which Evidence type to request a nonce for
  * hint UTF8String OPTIONAL
  * -- indicates which Verifier to request a nonce from
+ * vendorextension OCTET STRING OPTIONAL
+ * -- Siemens proprietary extension to carry additional data
  * }
  * }
  */
@@ -60,6 +62,7 @@ public class NonceResponseValue extends ASN1Object {
         private ASN1Integer expiry = null;
         private ASN1ObjectIdentifier type = null;
         private ASN1UTF8String hint = null;
+        private ASN1OctetString vendorextension = null;
 
         public ASN1Primitive toASN1Primitive() {
 
@@ -69,6 +72,8 @@ public class NonceResponseValue extends ASN1Object {
             addOptional(v, expiry);
             addOptional(v, type);
             addOptional(v, hint);
+            addOptional(v, vendorextension);
+
             return new DERSequence(v);
         }
 
@@ -107,23 +112,38 @@ public class NonceResponseValue extends ASN1Object {
                 }
                 next = en.nextElement();
             }
-            hint = ASN1UTF8String.getInstance(next);
+            if (next instanceof ASN1UTF8String) {
+                hint = ASN1UTF8String.getInstance(next);
+                if (!en.hasMoreElements()) {
+                    return;
+                }
+                next = en.nextElement();
+            }
+            if (next instanceof ASN1OctetString) {
+                vendorextension = ASN1OctetString.getInstance(next);
+            }
         }
 
         public NonceResponse(
-                ASN1OctetString nonce, ASN1Integer expiry, ASN1ObjectIdentifier type, ASN1UTF8String hint) {
+                ASN1OctetString nonce,
+                ASN1Integer expiry,
+                ASN1ObjectIdentifier type,
+                ASN1UTF8String hint,
+                ASN1OctetString vendorextension) {
             this.nonce = nonce;
             this.expiry = expiry;
             this.type = type;
             this.hint = hint;
+            this.vendorextension = vendorextension;
         }
 
-        public NonceResponse(byte[] nonce, Integer expiry, String type, String hint) {
+        public NonceResponse(byte[] nonce, Integer expiry, String type, String hint, byte[] vendorextension) {
             this(
                     nonce != null ? new DEROctetString(nonce) : null,
                     expiry != null ? new ASN1Integer(expiry) : null,
                     type != null ? new ASN1ObjectIdentifier(type) : null,
-                    hint != null ? new DERUTF8String(hint) : null);
+                    hint != null ? new DERUTF8String(hint) : null,
+                    vendorextension != null ? new DEROctetString(vendorextension) : null);
         }
 
         public ASN1OctetString getNonce() {
@@ -140,6 +160,10 @@ public class NonceResponseValue extends ASN1Object {
 
         public ASN1UTF8String getHint() {
             return hint;
+        }
+
+        public ASN1OctetString getVendorextension() {
+            return vendorextension;
         }
 
         private void addOptional(ASN1EncodableVector v, ASN1Encodable obj) {
