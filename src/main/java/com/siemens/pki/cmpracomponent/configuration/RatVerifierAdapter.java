@@ -37,7 +37,7 @@ public interface RatVerifierAdapter {
     interface NonceResponseRet {
 
         /**
-         * retuns the nonce of length len provided by the Verifier indicated with hint
+         * returns the nonce of length len provided by the Verifier indicated with hint
          * @return nonce
          */
         byte[] getNonce();

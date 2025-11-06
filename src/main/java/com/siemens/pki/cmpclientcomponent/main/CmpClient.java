@@ -155,7 +155,7 @@ public class CmpClient
     /**
      * ctor
      *
-     * @param certProfile           certificate profile to be used for enrollment.
+     * @param certProfile           certificate profile to be used for enrollment or
      *                              <code>null</code> if no certificate profile
      *                              should be used.
      *
