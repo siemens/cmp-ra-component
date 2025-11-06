@@ -24,9 +24,11 @@ import org.bouncycastle.asn1.ASN1EncodableVector;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1Object;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.ASN1UTF8String;
+import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.DERSequence;
 import org.bouncycastle.asn1.DERUTF8String;
 
@@ -42,6 +44,8 @@ import org.bouncycastle.asn1.DERUTF8String;
  * -- indicates which Evidence type to request a nonce for
  * hint   UTF8String OPTIONAL
  * -- indicates which Verifier to request a nonce from
+ * vendorextension OCTET STRING OPTIONAL
+ * -- Siemens proprietary extension to carry additional data
  * }
  * }
  */
@@ -62,23 +66,32 @@ public class NonceRequestValue extends ASN1Object {
             return hint;
         }
 
+        public ASN1OctetString getVendorextension() {
+            return vendorextension;
+        }
+
         private ASN1Integer len = null;
         private ASN1ObjectIdentifier type = null;
         private ASN1UTF8String hint = null;
+        private ASN1OctetString vendorextension = null;
 
-        public NonceRequest(ASN1Integer len, ASN1ObjectIdentifier type, ASN1UTF8String hint) {
+        public NonceRequest(
+                ASN1Integer len, ASN1ObjectIdentifier type, ASN1UTF8String hint, ASN1OctetString vendorextension) {
             this.len = len;
             this.type = type;
             this.hint = hint;
+            this.vendorextension = vendorextension;
         }
 
         public ASN1Primitive toASN1Primitive() {
 
-            ASN1EncodableVector v = new ASN1EncodableVector(3);
+            ASN1EncodableVector v = new ASN1EncodableVector(4);
 
             addOptional(v, len);
             addOptional(v, type);
             addOptional(v, hint);
+            addOptional(v, vendorextension);
+
             return new DERSequence(v);
         }
 
@@ -112,16 +125,28 @@ public class NonceRequestValue extends ASN1Object {
                 }
                 next = en.nextElement();
             }
-            if (next != null) {
+            if (next instanceof ASN1UTF8String) {
                 hint = ASN1UTF8String.getInstance(next);
+                if (!en.hasMoreElements()) {
+                    return;
+                }
+                next = en.nextElement();
+            }
+            if (next instanceof ASN1OctetString) {
+                vendorextension = ASN1OctetString.getInstance(next);
             }
         }
 
-        public NonceRequest(BigInteger nonceRequestLen, String nonceRequestType, String nonceRequestHint) {
+        public NonceRequest(
+                BigInteger nonceRequestLen,
+                String nonceRequestType,
+                String nonceRequestHint,
+                byte[] nonceRequestVendorextension) {
             this(
                     nonceRequestLen != null ? new ASN1Integer(nonceRequestLen) : null,
                     nonceRequestType != null ? new ASN1ObjectIdentifier(nonceRequestType) : null,
-                    nonceRequestHint != null ? new DERUTF8String(nonceRequestHint) : null);
+                    nonceRequestHint != null ? new DERUTF8String(nonceRequestHint) : null,
+                    nonceRequestVendorextension != null ? new DEROctetString(nonceRequestVendorextension) : null);
         }
 
         private void addOptional(ASN1EncodableVector v, ASN1Encodable obj) {

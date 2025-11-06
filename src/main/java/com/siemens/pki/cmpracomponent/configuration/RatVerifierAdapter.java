@@ -65,6 +65,14 @@ public interface RatVerifierAdapter {
         default String getType() {
             return null;
         }
+
+        /**
+         * Siemens proprietary extension to carry additional data
+         * @return additional data or <code>null</code>
+         */
+        default byte[] getVendorextension() {
+            return null;
+        }
     }
 
     /**
@@ -73,9 +81,15 @@ public interface RatVerifierAdapter {
      * @param len the required length of the requested nonce, maybe <code>null</code>
      * @param type indicates which Evidence type to request a nonce for, OID as string or <code>null</code>
      * @param hint indicates which Verifier to request a nonce from, maybe <code>null</code>
+     * @param vendorextension additional Siemens proprietary data, maybe <code>null</code>
      * @param encodedNonceRequest encoded NonceRequest containing len, type and hint
      * @return fresh BER encoded NonceResponse
      */
     NonceResponseRet generateNonce(
-            byte[] transactionId, BigInteger len, String type, String hint, byte[] encodedNonceRequest);
+            byte[] transactionId,
+            BigInteger len,
+            String type,
+            String hint,
+            byte[] vendorextension,
+            byte[] encodedNonceRequest);
 }

@@ -67,7 +67,8 @@ public class TestRatAsn1 {
 
     @Test
     public void testNonceRequestValue() throws IOException {
-        byte[] encoded = new NonceRequestValue(new NonceRequest[] {new NonceRequest((BigInteger) null, null, null)})
+        byte[] encoded = new NonceRequestValue(
+                        new NonceRequest[] {new NonceRequest((BigInteger) null, null, null, null)})
                 .getEncoded();
         NonceRequestValue decoded = NonceRequestValue.getInstance(encoded);
         assertEquals(1, decoded.getNonceRequests().length);
@@ -75,11 +76,13 @@ public class TestRatAsn1 {
         assertNull(nonceRequest.getLen());
         assertNull(nonceRequest.getType());
         assertNull(nonceRequest.getHint());
+        assertNull(nonceRequest.getVendorextension());
     }
 
     @Test
     public void testNonceResponseValue() throws IOException {
-        byte[] encoded = new NonceResponseValue(new NonceResponse[] {new NonceResponse(new byte[10], null, null, null)})
+        byte[] encoded = new NonceResponseValue(
+                        new NonceResponse[] {new NonceResponse(new byte[10], null, null, null, null)})
                 .getEncoded();
         NonceResponseValue decoded = NonceResponseValue.getInstance(encoded);
         assertEquals(1, decoded.getNonceResponse().length);
@@ -88,5 +91,6 @@ public class TestRatAsn1 {
         assertNull(nonceRequest.getExpiry());
         assertNull(nonceRequest.getType());
         assertNull(nonceRequest.getHint());
+        assertNull(nonceRequest.getVendorextension());
     }
 }

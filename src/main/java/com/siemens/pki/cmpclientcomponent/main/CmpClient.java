@@ -425,7 +425,8 @@ public class CmpClient
                 NonceRequest nonceRequest = new NonceRequest(
                         attestationContext.getNonceRequestLen(),
                         attestationContext.getNonceRequestType(),
-                        attestationContext.getNonceRequestHint());
+                        attestationContext.getNonceRequestHint(),
+                        attestationContext.getNonceRequestVendorextension());
                 NonceRequestValue nonceRequestValue = new NonceRequestValue(new NonceRequest[] {nonceRequest});
                 ratNonceResponse = requestHandler.sendReceiveInitialMessage(new PKIBody(
                         PKIBody.TYPE_GEN_MSG,
