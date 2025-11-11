@@ -148,3 +148,9 @@ fix: again fix protection of NESTED responses
 
 feat: Use same credentials for MAC based protection at Downstream
 
+### 4.3.0 (Nov 11 2025)
+
+feat: Java update from 11 to 17
+
+
+
