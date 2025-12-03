@@ -7,6 +7,7 @@
  - fix: Key length parameter for PBMAC1 handled incorrectly
  - fix: Incorrect length parameter for PBMAC1
  - fix: Update dependencies to fix CI pipeline
+ - fix: if not forced, reprotect response to MAC-protected requests
  - doc: Partially clean up overall structure of README.md
  - chore: Java update from 11 to 17
 
