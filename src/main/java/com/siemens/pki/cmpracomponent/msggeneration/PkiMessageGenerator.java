@@ -566,6 +566,12 @@ public class PkiMessageGenerator {
                 };
                 return new PKIBody(requestBody.getType() + 1, new CertRepMessage(null, response));
             }
+            case PKIBody.TYPE_P10_CERT_REQ: {
+                final CertResponse[] response = {
+                    new CertResponse(CERT_REQ_ID_0, new PKIStatusInfo(PKIStatus.waiting, errorDetails), null, null)
+                };
+                return new PKIBody(PKIBody.TYPE_CERT_REP, new CertRepMessage(null, response));
+            }
             default:
                 return new PKIBody(
                         PKIBody.TYPE_ERROR, new ErrorMsgContent(new PKIStatusInfo(PKIStatus.waiting, errorDetails)));
