@@ -86,8 +86,6 @@ public class MsgOutputProtector {
                 interfaceName,
                 "CmpMessageInterface.getSuppressRedundantExtraCerts()",
                 config::getSuppressRedundantExtraCerts);
-        reprotectMode =
-                ConfigLogger.log(interfaceName, "CmpMessageInterface.getReprotectMode()", config::getReprotectMode);
         recipient = ifNotNull(
                 ConfigLogger.logOptional(interfaceName, "CmpMessageInterface.getRecipient()", config::getRecipient),
                 rec -> new GeneralName(new X500Name(rec)));
@@ -95,7 +93,16 @@ public class MsgOutputProtector {
                 ifNotNull(messageContext, MessageContext::getCredentialContext);
         if (verificationCredentials instanceof SharedSecretCredentialContext) {
             protectionCredentials = verificationCredentials;
+            if (ConfigLogger.log(
+                    interfaceName, "CmpMessageInterface.enforceReprotectMode()", config::isEnforceReprotectMode)) {
+                reprotectMode = ConfigLogger.log(
+                        interfaceName, "CmpMessageInterface.getReprotectMode()", config::getReprotectMode);
+            } else {
+                reprotectMode = ReprotectMode.reprotect;
+            }
         } else {
+            reprotectMode =
+                    ConfigLogger.log(interfaceName, "CmpMessageInterface.getReprotectMode()", config::getReprotectMode);
             protectionCredentials = ConfigLogger.logOptional(
                     interfaceName, "CmpMessageInterface.getOutputCredentials()", config::getOutputCredentials);
             if (reprotectMode == ReprotectMode.reprotect && protectionCredentials == null) {

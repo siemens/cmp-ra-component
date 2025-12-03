@@ -114,6 +114,47 @@ public class CmpClientTestcaseBase {
         };
     }
 
+    protected static CmpMessageInterface getPasswordBasedUpstreamconfigurationWithoutResponseValidation(
+            SharedSecretCredentialContext protection, SignatureValidationCredentials keyValidationCredentials) {
+        return new CmpMessageInterface() {
+
+            @Override
+            public VerificationContext getInputVerification() {
+                return new PasswordValidationCredentials(protection.getSharedSecret());
+            }
+
+            @Override
+            public NestedEndpointContext getNestedEndpointContext() {
+                return null;
+            }
+
+            @Override
+            public CredentialContext getOutputCredentials() {
+                return protection;
+            }
+
+            @Override
+            public ReprotectMode getReprotectMode() {
+                return ReprotectMode.reprotect;
+            }
+
+            @Override
+            public boolean getSuppressRedundantExtraCerts() {
+                return false;
+            }
+
+            @Override
+            public boolean isCacheExtraCerts() {
+                return false;
+            }
+
+            @Override
+            public boolean isMessageTimeDeviationAllowed(final long deviation) {
+                return deviation < 10;
+            }
+        };
+    }
+
     protected static CmpMessageInterface getSignatureBasedUpstreamconfiguration(final String upstreamTrustPath) {
         return new CmpMessageInterface() {
 
@@ -174,6 +215,19 @@ public class CmpClientTestcaseBase {
                 certProfile,
                 getUpstreamExchange(),
                 getPasswordBasedUpstreamconfiguration(protection, keyValidationCredentials),
+                clientContext);
+    }
+
+    protected CmpClient getPasswordBasedCmpClientWithoutResponseValidation(
+            String certProfile,
+            final ClientContext clientContext,
+            SharedSecretCredentialContext protection,
+            SignatureValidationCredentials keyValidationCredentials)
+            throws Exception {
+        return new CmpClient(
+                certProfile,
+                getUpstreamExchange(),
+                getPasswordBasedUpstreamconfigurationWithoutResponseValidation(protection, keyValidationCredentials),
                 clientContext);
     }
 
