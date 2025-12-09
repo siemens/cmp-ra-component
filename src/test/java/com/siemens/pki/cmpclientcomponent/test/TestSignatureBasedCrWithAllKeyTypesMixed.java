@@ -24,7 +24,6 @@ import java.security.KeyPairGenerator;
 import java.util.Arrays;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.iana.IANAObjectIdentifiers;
-import org.bouncycastle.asn1.misc.MiscObjectIdentifiers;
 import org.bouncycastle.asn1.nist.NISTObjectIdentifiers;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;

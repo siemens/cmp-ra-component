@@ -25,7 +25,6 @@ import java.util.Arrays;
 import java.util.List;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.iana.IANAObjectIdentifiers;
-import org.bouncycastle.asn1.misc.MiscObjectIdentifiers;
 import org.bouncycastle.asn1.nist.NISTObjectIdentifiers;
 
 /**
@@ -66,7 +65,7 @@ public class TcAlgs {
             {
                 "MLDSA44-RSA2048-PKCS15-SHA256",
                 KeyPairGeneratorFactory.getGenericKeyPairGenerator(
-                    IANAObjectIdentifiers.id_MLDSA44_RSA2048_PKCS15_SHA256)
+                        IANAObjectIdentifiers.id_MLDSA44_RSA2048_PKCS15_SHA256)
             },
             {
                 "MLDSA44-ECDSA-P256-SHA256",
