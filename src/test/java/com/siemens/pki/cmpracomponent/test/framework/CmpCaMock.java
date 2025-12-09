@@ -271,7 +271,8 @@ public class CmpCaMock implements CmpRaComponent.UpstreamExchange {
                                 PKIBody.TYPE_INIT_REQ,
                                 PKIBody.TYPE_CERT_REQ,
                                 PKIBody.TYPE_KEY_UPDATE_REQ,
-                                PKIBody.TYPE_REVOCATION_REQ)
+                                PKIBody.TYPE_REVOCATION_REQ,
+                                PKIBody.TYPE_P10_CERT_REQ)
                         .contains(bodyTypeOfFirstRequest));
         try {
             final PKIMessage receivedMessage = PKIMessage.getInstance(rawReceivedMessage);
