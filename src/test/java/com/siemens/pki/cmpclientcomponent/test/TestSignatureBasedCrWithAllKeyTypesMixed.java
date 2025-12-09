@@ -23,6 +23,7 @@ import java.security.GeneralSecurityException;
 import java.security.KeyPairGenerator;
 import java.util.Arrays;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.iana.IANAObjectIdentifiers;
 import org.bouncycastle.asn1.misc.MiscObjectIdentifiers;
 import org.bouncycastle.asn1.nist.NISTObjectIdentifiers;
 import org.junit.runner.RunWith;
@@ -43,7 +44,7 @@ public class TestSignatureBasedCrWithAllKeyTypesMixed extends SignatureBasedCrWi
         KeyPairGenerator ecKpg = KeyPairGeneratorFactory.getEcKeyPairGenerator("secp256r1");
         KeyPairGenerator edKpg = KeyPairGeneratorFactory.getEdDsaKeyPairGenerator("Ed448");
         KeyPairGenerator compKpg =
-                KeyPairGeneratorFactory.getGenericKeyPairGenerator(MiscObjectIdentifiers.id_MLDSA44_ECDSA_P256_SHA256);
+                KeyPairGeneratorFactory.getGenericKeyPairGenerator(IANAObjectIdentifiers.id_MLDSA44_ECDSA_P256_SHA256);
 
         return Arrays.asList(new Object[][] {
             //
@@ -64,7 +65,7 @@ public class TestSignatureBasedCrWithAllKeyTypesMixed extends SignatureBasedCrWi
             },
             {
                 "ED-PQ-EC (Alt: COMP)",
-                MiscObjectIdentifiers.id_MLDSA44_ECDSA_P256_SHA256,
+                IANAObjectIdentifiers.id_MLDSA44_ECDSA_P256_SHA256,
                 new KeyPairGenerator[] {edKpg, pqKpg, ecKpg}
             },
         });

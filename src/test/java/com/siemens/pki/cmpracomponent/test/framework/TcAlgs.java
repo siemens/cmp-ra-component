@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.iana.IANAObjectIdentifiers;
 import org.bouncycastle.asn1.misc.MiscObjectIdentifiers;
 import org.bouncycastle.asn1.nist.NISTObjectIdentifiers;
 
@@ -60,24 +61,24 @@ public class TcAlgs {
         return Arrays.asList(new Object[][] {
             {
                 "MLDSA44-RSA2048-PSS-SHA256",
-                KeyPairGeneratorFactory.getGenericKeyPairGenerator(MiscObjectIdentifiers.id_MLDSA44_RSA2048_PSS_SHA256)
+                KeyPairGeneratorFactory.getGenericKeyPairGenerator(IANAObjectIdentifiers.id_MLDSA44_RSA2048_PSS_SHA256)
             },
             {
                 "MLDSA44-RSA2048-PKCS15-SHA256",
                 KeyPairGeneratorFactory.getGenericKeyPairGenerator(
-                        MiscObjectIdentifiers.id_MLDSA44_RSA2048_PKCS15_SHA256)
+                    IANAObjectIdentifiers.id_MLDSA44_RSA2048_PKCS15_SHA256)
             },
             {
                 "MLDSA44-ECDSA-P256-SHA256",
-                KeyPairGeneratorFactory.getGenericKeyPairGenerator(MiscObjectIdentifiers.id_MLDSA44_ECDSA_P256_SHA256)
+                KeyPairGeneratorFactory.getGenericKeyPairGenerator(IANAObjectIdentifiers.id_MLDSA44_ECDSA_P256_SHA256)
             },
             {
                 "MLDSA44-ED25519-SHA512",
-                KeyPairGeneratorFactory.getGenericKeyPairGenerator(MiscObjectIdentifiers.id_MLDSA44_Ed25519_SHA512)
+                KeyPairGeneratorFactory.getGenericKeyPairGenerator(IANAObjectIdentifiers.id_MLDSA44_Ed25519_SHA512)
             },
             {
                 "MLDSA65-ED25519-SHA512",
-                KeyPairGeneratorFactory.getGenericKeyPairGenerator(MiscObjectIdentifiers.id_MLDSA65_Ed25519_SHA512)
+                KeyPairGeneratorFactory.getGenericKeyPairGenerator(IANAObjectIdentifiers.id_MLDSA65_Ed25519_SHA512)
             },
             //
         });
