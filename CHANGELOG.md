@@ -1,13 +1,12 @@
 # Change Log (CMP RA Component)
 
-## 4.3.0 (Nov 18 2025)
+## 4.3.0 (Dec 10 2025)
 
  - feat: Implement PQ support
  - feat: Enhance CMP error message with original upstream exception details
- - fix: Key length parameter for PBMAC1 handled incorrectly
- - fix: Incorrect length parameter for PBMAC1
- - fix: Update dependencies to fix CI pipeline
- - fix: if not forced, reprotect response to MAC-protected requests
+ - fix: Incorrect key length parameter handling for PBMAC1
+ - fix: Update dependencies
+ - fix: If not forced, reprotect response to MAC-protected requests
  - doc: Partially clean up overall structure of README.md
  - chore: Java update from 11 to 17
 
