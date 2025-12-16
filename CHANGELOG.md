@@ -10,16 +10,16 @@
  - doc: Partially clean up overall structure of README.md
  - chore: Java update from 11 to 17
 
-## 4.2.0 (Sep 10 2024)
+## 4.2.0 (Sep 10 2025)
  - feat: Use same credentials for MAC based protection at Downstream
 
-## 4.1.4 (Jul 23 2024)
+## 4.1.4 (Jul 23 2025)
  - fix: again fix protection of NESTED responses
 
-## 4.1.3 (Apr 24 2024)
+## 4.1.3 (Apr 24 2025)
  - fix: handling of NestedEndpointContext.isIncomingRecipientValid
 
-## 4.1.2 (Feb 28 2024)
+## 4.1.2 (Feb 28 2025)
  - feat: add logging while accessing configuration data
 
 ## 4.1.0 (Dec 14 2024)
