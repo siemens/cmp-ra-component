@@ -10,22 +10,22 @@
  - doc: Partially clean up overall structure of README.md
  - chore: Java update from 11 to 17
 
-## 4.2.0 (Sep 10 2025)
+## 4.2.0 (Sep 10 2024)
  - feat: Use same credentials for MAC based protection at Downstream
 
-## 4.1.4 (Jul 23 2025)
+## 4.1.4 (Jul 23 2024)
  - fix: again fix protection of NESTED responses
 
-## 4.1.3 (Apr 24 2025)
+## 4.1.3 (Apr 24 2024)
  - fix: handling of NestedEndpointContext.isIncomingRecipientValid
 
-## 4.1.2 (Feb 28 2025)
+## 4.1.2 (Feb 28 2024)
  - feat: add logging while accessing configuration data
 
-## 4.1.0 (Dec 14 2024)
+## 4.1.0 (Dec 14 2023)
  - feat: revocation checking via inventory interface
 
-## 4.0.1 (Dec 6 2024)
+## 4.0.1 (Dec 6 2023)
  - fix: extension processing in CMP client
 
 ## 4.0.0 (Nov 8 2023)
