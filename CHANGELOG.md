@@ -22,10 +22,10 @@
 ## 4.1.2 (Feb 28 2024)
  - feat: add logging while accessing configuration data
 
-## 4.1.0 (Dec 14 2024)
+## 4.1.0 (Dec 14 2023)
  - feat: revocation checking via inventory interface
 
-## 4.0.1 (Dec 6 2024)
+## 4.0.1 (Dec 6 2023)
  - fix: extension processing in CMP client
 
 ## 4.0.0 (Nov 8 2023)
