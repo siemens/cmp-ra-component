@@ -88,6 +88,63 @@ public class DelayedEnrollmentTescaseBase extends DelayedDeliveryTestcaseBase {
         return clientContext;
     }
 
+    ClientContext getClientContext(final int enrollmentType, KeyPair keyPair, byte[] certificationRequest) {
+        return new ClientContext() {
+
+            @Override
+            public EnrollmentContext getEnrollmentContext() {
+                return new EnrollmentContext() {
+
+                    @Override
+                    public KeyPair getCertificateKeypair() {
+                        return keyPair;
+                    }
+
+                    @Override
+                    public byte[] getCertificationRequest() {
+                        return certificationRequest;
+                    }
+
+                    @Override
+                    public VerificationContext getEnrollmentTrust() {
+                        return enrollmentCredentials;
+                    }
+
+                    @Override
+                    public int getEnrollmentType() {
+                        return enrollmentType;
+                    }
+
+                    @Override
+                    public List<TemplateExtension> getExtensions() {
+                        return null;
+                    }
+
+                    @Override
+                    public X509Certificate getOldCert() {
+                        return null;
+                    }
+
+                    @Override
+                    public boolean getRequestImplictConfirm() {
+                        return false;
+                    }
+
+                    @Override
+                    public String getSubject() {
+                        return "CN=Subject";
+                    }
+                };
+            }
+
+            @Override
+            public RevocationContext getRevocationContext() {
+                fail("getRevocationContext");
+                return null;
+            }
+        };
+    }
+
     protected SignatureValidationCredentials getEnrollmentCredentials() throws Exception {
         if (enrollmentCredentials == null) {
             enrollmentCredentials = new SignatureValidationCredentials(

@@ -725,12 +725,12 @@ public class ConfigurationFactory {
                             final byte[] pkcs10CertRequest,
                             final String requestedSubjectDn,
                             byte[] pkiMessage) {
-                        fail(String.format(
+                        LOGGER.debug(
                                 "checkP10CertRequest called with transactionID: {}, requesterDn: {}, requestedSubjectDn: {}",
                                 new BigInteger(transactionID),
                                 requesterDn,
-                                requestedSubjectDn));
-                        return false;
+                                requestedSubjectDn);
+                        return true;
                     }
 
                     @Override
