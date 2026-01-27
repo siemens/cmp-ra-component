@@ -44,7 +44,10 @@ public class PersistencyContext {
     private byte[] transactionId;
     private String certProfile;
     private PrivateKey newGeneratedPrivateKey;
-    private Set<CMPCertificate> alreadySentExtraCerts;
+
+    private Set<CMPCertificate> certsKnownToUpstream;
+    private Set<CMPCertificate> certsKnownToDownstream;
+
     private PKIMessage delayedInitialRequest;
     private PKIMessage pendingDelayedResponse;
     private LastTransactionState lastTransactionState;
@@ -91,17 +94,6 @@ public class PersistencyContext {
         } else {
             contextManager.flushPersistencyContext(this);
         }
-    }
-
-    /**
-     * get sent extra certs, if compression is used
-     * @return already sent extra certs
-     */
-    public Set<CMPCertificate> getAlreadySentExtraCerts() {
-        if (alreadySentExtraCerts == null) {
-            alreadySentExtraCerts = new HashSet<>();
-        }
-        return alreadySentExtraCerts;
     }
 
     /**
@@ -215,14 +207,6 @@ public class PersistencyContext {
      */
     public boolean isImplicitConfirmGranted() {
         return implicitConfirmGranted;
-    }
-
-    /**
-     * store  already sent extra certs in case of compression
-     * @param alreadySentExtraCerts already sent extra certs
-     */
-    public void setAlreadySentExtraCerts(final Set<CMPCertificate> alreadySentExtraCerts) {
-        this.alreadySentExtraCerts = alreadySentExtraCerts;
     }
 
     /**
@@ -373,5 +357,27 @@ public class PersistencyContext {
      */
     public boolean isRespondedCertMustBeEncrypted() {
         return respondedCertMustBeEncrypted;
+    }
+
+    public Set<CMPCertificate> getCertsKnownToUpstream() {
+        if (certsKnownToUpstream == null) {
+            certsKnownToUpstream = new HashSet<>();
+        }
+        return certsKnownToUpstream;
+    }
+
+    public void setCertsKnownToUpstream(Set<CMPCertificate> certsKnownToUpstream) {
+        this.certsKnownToUpstream = certsKnownToUpstream;
+    }
+
+    public Set<CMPCertificate> getCertsKnownToDownstream() {
+        if (certsKnownToDownstream == null) {
+            certsKnownToDownstream = new HashSet<>();
+        }
+        return certsKnownToDownstream;
+    }
+
+    public void setCertsKnownToDownstream(Set<CMPCertificate> certsKnownToDownstream) {
+        this.certsKnownToDownstream = certsKnownToDownstream;
     }
 }

@@ -57,6 +57,7 @@ public class MsgOutputProtector {
     private static final CMPCertificate[] EMPTY_CERTIFCATE_ARRAY = {};
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MsgOutputProtector.class);
+    private String interfaceName;
 
     private final CmpMessageInterface.ReprotectMode reprotectMode;
 
@@ -82,6 +83,7 @@ public class MsgOutputProtector {
             final CmpMessageInterface config, final String interfaceName, final MessageContext messageContext)
             throws CmpProcessingException, GeneralSecurityException {
         persistencyContext = ifNotNull(messageContext, MessageContext::getPersistencyContext);
+        this.interfaceName = interfaceName;
         suppressRedundantExtraCerts = ConfigLogger.log(
                 interfaceName,
                 "CmpMessageInterface.getSuppressRedundantExtraCerts()",
@@ -246,8 +248,14 @@ public class MsgOutputProtector {
             return msg;
         }
 
+        final Set<CMPCertificate> alreadySentExtraCerts;
         final List<CMPCertificate> extraCertsAsList = new LinkedList<>(Arrays.asList(extraCerts));
-        final Set<CMPCertificate> alreadySentExtraCerts = persistencyContext.getAlreadySentExtraCerts();
+        if (this.interfaceName.equals("downstream")) {
+            // TODO consider exposing interfaceName from RaDownstream in a nicer way, and maybe in the Upstream
+            alreadySentExtraCerts = persistencyContext.getCertsKnownToUpstream();
+        } else {
+            alreadySentExtraCerts = persistencyContext.getCertsKnownToDownstream();
+        }
 
         if (extraCertsAsList.removeAll(alreadySentExtraCerts)) {
             // were able to drop some extra certs
