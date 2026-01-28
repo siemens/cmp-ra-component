@@ -24,6 +24,16 @@ package com.siemens.pki.cmpclientcomponent.configuration;
 public interface ClientContext {
 
     /**
+     * get remote attestation specific configuration
+     * @return remote attestation specific configuration
+     * or <code>null</code> is no remote attestation shall
+     * be used
+     */
+    default ClientAttestationContext getAttestationContext() {
+        return null;
+    }
+
+    /**
      * get enrollment specific configuration
      *
      * @return enrollment specific configuration

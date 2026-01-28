@@ -148,19 +148,6 @@ class TransactionStateTracker {
         }
     }
 
-    private boolean isCertResponseWithWaitingIndication(final PKIMessage msg) {
-        try {
-            return ((CertRepMessage) msg.getBody().getContent())
-                            .getResponse()[0]
-                            .getStatus()
-                            .getStatus()
-                            .intValue()
-                    == PKIStatus.WAITING;
-        } catch (final Exception ex) {
-            return false;
-        }
-    }
-
     private boolean isConfirmConfirm(final PKIMessage msg) {
         return msg.getBody().getType() == PKIBody.TYPE_CONFIRM;
     }
@@ -378,7 +365,7 @@ class TransactionStateTracker {
                             PKIFailureInfo.badMessageCheck,
                             "request was not answered by cert response for " + MessageDumper.msgAsShortString(message));
                 }
-                if (isCertResponseWithWaitingIndication(message)) {
+                if (isWaitingIndication(message)) {
                     persistencyContext.setLastTransactionState(LastTransactionState.CERTIFICATE_POLLING);
                     return;
                 }
@@ -447,7 +434,8 @@ class TransactionStateTracker {
                     throw new CmpValidationException(
                             INTERFACE_NAME,
                             PKIFailureInfo.transactionIdInUse,
-                            "transaction in wrong state for " + MessageDumper.msgAsShortString(message));
+                            "transaction in wrong state " + persistencyContext.getLastTransactionState() + " for "
+                                    + MessageDumper.msgAsShortString(message));
                 }
                 persistencyContext.setLastTransactionState(LastTransactionState.REVOCATION_CONFIRMED);
                 return;
@@ -459,7 +447,8 @@ class TransactionStateTracker {
                     throw new CmpValidationException(
                             INTERFACE_NAME,
                             PKIFailureInfo.transactionIdInUse,
-                            "transaction in wrong state for " + MessageDumper.msgAsShortString(message));
+                            "transaction in wrong state " + persistencyContext.getLastTransactionState() + " for "
+                                    + MessageDumper.msgAsShortString(message));
                 }
                 persistencyContext.setLastTransactionState(LastTransactionState.REVOCATION_CONFIRMED);
                 return;
@@ -472,9 +461,14 @@ class TransactionStateTracker {
                     throw new CmpValidationException(
                             INTERFACE_NAME,
                             PKIFailureInfo.transactionIdInUse,
-                            "transaction in wrong state for " + MessageDumper.msgAsShortString(message));
+                            "transaction in wrong state " + persistencyContext.getLastTransactionState() + " for "
+                                    + MessageDumper.msgAsShortString(message));
                 }
-                persistencyContext.setLastTransactionState(LastTransactionState.GENREP_RETURNED);
+                if (persistencyContext.isMarkedAsPreparingGenm()) {
+                    persistencyContext.setLastTransactionState(LastTransactionState.INITIAL_STATE);
+                } else {
+                    persistencyContext.setLastTransactionState(LastTransactionState.GENREP_RETURNED);
+                }
                 return;
             case GEN_POLLING:
                 if (isPollRequest(message) || isPollResponse(message)) {
@@ -484,7 +478,8 @@ class TransactionStateTracker {
                     throw new CmpValidationException(
                             INTERFACE_NAME,
                             PKIFailureInfo.transactionIdInUse,
-                            "transaction in wrong state for " + MessageDumper.msgAsShortString(message));
+                            "transaction in wrong state " + persistencyContext.getLastTransactionState() + " for "
+                                    + MessageDumper.msgAsShortString(message));
                 }
                 persistencyContext.setLastTransactionState(LastTransactionState.GENREP_RETURNED);
                 return;
@@ -492,7 +487,7 @@ class TransactionStateTracker {
                 throw new CmpValidationException(
                         INTERFACE_NAME,
                         PKIFailureInfo.transactionIdInUse,
-                        "transaction in wrong state (" + persistencyContext.getLastTransactionState() + ") for "
+                        "transaction in wrong state " + persistencyContext.getLastTransactionState() + " for "
                                 + MessageDumper.msgAsShortString(message));
         }
     }
