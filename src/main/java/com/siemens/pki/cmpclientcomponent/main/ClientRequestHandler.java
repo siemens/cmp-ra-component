@@ -28,6 +28,7 @@ import com.siemens.pki.cmpracomponent.main.CmpRaComponent.UpstreamExchange;
 import com.siemens.pki.cmpracomponent.msggeneration.HeaderProvider;
 import com.siemens.pki.cmpracomponent.msggeneration.MsgOutputProtector;
 import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
+import com.siemens.pki.cmpracomponent.msgprocessing.StreamType;
 import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpValidationException;
@@ -83,7 +84,7 @@ class ClientRequestHandler {
         public ValidatorAndProtector(NestedEndpointContext nestedEndpoint)
                 throws GeneralSecurityException, CmpProcessingException {
             headerValidator = new MessageHeaderValidator(NESTED_INTERFACE_NAME);
-            outputProtection = new MsgOutputProtector(nestedEndpoint, NESTED_INTERFACE_NAME, null);
+            outputProtection = new MsgOutputProtector(nestedEndpoint, StreamType.upstream(NESTED_INTERFACE_NAME), null);
             this.inputVerification = ConfigLogger.logOptional(
                     NESTED_INTERFACE_NAME,
                     "NestedEndpointContext.getInputVerification()",
@@ -104,7 +105,7 @@ class ClientRequestHandler {
                     "CmpMessageInterface.getInputVerification()",
                     upstreamConfiguration::getInputVerification);
             headerValidator = new MessageHeaderValidator(INTERFACE_NAME);
-            outputProtection = new MsgOutputProtector(upstreamConfiguration, INTERFACE_NAME, null);
+            outputProtection = new MsgOutputProtector(upstreamConfiguration, StreamType.upstream(INTERFACE_NAME), null);
             protectionValidator = new ProtectionValidator(INTERFACE_NAME, inputVerification);
             bodyValidator =
                     new MessageBodyValidator(INTERFACE_NAME, (x, y) -> false, upstreamConfiguration, certProfile);

@@ -45,8 +45,8 @@ public class PersistencyContext {
     private String certProfile;
     private PrivateKey newGeneratedPrivateKey;
 
-    private Set<CMPCertificate> certsKnownToUpstream;
-    private Set<CMPCertificate> certsKnownToDownstream;
+    private Set<CMPCertificate> alreadySentExtraCertsToUpStream;
+    private Set<CMPCertificate> alreadySentExtraCertsToDownStream;
 
     private PKIMessage delayedInitialRequest;
     private PKIMessage pendingDelayedResponse;
@@ -359,25 +359,59 @@ public class PersistencyContext {
         return respondedCertMustBeEncrypted;
     }
 
-    public Set<CMPCertificate> getCertsKnownToUpstream() {
-        if (certsKnownToUpstream == null) {
-            certsKnownToUpstream = new HashSet<>();
+    /**
+     * Returns the set of extraCerts already sent to the upstream peer for this
+     * transaction. The set is lazily initialized and mutable, allowing callers
+     * to add entries as certificates are sent upstream.
+     *
+     * @return a non-null mutable {@link Set} of upstream-known {@link CMPCertificate}s
+     */
+    public Set<CMPCertificate> getAlreadySentExtraCertsToUpStream() {
+        if (alreadySentExtraCertsToUpStream == null) {
+            alreadySentExtraCertsToUpStream = new HashSet<>();
         }
-        return certsKnownToUpstream;
+        return alreadySentExtraCertsToUpStream;
     }
 
-    public void setCertsKnownToUpstream(Set<CMPCertificate> certsKnownToUpstream) {
-        this.certsKnownToUpstream = certsKnownToUpstream;
+    /**
+     * Replaces the set of extraCerts already sent to the upstream peer.
+     * A defensive copy is created to avoid external mutation of internal state.
+     * If {@code certsKnownToUpstream} is {@code null}, the internal set is reset
+     * to an empty set.
+     *
+     * @param certsKnownToUpstream the new upstream-known certificates, or {@code null}
+     *                             to reset the set to empty
+     */
+    public void setAlreadySentExtraCertsToUpStream(final Set<CMPCertificate> certsKnownToUpstream) {
+        this.alreadySentExtraCertsToUpStream =
+                (certsKnownToUpstream == null) ? new HashSet<>() : new HashSet<>(certsKnownToUpstream);
     }
 
-    public Set<CMPCertificate> getCertsKnownToDownstream() {
-        if (certsKnownToDownstream == null) {
-            certsKnownToDownstream = new HashSet<>();
+    /**
+     * Returns the set of extraCerts already sent to the downstream peer for this
+     * transaction. The set is lazily initialized and mutable, allowing callers
+     * to add entries as certificates are sent downstream.
+     *
+     * @return a non-null mutable {@link Set} of downstream-known {@link CMPCertificate}s
+     */
+    public Set<CMPCertificate> getAlreadySentExtraCertsToDownStream() {
+        if (alreadySentExtraCertsToDownStream == null) {
+            alreadySentExtraCertsToDownStream = new HashSet<>();
         }
-        return certsKnownToDownstream;
+        return alreadySentExtraCertsToDownStream;
     }
 
-    public void setCertsKnownToDownstream(Set<CMPCertificate> certsKnownToDownstream) {
-        this.certsKnownToDownstream = certsKnownToDownstream;
+    /**
+     * Replaces the set of extraCerts already sent to the downstream peer.
+     * A defensive copy is created to avoid external mutation of internal state.
+     * If {@code certsKnownToDownstream} is {@code null}, the internal set is reset
+     * to an empty set.
+     *
+     * @param certsKnownToDownstream the new downstream-known certificates, or
+     *                               {@code null} to reset the set to empty
+     */
+    public void setAlreadySentExtraCertsToDownStream(final Set<CMPCertificate> certsKnownToDownstream) {
+        this.alreadySentExtraCertsToDownStream =
+                (certsKnownToDownstream == null) ? new HashSet<>() : new HashSet<>(certsKnownToDownstream);
     }
 }
