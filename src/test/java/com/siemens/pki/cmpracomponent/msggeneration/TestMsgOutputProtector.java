@@ -1,5 +1,23 @@
+/*
+ *  Copyright (c) 2026 Siemens AG
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"); you may
+ *  not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ *  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *  SPDX-License-Identifier: Apache-2.0
+ */
 package com.siemens.pki.cmpracomponent.msggeneration;
 
+import static com.siemens.pki.cmpracomponent.testutil.TestCertificates.newCert;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
@@ -14,11 +32,7 @@ import com.siemens.pki.cmpracomponent.msgprocessing.StreamType;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import com.siemens.pki.cmpracomponent.msgvalidation.MessageContext;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
-import java.math.BigInteger;
 import java.security.GeneralSecurityException;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.util.Date;
 import java.util.List;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.DERBitString;
@@ -30,13 +44,7 @@ import org.bouncycastle.asn1.cmp.PKIHeaderBuilder;
 import org.bouncycastle.asn1.cmp.PKIMessage;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
-import org.bouncycastle.asn1.x509.Certificate;
 import org.bouncycastle.asn1.x509.GeneralName;
-import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
-import org.bouncycastle.cert.X509v3CertificateBuilder;
-import org.bouncycastle.operator.ContentSigner;
-import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -44,83 +52,71 @@ import org.junit.Test;
  *
  * <h2>Purpose</h2>
  * <p>
- * This test suite verifies the behavior of the <em>extraCerts suppression</em> logic in
- * {@link MsgOutputProtector}. When configured to suppress redundant extra certificates,
- * {@code stripRedundantExtraCerts} removes certificates that were already sent earlier in the same
- * transaction and updates the {@link PersistencyContext} to remember newly sent certificates.
+ * These tests validate the behavior of the <em>extraCerts suppression</em> mechanism in
+ * {@link MsgOutputProtector}. When suppression is enabled, redundant certificates (already
+ * forwarded earlier in the same CMP transaction) must be removed from outgoing {@link PKIMessage}
+ * instances, and the {@link PersistencyContext} must be updated to record newly forwarded
+ * certificates.
  * </p>
  *
- * <h2>What is being tested</h2>
+ * <h2>Key Behaviors Verified</h2>
  * <ul>
- * <li>The method removes extraCerts that have already been sent (as tracked in
- * {@link PersistencyContext}).</li>
- * <li>Remaining extraCerts keep their original order.</li>
- * <li>When all extraCerts are redundant, the resulting PKIMessage has
- * {@code extraCerts == null}.</li>
- * <li>The persistency sets for "already sent certificates" are updated with the remaining
- * extras.</li>
- * <li>The logic for choosing <em>which</em> set to use depends on {@link StreamType}:
+ * <li>Certificates already known in the relevant persistency set are removed.</li>
+ * <li>Remaining certificates preserve their original order.</li>
+ * <li>If all certificates are redundant, {@code extraCerts} is set to {@code null}.</li>
+ * <li>Newly forwarded certificates are added to the appropriate persistency set.</li>
+ * <li>The persistency set used depends on message {@link StreamType}:
  * <ul>
- * <li><strong>Downstream</strong>: uses
- * {@link PersistencyContext#getAlreadySentExtraCertsToDownStream()}.</li>
- * <li><strong>Upstream</strong>: uses
- * {@link PersistencyContext#getAlreadySentExtraCertsToUpStream()}.</li>
+ * <li><strong>Downstream</strong> →
+ * {@link PersistencyContext#getAlreadySentExtraCertsToDownStream()}</li>
+ * <li><strong>Upstream</strong> →
+ * {@link PersistencyContext#getAlreadySentExtraCertsToUpStream()}</li>
  * </ul>
  * </li>
  * </ul>
  *
- * <h2>Test strategy</h2>
+ * <h2>Test Design</h2>
  * <p>
- * The tests construct minimal but valid {@link PKIMessage} instances where the body is of type
- * {@code TYPE_CONFIRM} (CMP Confirm) with {@link DERNull#INSTANCE} content. This avoids the need
- * for complex CRMF structures while remaining spec-compliant for unit testing. Each test creates
- * real {@link CMPCertificate} instances using BouncyCastle so that equality and set membership
- * behave naturally.
+ * Minimal but valid {@link PKIMessage} structures are constructed for each scenario. The body uses
+ * <code>TYPE_CONFIRM</code> with {@link DERNull#INSTANCE}, which is fully compliant with CMP’s
+ * PKIConfirmContent and avoids unnecessary complexity.
+ * </p>
+ * <p>
+ * Real X.509 ASN.1 certificates are created using the test utility
+ * {@link com.siemens.pki.cmpracomponent.testutil.TestCertificates#newCert(String)} to ensure
+ * realistic equality and set semantics.
  * </p>
  *
- * <h2>Assumptions</h2>
+ * <h2>Test Environment Assumptions</h2>
  * <ul>
- * <li>{@code MsgOutputProtector} is constructed in {@code ReprotectMode.keep} with a
- * {@link SharedSecretCredentialContext}, satisfying construction requirements without needing
- * signature-based credentials.</li>
- * <li>{@code PersistencyContext} getters lazily initialize their sets and return mutable sets.</li>
+ * <li>The {@link MsgOutputProtector} is configured with {@code ReprotectMode.keep}, enforced via
+ * the test-local {@link CmpMessageInterface} stub.</li>
+ * <li>Shared-secret output credentials are sufficient and avoid signature‑based reprotection.</li>
+ * <li>{@link PersistencyContext} lazily initializes and exposes mutable sets.</li>
  * </ul>
  *
- * <h2>Out of scope</h2>
+ * <h2>Out of Scope</h2>
  * <ul>
- * <li>We do not validate cryptographic semantics or end-to-end message protection creation. The
- * focus is purely on extraCerts suppression and persistency updates.</li>
- * <li>We do not test the other reprotection modes ({@code reprotect}, {@code strip}) here.</li>
+ * <li>Cryptographic correctness of protection creation</li>
+ * <li>Testing reprotect/strip modes other than {@code keep}</li>
+ * <li>End‑to‑end CMP message flows</li>
  * </ul>
  */
 public class TestMsgOutputProtector {
 
-    /** Shared RSA key pair used to issue dummy X.509 certs once for all tests. */
-    private static KeyPair kp;
-
-    /** Dummy algorithm identifier set on the PKIHeader's protectionAlg for test messages. */
+    /** Dummy protection algorithm identifier used to build minimal PKIHeader instances. */
     private static final AlgorithmIdentifier DUMMY_ALG = new AlgorithmIdentifier(new ASN1ObjectIdentifier("1.2.3.4.5"));
 
     /**
-     * Generates a single RSA key pair reused by all tests to speed up certificate creation.
-     */
-    @BeforeClass
-    public static void init() throws Exception {
-        KeyPairGenerator g = KeyPairGenerator.getInstance("RSA");
-        g.initialize(2048);
-        kp = g.generateKeyPair();
-    }
-
-    /**
-     * Build a minimal {@link PKIMessage} suitable for these tests.
+     * Creates a minimal {@link PKIMessage} containing an optional set of extra certificates.
+     *
      * <p>
-     * The body uses {@code TYPE_CONFIRM} (value 19) with {@link DERNull#INSTANCE} as content, which
-     * is valid for CMP's PKIConfirmContent ::= NULL. This choice avoids constructing complex bodies
-     * (e.g., CertReqMessages) not needed for testing the extraCerts suppression logic.
+     * The body is always CMP Confirm (TYPE_CONFIRM) with {@link DERNull#INSTANCE}. This is sufficient
+     * for exercising the extraCerts suppression logic while avoiding unnecessary message complexity.
      * </p>
      *
-     * @param extra optional list of extra certificates to include as {@code extraCerts}
-     * @return a valid {@link PKIMessage} with header, body, dummy protection and optional extraCerts
+     * @param extra optional extraCerts to embed into the message
+     * @return a valid, lightweight {@link PKIMessage} instance
      */
     private PKIMessage newMsg(CMPCertificate... extra) {
         PKIHeader hdr = new PKIHeaderBuilder(
@@ -130,59 +126,34 @@ public class TestMsgOutputProtector {
                 .setProtectionAlg(DUMMY_ALG)
                 .build();
 
-        // TYPE_CONFIRM accepts NULL content → perfect for minimal test bodies
         PKIBody body = new PKIBody(PKIBody.TYPE_CONFIRM, DERNull.INSTANCE);
-        DERBitString prot = new DERBitString(new byte[] {1}); // non-null protection marker
+        DERBitString prot = new DERBitString(new byte[] {1}); // dummy protection
 
         return new PKIMessage(hdr, body, prot, (extra == null || extra.length == 0) ? null : extra);
     }
 
     /**
-     * Create a small self-signed X.509 certificate and wrap it as a {@link CMPCertificate}.
-     * <p>
-     * This ensures that equality and set semantics are realistic, as BouncyCastle compares ASN.1
-     * structures. The content is unique enough for test scenarios by varying the subject CN and the
-     * serial number.
-     * </p>
+     * Constructs a {@link MsgOutputProtector} suitable for suppression tests.
      *
-     * @param cn the CN for the subject and issuer DN
-     * @return a {@link CMPCertificate} wrapping the ASN.1 X.509 certificate
-     * @throws Exception if certificate construction fails (unlikely in test context)
-     */
-    private CMPCertificate cert(String cn) throws Exception {
-        X500Name subject = new X500Name("CN=" + cn);
-        Date nb = new Date(System.currentTimeMillis() - 1000);
-        Date na = new Date(System.currentTimeMillis() + 3600000);
-        BigInteger serial = BigInteger.valueOf(System.nanoTime());
-
-        SubjectPublicKeyInfo spki =
-                SubjectPublicKeyInfo.getInstance(kp.getPublic().getEncoded());
-        X509v3CertificateBuilder b = new X509v3CertificateBuilder(subject, serial, nb, na, subject, spki);
-
-        ContentSigner s = new JcaContentSignerBuilder("SHA256withRSA").build(kp.getPrivate());
-        Certificate c = b.build(s).toASN1Structure();
-        return new CMPCertificate(c);
-    }
-
-    /**
-     * Construct a {@link MsgOutputProtector} configured for tests:
+     * <p>
+     * The returned instance:
+     * </p>
      * <ul>
-     * <li>{@code ReprotectMode.keep} to ensure forwarded-protection paths are exercised.</li>
-     * <li>{@code suppressRedundantExtraCerts = suppress} to toggle stripping on/off.</li>
-     * <li>{@link SharedSecretCredentialContext} as the credential type (simple, no PKI setup).</li>
-     * <li>Provided {@link PersistencyContext} and {@link StreamType} are injected to control
-     * direction and pre-known certificates.</li>
+     * <li>uses {@code ReprotectMode.keep}</li>
+     * <li>enforces reprotection mode</li>
+     * <li>performs or skips extraCerts suppression based on the {@code suppress} flag</li>
+     * <li>uses simple shared-secret credentials for output</li>
+     * <li>relies on a provided {@link PersistencyContext} and {@link StreamType}</li>
      * </ul>
      *
-     * @param suppress true to enable suppression logic; false to leave extraCerts untouched
-     * @param pc persistency context used to fetch/update already sent extra certs
-     * @param st stream type indicating downstream or upstream flow
-     * @return a configured {@link MsgOutputProtector} ready for testing
+     * @param suppress whether redundant extraCerts should be stripped
+     * @param pc persistency context used to track sent certificates
+     * @param st direction of message flow (upstream or downstream)
+     * @return a fully constructed {@link MsgOutputProtector} for testing
      */
     private MsgOutputProtector protector(boolean suppress, PersistencyContext pc, StreamType st)
             throws GeneralSecurityException, CmpProcessingException {
 
-        // Minimal config: keep-mode; enforce reprotect mode; suppression toggled by param.
         CmpMessageInterface cfg = new CmpMessageInterface() {
             @Override
             public VerificationContext getInputVerification() {
@@ -225,7 +196,6 @@ public class TestMsgOutputProtector {
             }
         };
 
-        // Shared-secret credentials are sufficient for constructor path.
         SharedSecretCredentialContext cred = new SharedSecretCredentialContext() {
             @Override
             public byte[] getSharedSecret() {
@@ -238,125 +208,93 @@ public class TestMsgOutputProtector {
     }
 
     /**
-     * Verifies that in a <strong>downstream</strong> message flow:
+     * Tests partial redundancy in <strong>downstream</strong> mode:
      * <ul>
-     * <li>If an extraCert is already recorded in the downstream-known set, it is stripped.</li>
-     * <li>Non-redundant extraCerts remain and are added to the downstream-known set.</li>
+     * <li>known → stripped</li>
+     * <li>fresh → forwarded</li>
+     * <li>fresh → added to downstream-known set</li>
      * </ul>
-     * <p>
-     * Setup:
-     * <ol>
-     * <li>Mark certificate {@code known} as already sent downstream.</li>
-     * <li>Create a message containing {@code [known, fresh]} as extraCerts.</li>
-     * <li>Call {@code stripRedundantExtraCerts} and expect only {@code fresh} to remain.</li>
-     * <li>Verify {@code fresh} is now recorded as sent downstream.</li>
-     * </ol>
      */
     @Test
     public void downstream_partialRedundancy() throws Exception {
         PersistencyContext pc = new PersistencyContext();
-        CMPCertificate known = cert("K");
-        CMPCertificate fresh = cert("F");
+        CMPCertificate known = newCert("K");
+        CMPCertificate fresh = newCert("F");
 
-        // New logic: downstream flow uses the downstream set.
         pc.getAlreadySentExtraCertsToDownStream().add(known);
 
         MsgOutputProtector p = protector(true, pc, StreamType.downstream("DOWN"));
-
         PKIMessage out = p.stripRedundantExtraCerts(newMsg(known, fresh));
 
-        assertEquals(1, out.getExtraCerts().length); // only one extra remains
-        assertSame(fresh, out.getExtraCerts()[0]); // it's the 'fresh' one
-        assertTrue(pc.getAlreadySentExtraCertsToDownStream().contains(fresh)); // persisted
-        // Verify already-known set now contains both certificates
+        assertEquals(1, out.getExtraCerts().length);
+        assertSame(fresh, out.getExtraCerts()[0]);
+        assertTrue(pc.getAlreadySentExtraCertsToDownStream().contains(fresh));
+
         assertEquals(2, pc.getAlreadySentExtraCertsToDownStream().size());
         assertTrue(pc.getAlreadySentExtraCertsToDownStream().containsAll(List.of(known, fresh)));
     }
 
     /**
-     * Verifies that in an <strong>upstream</strong> message flow:
-     * <ul>
-     * <li>If an extraCert is already recorded in the upstream-known set, it is stripped.</li>
-     * <li>Non-redundant extraCerts remain and are added to the upstream-known set.</li>
-     * </ul>
-     * <p>
-     * Setup mirrors the downstream test but targets the upstream set to match
-     * {@link MsgOutputProtector}'s updated logic.
+     * Tests partial redundancy in <strong>upstream</strong> mode, mirroring the downstream test but
+     * verifying use of the upstream persistency set.
      */
     @Test
     public void upstream_partialRedundancy() throws Exception {
         PersistencyContext pc = new PersistencyContext();
-        CMPCertificate known = cert("K");
-        CMPCertificate fresh = cert("F");
+        CMPCertificate known = newCert("K");
+        CMPCertificate fresh = newCert("F");
 
-        // New logic: upstream flow uses the upstream set.
         pc.getAlreadySentExtraCertsToUpStream().add(known);
 
         MsgOutputProtector p = protector(true, pc, StreamType.upstream("UP"));
-
         PKIMessage out = p.stripRedundantExtraCerts(newMsg(known, fresh));
 
         assertEquals(1, out.getExtraCerts().length);
         assertSame(fresh, out.getExtraCerts()[0]);
         assertTrue(pc.getAlreadySentExtraCertsToUpStream().contains(fresh));
-        // Verify already-known set now contains both certificates
+
         assertEquals(2, pc.getAlreadySentExtraCertsToUpStream().size());
         assertTrue(pc.getAlreadySentExtraCertsToUpStream().containsAll(List.of(known, fresh)));
     }
 
     /**
-     * Verifies that if <strong>all</strong> extraCerts are already known in the downstream set, the
-     * resulting message has {@code extraCerts == null}.
-     * <p>
-     * This tests the branch where the list becomes empty after removal, and the implementation
-     * intentionally collapses {@code []} to {@code null} to save bandwidth.
+     * Ensures that when all extraCerts are redundant in downstream mode, the result contains
+     * {@code extraCerts == null}.
      */
     @Test
     public void downstream_allRedundant() throws Exception {
         PersistencyContext pc = new PersistencyContext();
-        CMPCertificate a = cert("A");
+        CMPCertificate a = newCert("A");
+
         pc.getAlreadySentExtraCertsToDownStream().add(a);
 
         MsgOutputProtector p = protector(true, pc, StreamType.downstream("DOWN"));
-
         PKIMessage out = p.stripRedundantExtraCerts(newMsg(a));
 
-        assertNull(out.getExtraCerts()); // all extras were redundant → becomes null
-        assertTrue(pc.getAlreadySentExtraCertsToDownStream().contains(a)); // original known remains
+        assertNull(out.getExtraCerts());
+        assertTrue(pc.getAlreadySentExtraCertsToDownStream().contains(a));
     }
 
     /**
-     * Verifies the <strong>order is preserved</strong> for remaining non-redundant extraCerts after
-     * stripping.
-     * <p>
-     * Setup:
-     * <ol>
-     * <li>Mark {@code b} as already known downstream.</li>
-     * <li>Create a message with extraCerts = {@code [a, b, c]}.</li>
-     * <li>After stripping, expect {@code [a, c]} in <strong>that same order</strong>.</li>
-     * </ol>
-     * <p>
-     * Also verifies that both {@code a} and {@code c} are added to the downstream-known set.
+     * Verifies that the order of remaining extraCerts is preserved after stripping.
      */
     @Test
     public void orderPreserved() throws Exception {
         PersistencyContext pc = new PersistencyContext();
-        CMPCertificate a = cert("A");
-        CMPCertificate b = cert("B");
-        CMPCertificate c = cert("C");
+        CMPCertificate a = newCert("A");
+        CMPCertificate b = newCert("B");
+        CMPCertificate c = newCert("C");
 
         pc.getAlreadySentExtraCertsToDownStream().add(b);
 
         MsgOutputProtector p = protector(true, pc, StreamType.downstream("DOWN"));
-
         PKIMessage out = p.stripRedundantExtraCerts(newMsg(a, b, c));
 
         CMPCertificate[] x = out.getExtraCerts();
         assertEquals(2, x.length);
-        assertSame(a, x[0]); // original order preserved
+        assertSame(a, x[0]);
         assertSame(c, x[1]);
 
-        // Persistency updated with remaining extras
         assertTrue(pc.getAlreadySentExtraCertsToDownStream().contains(a));
         assertTrue(pc.getAlreadySentExtraCertsToDownStream().contains(c));
     }
