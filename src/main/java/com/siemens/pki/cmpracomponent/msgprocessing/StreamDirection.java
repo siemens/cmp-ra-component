@@ -31,15 +31,13 @@ public enum StreamDirection {
 
     /**
      * Indicates that the message is travelling upstream in the processing
-     * pipeline, typically a request from a client or lower-level system toward a
-     * higher-level component.
+     * pipeline, typically a request towards a CA.
      */
     UPSTREAM,
 
     /**
      * Indicates that the message is travelling downstream in the processing
-     * pipeline, typically a response from a higher-level component toward a client or
-     * lower-level system.
+     * pipeline, typically a response toward an end entity.
      */
     DOWNSTREAM;
 
