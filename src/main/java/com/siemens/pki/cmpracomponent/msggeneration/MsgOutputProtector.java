@@ -253,6 +253,9 @@ public class MsgOutputProtector {
 
         final Set<CMPCertificate> alreadySentExtraCerts;
         final List<CMPCertificate> extraCertsAsList = new LinkedList<>(Arrays.asList(extraCerts));
+        
+        // add the extra certs from the PKI msg to the cache
+        persistencyContext.addToCertificateCache(extraCertsAsList);
 
         if (streamType.isDownstream()) {
             alreadySentExtraCerts = persistencyContext.getAlreadySentExtraCertsToDownStream();

@@ -201,26 +201,31 @@ public class ConfigurationFactory {
     }
 
     public static Configuration buildSignatureBasedDownstreamConfiguration() throws Exception {
-        final TrustChainAndPrivateKey downstreamCredentials =
-                new TrustChainAndPrivateKey("credentials/CMP_LRA_DOWNSTREAM_Keystore.p12", "Password".toCharArray());
-        final SignatureValidationCredentials downstreamTrust =
-                new SignatureValidationCredentials("credentials/CMP_EE_Root.pem", null);
-        final TrustChainAndPrivateKey upstreamCredentials =
-                new TrustChainAndPrivateKey("credentials/CMP_LRA_UPSTREAM_Keystore.p12", "Password".toCharArray());
-        final SignatureValidationCredentials upstreamTrust =
-                new SignatureValidationCredentials("credentials/CMP_CA_Root.pem", null);
-        final SignatureValidationCredentials enrollmentTrust =
-                new SignatureValidationCredentials("credentials/ENROLL_Root.pem", null);
-
-        return buildSimpleRaConfiguration(
-                downstreamCredentials,
-                ReprotectMode.keep,
-                downstreamTrust,
-                false,
-                upstreamCredentials,
-                upstreamTrust,
-                enrollmentTrust);
+      return buildSignatureBasedDownstreamConfiguration(false);
     }
+    
+    public static Configuration buildSignatureBasedDownstreamConfiguration(boolean isSuppressRedundantExtraCerts) throws Exception {
+      final TrustChainAndPrivateKey downstreamCredentials =
+              new TrustChainAndPrivateKey("credentials/CMP_LRA_DOWNSTREAM_Keystore.p12", "Password".toCharArray());
+      final SignatureValidationCredentials downstreamTrust =
+              new SignatureValidationCredentials("credentials/CMP_EE_Root.pem", null);
+      final TrustChainAndPrivateKey upstreamCredentials =
+              new TrustChainAndPrivateKey("credentials/CMP_LRA_UPSTREAM_Keystore.p12", "Password".toCharArray());
+      final SignatureValidationCredentials upstreamTrust =
+              new SignatureValidationCredentials("credentials/CMP_CA_Root.pem", null);
+      final SignatureValidationCredentials enrollmentTrust =
+              new SignatureValidationCredentials("credentials/ENROLL_Root.pem", null);
+
+      return buildSimpleRaConfiguration(
+              downstreamCredentials,
+              ReprotectMode.keep,
+              downstreamTrust,
+              false,
+              upstreamCredentials,
+              upstreamTrust,
+              enrollmentTrust,
+              isSuppressRedundantExtraCerts);
+  }
 
     public static Configuration buildSignatureBasedDownstreamOnlyConfiguration() throws Exception {
         final TrustChainAndPrivateKey downstreamCredentials =
@@ -502,6 +507,24 @@ public class ConfigurationFactory {
             }
         };
     }
+    
+    public static Configuration buildSimpleRaConfiguration(
+        final CredentialContext downstreamCredentials,
+        ReprotectMode reprotectMode,
+        final VerificationContext downstreamTrust,
+        boolean isEnforceReprotectMode,
+        final CredentialContext upstreamCredentials,
+        final VerificationContext upstreamTrust,
+        final SignatureValidationCredentials enrollmentTrust) {
+      return buildSimpleRaConfiguration(
+          downstreamCredentials,
+          ReprotectMode.keep,
+          downstreamTrust,
+          false,
+          upstreamCredentials,
+          upstreamTrust,
+          enrollmentTrust, false);
+    }
 
     public static Configuration buildSimpleRaConfiguration(
             final CredentialContext downstreamCredentials,
@@ -510,7 +533,7 @@ public class ConfigurationFactory {
             boolean isEnforceReprotectMode,
             final CredentialContext upstreamCredentials,
             final VerificationContext upstreamTrust,
-            final SignatureValidationCredentials enrollmentTrust) {
+            final SignatureValidationCredentials enrollmentTrust, final boolean isSuppressRedundantExtraCerts) {
         return new Configuration() {
             PersistencyInterface persistency = new DefaultPersistencyImplementation(5000);
 
@@ -571,7 +594,7 @@ public class ConfigurationFactory {
 
                     @Override
                     public boolean getSuppressRedundantExtraCerts() {
-                        return false;
+                        return isSuppressRedundantExtraCerts;
                     }
 
                     @Override
@@ -810,7 +833,7 @@ public class ConfigurationFactory {
 
                     @Override
                     public boolean getSuppressRedundantExtraCerts() {
-                        return false;
+                        return isSuppressRedundantExtraCerts;
                     }
 
                     @Override

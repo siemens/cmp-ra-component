@@ -17,20 +17,23 @@
  */
 package com.siemens.pki.cmpracomponent.persistency;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
-import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import java.io.IOException;
 import java.security.PrivateKey;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.PKIFailureInfo;
 import org.bouncycastle.asn1.cmp.PKIMessage;
 import org.bouncycastle.operator.OperatorCreationException;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
+import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 
 /**
  * holder for all persistent data
@@ -47,6 +50,9 @@ public class PersistencyContext {
 
     private Set<CMPCertificate> alreadySentExtraCertsToUpStream;
     private Set<CMPCertificate> alreadySentExtraCertsToDownStream;
+    
+    private Map<String,CMPCertificate> cache;
+    private final Object cacheLock = new Object();
 
     private PKIMessage delayedInitialRequest;
     private PKIMessage pendingDelayedResponse;
@@ -413,5 +419,36 @@ public class PersistencyContext {
     public void setAlreadySentExtraCertsToDownStream(final Set<CMPCertificate> certsKnownToDownstream) {
         this.alreadySentExtraCertsToDownStream =
                 (certsKnownToDownstream == null) ? new HashSet<>() : new HashSet<>(certsKnownToDownstream);
+    }
+    
+
+    public Map<String, CMPCertificate> getCache() {
+      if (cache == null) {
+        cache = new ConcurrentHashMap<>();
+      }
+      return cache;
+    }
+
+    
+    public void addToCertificateCache(List<CMPCertificate> certificates) {
+      
+    }
+    
+    public void addCertificateToCache(CMPCertificate certificate) {
+      String id = certificate.getX509v3PKCert().getIssuer().toString() + certificate.getX509v3PKCert().getSerialNumber().toString();
+      getCache().put(id, certificate);
+    }
+    
+    public List<CMPCertificate> getCertificateChainFromCache(CMPCertificate certificate){
+      if (certificate == null) 
+        return Collections.emptyList();
+      return constructCertificateChain(certificate);
+    }
+    
+    protected List<CMPCertificate> constructCertificateChain(CMPCertificate certificate){
+      // TODO: Create the Cert chain logic from Cache if possible and return as ordered list.
+      // Return the certificate itself in a one element list if no chain available
+      // Return empty list if the certificate not available in cache.
+      return Collections.emptyList();
     }
 }
