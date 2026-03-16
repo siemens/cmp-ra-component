@@ -20,8 +20,10 @@ package com.siemens.pki.cmpclientcomponent.main;
 import static com.siemens.pki.cmpracomponent.util.NullUtil.defaultIfNull;
 import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
+import com.siemens.pki.cmpclientcomponent.configuration.ClientAttestationContext;
 import com.siemens.pki.cmpclientcomponent.configuration.ClientContext;
 import com.siemens.pki.cmpclientcomponent.configuration.EnrollmentContext;
+import com.siemens.pki.cmpclientcomponent.configuration.EnrollmentContext.TemplateExtension;
 import com.siemens.pki.cmpclientcomponent.configuration.RevocationContext;
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
 import com.siemens.pki.cmpracomponent.configuration.CrlUpdateRetrievalHandler;
@@ -40,6 +42,13 @@ import com.siemens.pki.cmpracomponent.protection.MacProtection;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
 import com.siemens.pki.cmpracomponent.protection.SignatureBasedProtection;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
+import com.siemens.pki.verifieradapter.asn1.AttestationObjectIdentifiers;
+import com.siemens.pki.verifieradapter.asn1.EvidenceBundle;
+import com.siemens.pki.verifieradapter.asn1.EvidenceStatement;
+import com.siemens.pki.verifieradapter.asn1.NonceRequestValue;
+import com.siemens.pki.verifieradapter.asn1.NonceRequestValue.NonceRequest;
+import com.siemens.pki.verifieradapter.asn1.NonceResponseValue;
+import com.siemens.pki.verifieradapter.asn1.NonceResponseValue.NonceResponse;
 import java.io.IOException;
 import java.security.KeyPair;
 import java.security.PrivateKey;
@@ -146,7 +155,7 @@ public class CmpClient
     /**
      * ctor
      *
-     * @param certProfile           certificate profile to be used for enrollment.
+     * @param certProfile           certificate profile to be used for enrollment or
      *                              <code>null</code> if no certificate profile
      *                              should be used.
      *
@@ -409,6 +418,51 @@ public class CmpClient
     public EnrollmentResult invokeEnrollment() {
 
         try {
+            PKIMessage ratNonceResponse = null;
+            EvidenceBundle evidenceBundle = null;
+            final ClientAttestationContext attestationContext = clientContext.getAttestationContext();
+            if (attestationContext != null) {
+                NonceRequest nonceRequest = new NonceRequest(
+                        attestationContext.getNonceRequestLen(),
+                        attestationContext.getNonceRequestType(),
+                        attestationContext.getNonceRequestHint(),
+                        attestationContext.getNonceRequestVendorextension());
+                NonceRequestValue nonceRequestValue = new NonceRequestValue(new NonceRequest[] {nonceRequest});
+                ratNonceResponse = requestHandler.sendReceiveInitialMessage(new PKIBody(
+                        PKIBody.TYPE_GEN_MSG,
+                        new GenMsgContent(new InfoTypeAndValue(
+                                AttestationObjectIdentifiers.id_it_NonceRequest, nonceRequestValue))));
+                final PKIBody ratNonceResponseBody = ratNonceResponse.getBody();
+                if (ratNonceResponseBody.getType() != PKIBody.TYPE_GEN_REP) {
+                    logUnexpectedResponse(ratNonceResponseBody);
+                    return null;
+                }
+
+                final GenRepContent content = (GenRepContent) ratNonceResponseBody.getContent();
+                final InfoTypeAndValue[] itav = content.toInfoTypeAndValueArray();
+                if (itav != null) {
+                    for (final InfoTypeAndValue aktitav : itav) {
+                        if (AttestationObjectIdentifiers.id_it_NonceResponse.equals(aktitav.getInfoType())) {
+                            final ASN1Encodable infoValue = aktitav.getInfoValue();
+                            if (infoValue == null) {
+                                LOGGER.error("no RAT nonce received");
+                                return null;
+                            }
+                            final NonceResponseValue ratNonce = NonceResponseValue.getInstance(infoValue);
+                            NonceResponse[] nonceResponses = ratNonce.getNonceResponse();
+                            EvidenceStatement[] evidenceStatements = new EvidenceStatement[nonceResponses.length];
+                            for (int i = 0; i < nonceResponses.length; i++) {
+                                NonceResponse aktnonce = nonceResponses[i];
+                                evidenceStatements[i] = EvidenceStatement.getInstance(
+                                        attestationContext.getEvidenceStatement(aktnonce.getEncoded()));
+                            }
+                            evidenceBundle =
+                                    new EvidenceBundle(evidenceStatements, attestationContext.getEvidenceBundleCerts());
+                            break;
+                        }
+                    }
+                }
+            }
             final EnrollmentContext enrollmentContext = clientContext.getEnrollmentContext();
             final KeyPair certificateKeypair = enrollmentContext.getCertificateKeypair();
 
@@ -459,16 +513,25 @@ public class CmpClient
                 case PKIBody.TYPE_CERT_REQ:
                 case PKIBody.TYPE_INIT_REQ: {
                     final String subject = enrollmentContext.getSubject();
-                    final Extension[] arrayOfExtensions =
-                            ifNotNull(enrollmentContext.getExtensions(), exts -> exts.stream()
-                                    .map(ext -> new Extension(
-                                            new ASN1ObjectIdentifier(ext.getId()), ext.isCritical(), ext.getValue()))
-                                    .toArray(Extension[]::new));
-                    final Extensions extensions = ifNotNull(arrayOfExtensions, Extensions::new);
+                    final List<Extension> extensions = new ArrayList<>();
+
+                    final List<TemplateExtension> extensionsFromConfig = enrollmentContext.getExtensions();
+                    if (extensionsFromConfig != null) {
+                        extensionsFromConfig.stream()
+                                .map(ext -> new Extension(
+                                        new ASN1ObjectIdentifier(ext.getId()), ext.isCritical(), ext.getValue()))
+                                .forEach(extensions::add);
+                    }
+                    if (evidenceBundle != null) {
+                        extensions.add(
+                                Extension.create(AttestationObjectIdentifiers.id_aa_evidence, false, evidenceBundle));
+                    }
                     final CertTemplateBuilder ctb = new CertTemplateBuilder()
                             .setSubject(ifNotNull(subject, X500Name::new))
-                            .setPublicKey(enrolledPublicKeyInfo)
-                            .setExtensions(extensions);
+                            .setPublicKey(enrolledPublicKeyInfo);
+                    if (!extensions.isEmpty()) {
+                        ctb.setExtensions(new Extensions(extensions.toArray(new Extension[extensions.size()])));
+                    }
                     requestBody = PkiMessageGenerator.generateIrCrKurBody(
                             enrollmentType, ctb.build(), null, enrolledPrivateKey);
                     pvno = enrolledPrivateKey == null ? PKIHeader.CMP_2021 : PKIHeader.CMP_2000;
@@ -478,9 +541,13 @@ public class CmpClient
                     LOGGER.error("EnrollmentType must be 0(ir), 2(cr), 7(kur) or 4(p10cr)");
                     return null;
             }
-            final PKIMessage responseMessage = requestHandler.sendReceiveValidateMessage(
-                    requestHandler.buildInitialRequest(requestBody, enrollmentContext.getRequestImplictConfirm(), pvno),
-                    enrollmentType);
+            final PKIMessage enrollmentRequestMessage = ratNonceResponse == null
+                    ? requestHandler.buildInitialRequest(
+                            requestBody, enrollmentContext.getRequestImplictConfirm(), pvno)
+                    : requestHandler.buildFurtherRequest(
+                            ratNonceResponse, requestBody, enrollmentContext.getRequestImplictConfirm(), pvno);
+            final PKIMessage responseMessage =
+                    requestHandler.sendReceiveValidateMessage(enrollmentRequestMessage, enrollmentType);
             final PKIBody responseBody = responseMessage.getBody();
             final int responseMessageType = responseBody.getType();
             if (enrollmentType == PKIBody.TYPE_P10_CERT_REQ) {

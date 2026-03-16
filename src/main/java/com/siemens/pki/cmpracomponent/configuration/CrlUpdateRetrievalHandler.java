@@ -37,7 +37,7 @@ public interface CrlUpdateRetrievalHandler extends SupportMessageHandlerInterfac
      *                                   <code>null</code> if absent in request
      * @param issuer                     issuer from CRLSource or <code>null</code>
      *                                   if absent in request
-     * @param thisUpdate                 thisUpdate time from CRLStatus in request
+     * @param thisUpdate                 thisUpdate time from CRLStatus in request or
      *                                   <code>null</code> if absent in request
      * @return CRLs to be returned or <code>null</code> if the returned infoValue
      *         should be absent
