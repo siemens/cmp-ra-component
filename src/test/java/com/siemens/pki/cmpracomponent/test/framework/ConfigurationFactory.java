@@ -518,9 +518,9 @@ public class ConfigurationFactory {
         final SignatureValidationCredentials enrollmentTrust) {
       return buildSimpleRaConfiguration(
           downstreamCredentials,
-          ReprotectMode.keep,
+          reprotectMode,
           downstreamTrust,
-          false,
+          isEnforceReprotectMode,
           upstreamCredentials,
           upstreamTrust,
           enrollmentTrust, false);
