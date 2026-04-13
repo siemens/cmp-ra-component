@@ -49,19 +49,21 @@ public class OnlineEnrollmentTestcaseBase extends EnrollmentTestcaseBase {
     private static final Logger LOGGER = LoggerFactory.getLogger(OnlineEnrollmentTestcaseBase.class);
 
     public static EnrollmentResult executeCrmfCertificateRequest(
-        final int requestMesssageType,
-        final int expectedResponseMessageType,
-        final ProtectionProvider protectionProvider,
-        final Function<PKIMessage, PKIMessage> cmpClient)
-        throws Exception {
-      return executeCrmfCertificateRequest(requestMesssageType, expectedResponseMessageType, protectionProvider, cmpClient, false);
+            final int requestMesssageType,
+            final int expectedResponseMessageType,
+            final ProtectionProvider protectionProvider,
+            final Function<PKIMessage, PKIMessage> cmpClient)
+            throws Exception {
+        return executeCrmfCertificateRequest(
+                requestMesssageType, expectedResponseMessageType, protectionProvider, cmpClient, false);
     }
-    
+
     public static EnrollmentResult executeCrmfCertificateRequest(
             final int requestMesssageType,
             final int expectedResponseMessageType,
             final ProtectionProvider protectionProvider,
-            final Function<PKIMessage, PKIMessage> cmpClient, boolean isSuppressRedundantExtraCerts)
+            final Function<PKIMessage, PKIMessage> cmpClient,
+            boolean isSuppressRedundantExtraCerts)
             throws Exception {
         final KeyPair keyPair = ConfigurationFactory.getKeyGenerator().generateKeyPair();
         final CertTemplateBuilder ctb = new CertTemplateBuilder()
@@ -74,23 +76,23 @@ public class OnlineEnrollmentTestcaseBase extends EnrollmentTestcaseBase {
 
         final PKIMessage cr = PkiMessageGenerator.generateAndProtectMessage(
                 new HeaderProviderForTest("theCertProfileForOnlineEnrollment"), protectionProvider, crBody);
-        
-        //if (isSuppressRedundantExtraCerts) {
-          System.out.println("CR Details: ");
-          System.out.println("Transaction id: " + cr.getHeader().getTransactionID());
-          debugExtraCerts("CR Extra Certs", cr.getExtraCerts());
-        //}
-        
+
+        // if (isSuppressRedundantExtraCerts) {
+        System.out.println("CR Details: ");
+        System.out.println("Transaction id: " + cr.getHeader().getTransactionID());
+        debugExtraCerts("CR Extra Certs", cr.getExtraCerts());
+        // }
+
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("send:\n" + MessageDumper.dumpPkiMessage(cr));
         }
         final PKIMessage crResponse = cmpClient.apply(cr);
-        
-        //if (isSuppressRedundantExtraCerts) {
-          System.out.println("CP Details: ");
-          System.out.println("Transaction id: " + crResponse.getHeader().getTransactionID());
-          debugExtraCerts("CP Extra Certs", crResponse.getExtraCerts());
-        //}
+
+        // if (isSuppressRedundantExtraCerts) {
+        System.out.println("CP Details: ");
+        System.out.println("Transaction id: " + crResponse.getHeader().getTransactionID());
+        debugExtraCerts("CP Extra Certs", crResponse.getExtraCerts());
+        // }
 
         if (LOGGER.isDebugEnabled()) {
             // avoid unnecessary string processing, if debug isn't enabled
@@ -119,23 +121,23 @@ public class OnlineEnrollmentTestcaseBase extends EnrollmentTestcaseBase {
                 new HeaderProviderForTest(crResponse.getHeader()),
                 protectionProvider,
                 PkiMessageGenerator.generateCertConfBody(enrolledCertificate));
-        
-        //if (isSuppressRedundantExtraCerts) {
-          System.out.println("certConf Details: ");
-          System.out.println("Transaction id: " + certConf.getHeader().getTransactionID());
-          debugExtraCerts("certConf Extra Certs", certConf.getExtraCerts());
-        //}
+
+        // if (isSuppressRedundantExtraCerts) {
+        System.out.println("certConf Details: ");
+        System.out.println("Transaction id: " + certConf.getHeader().getTransactionID());
+        debugExtraCerts("certConf Extra Certs", certConf.getExtraCerts());
+        // }
 
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("send:\n" + MessageDumper.dumpPkiMessage(certConf));
         }
         final PKIMessage pkiConf = cmpClient.apply(certConf);
-        
-        //if (isSuppressRedundantExtraCerts) {
-          System.out.println("certConf Details: ");
-          System.out.println("Transaction id: " + pkiConf.getHeader().getTransactionID());
-          debugExtraCerts("pkiConf Extra Certs", pkiConf.getExtraCerts());
-        //}
+
+        // if (isSuppressRedundantExtraCerts) {
+        System.out.println("certConf Details: ");
+        System.out.println("Transaction id: " + pkiConf.getHeader().getTransactionID());
+        debugExtraCerts("pkiConf Extra Certs", pkiConf.getExtraCerts());
+        // }
 
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("got:\n" + MessageDumper.dumpPkiMessage(pkiConf));
@@ -144,16 +146,17 @@ public class OnlineEnrollmentTestcaseBase extends EnrollmentTestcaseBase {
 
         return new EnrollmentResult(enrolledCertificate, keyPair.getPrivate());
     }
-    
+
     private static void debugExtraCerts(String msg, CMPCertificate[] extraCerts) {
-      if (extraCerts != null && extraCerts.length > 0) {
-        System.out.println(msg);
-        for (CMPCertificate cert : extraCerts) {
-          System.out.println("Issuer: " + cert.getX509v3PKCert().getIssuer() + ", Subject: " + cert.getX509v3PKCert().getSubject());
+        if (extraCerts != null && extraCerts.length > 0) {
+            System.out.println(msg);
+            for (CMPCertificate cert : extraCerts) {
+                System.out.println("Issuer: " + cert.getX509v3PKCert().getIssuer() + ", Subject: "
+                        + cert.getX509v3PKCert().getSubject());
+            }
+        } else {
+            System.out.println("Extra Certs: Null or Empty");
         }
-      } else {
-        System.out.println("Extra Certs: Null or Empty");
-      }
     }
 
     public static EnrollmentResult executeP10CertificateRequest(
