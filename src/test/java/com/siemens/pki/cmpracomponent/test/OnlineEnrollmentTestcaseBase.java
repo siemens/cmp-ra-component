@@ -54,17 +54,6 @@ public class OnlineEnrollmentTestcaseBase extends EnrollmentTestcaseBase {
             final ProtectionProvider protectionProvider,
             final Function<PKIMessage, PKIMessage> cmpClient)
             throws Exception {
-        return executeCrmfCertificateRequest(
-                requestMesssageType, expectedResponseMessageType, protectionProvider, cmpClient, false);
-    }
-
-    public static EnrollmentResult executeCrmfCertificateRequest(
-            final int requestMesssageType,
-            final int expectedResponseMessageType,
-            final ProtectionProvider protectionProvider,
-            final Function<PKIMessage, PKIMessage> cmpClient,
-            boolean isSuppressRedundantExtraCerts)
-            throws Exception {
         final KeyPair keyPair = ConfigurationFactory.getKeyGenerator().generateKeyPair();
         final CertTemplateBuilder ctb = new CertTemplateBuilder()
                 .setPublicKey(
