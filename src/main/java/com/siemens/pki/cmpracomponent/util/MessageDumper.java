@@ -244,14 +244,6 @@ public class MessageDumper {
      * Dump PKI message to a string.
      *
      * @param msg PKI message to be dumped
-     *
-     * @return string representation of the PKI message
-     */
-
-    /**
-     * Dump PKI message to a string.
-     *
-     * @param msg PKI message to be dumped
      * @return string representation of the PKI message
      */
     public static final String dumpPkiMessage(final PKIMessage msg) {
