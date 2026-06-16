@@ -70,9 +70,6 @@ public class TestSignatureBasedCrWithSuppress extends SignatureEnrollmentWithSup
         final PKIMessage cr = PkiMessageGenerator.generateAndProtectMessage(
                 new HeaderProviderForTest("theCertProfileForOnlineEnrollment"), protectionProvider, crBody);
 
-        // === NEW ASSERTIONS ===
-        assertNotNull("CR message must not be null", cr);
-        assertNotNull("CR header must not be null", cr.getHeader());
         assertNotNull("CR transaction ID must not be null", cr.getHeader().getTransactionID());
         byte[] transactionId = cr.getHeader().getTransactionID().getOctets();
 
@@ -82,14 +79,11 @@ public class TestSignatureBasedCrWithSuppress extends SignatureEnrollmentWithSup
         }
 
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("send:\n" + MessageDumper.dumpPkiMessage(cr));
+            LOGGER.debug("send:\n {}", MessageDumper.dumpPkiMessage(cr));
         }
 
         final PKIMessage crResponse = cmpClient.apply(cr);
 
-        // === NEW ASSERTIONS ===
-        assertNotNull("CR response must not be null", crResponse);
-        assertNotNull("CR response header must not be null", crResponse.getHeader());
         assertNotNull(
                 "CR response transaction ID must not be null",
                 crResponse.getHeader().getTransactionID());
@@ -100,16 +94,13 @@ public class TestSignatureBasedCrWithSuppress extends SignatureEnrollmentWithSup
                 transactionId,
                 crResponse.getHeader().getTransactionID().getOctets());
 
-        System.out.println("CP Details: ");
-        System.out.println("Transaction id: " + crResponse.getHeader().getTransactionID());
-
         if (isSuppressRedundantExtraCerts) {
             assertNotNull("CP should contain extraCerts", crResponse.getExtraCerts());
             assertTrue("CP extraCerts must contain at least one certificate", crResponse.getExtraCerts().length > 0);
         }
 
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("got:\n" + MessageDumper.dumpPkiMessage(crResponse));
+            LOGGER.debug("got:\n {}", MessageDumper.dumpPkiMessage(crResponse));
         }
 
         assertEquals(
@@ -126,9 +117,6 @@ public class TestSignatureBasedCrWithSuppress extends SignatureEnrollmentWithSup
 
         final CertRepMessage certRep = (CertRepMessage) crResponse.getBody().getContent();
 
-        // === NEW ASSERTIONS ===
-        assertNotNull("CertRep content must not be null", certRep);
-        assertTrue("CertRep must contain at least one response", certRep.getResponse().length > 0);
         assertNotNull("CertifiedKeyPair must not be null", certRep.getResponse()[0].getCertifiedKeyPair());
 
         final CMPCertificate enrolledCertificate = certRep.getResponse()[0]
@@ -143,9 +131,6 @@ public class TestSignatureBasedCrWithSuppress extends SignatureEnrollmentWithSup
                 protectionProvider,
                 PkiMessageGenerator.generateCertConfBody(enrolledCertificate));
 
-        // === NEW ASSERTIONS ===
-        assertNotNull("CertConf must not be null", certConf);
-        assertNotNull("CertConf header must not be null", certConf.getHeader());
         assertArrayEquals(
                 "Transaction ID must remain constant across CR → CP → CertConf",
                 transactionId,
@@ -156,14 +141,11 @@ public class TestSignatureBasedCrWithSuppress extends SignatureEnrollmentWithSup
         }
 
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("send:\n" + MessageDumper.dumpPkiMessage(certConf));
+            LOGGER.debug("send:\n {}", MessageDumper.dumpPkiMessage(certConf));
         }
 
         final PKIMessage pkiConf = cmpClient.apply(certConf);
 
-        // === NEW ASSERTIONS ===
-        assertNotNull("PKIConf must not be null", pkiConf);
-        assertNotNull("PKIConf header must not be null", pkiConf.getHeader());
         assertArrayEquals(
                 "Transaction ID must remain constant across all messages",
                 transactionId,
@@ -174,7 +156,7 @@ public class TestSignatureBasedCrWithSuppress extends SignatureEnrollmentWithSup
         }
 
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("got:\n" + MessageDumper.dumpPkiMessage(pkiConf));
+            LOGGER.debug("got:\n {}", MessageDumper.dumpPkiMessage(pkiConf));
         }
 
         assertEquals("message type", PKIBody.TYPE_CONFIRM, pkiConf.getBody().getType());
