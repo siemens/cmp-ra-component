@@ -46,6 +46,7 @@ import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509CRL;
 import java.security.cert.X509Certificate;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -262,7 +263,7 @@ public class CmpClient
             final String[] dpnFullName,
             final String dpnNameRelativeToCRLIssuer,
             final String[] issuer,
-            final Date thisUpdate) {
+            final Instant thisUpdate) {
 
         if (dpnFullName != null && dpnNameRelativeToCRLIssuer != null) {
             throw new IllegalArgumentException("only dpnFullName OR dpnNameRelativeToCRLIssuer is allowed");
@@ -287,7 +288,8 @@ public class CmpClient
                         .map(GeneralName::new)
                         .toArray(GeneralName[]::new)));
 
-        final CRLStatus crlStatus = new CRLStatus(new CRLSource(dpn, issuers), ifNotNull(thisUpdate, Time::new));
+        final CRLStatus crlStatus =
+                new CRLStatus(new CRLSource(dpn, issuers), ifNotNull(Date.from(thisUpdate), Time::new));
 
         final PKIBody requestBody = new PKIBody(
                 PKIBody.TYPE_GEN_MSG,

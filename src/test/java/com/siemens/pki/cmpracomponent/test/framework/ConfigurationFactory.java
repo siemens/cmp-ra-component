@@ -517,9 +517,8 @@ public class ConfigurationFactory {
             @Override
             public CkgContext getCkgConfiguration(final String certProfile, final int bodyType) {
                 fail(String.format(
-                        "getCkgConfiguration called with certprofile: {}, type: {}",
-                        certProfile,
-                        MessageDumper.msgTypeAsString(bodyType)));
+                        "getCkgConfiguration called with certprofile: %s, type: %s",
+                        certProfile, MessageDumper.msgTypeAsString(bodyType)));
                 return null;
             }
 

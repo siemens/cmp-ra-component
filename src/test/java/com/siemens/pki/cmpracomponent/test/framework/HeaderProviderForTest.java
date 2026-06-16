@@ -21,6 +21,7 @@ import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.msggeneration.HeaderProvider;
+import java.time.Instant;
 import java.util.Date;
 import org.bouncycastle.asn1.ASN1GeneralizedTime;
 import org.bouncycastle.asn1.ASN1OctetString;
@@ -40,8 +41,7 @@ import org.bouncycastle.asn1.x509.GeneralName;
 public class HeaderProviderForTest implements HeaderProvider {
     final ASN1OctetString transactionId;
     final ASN1OctetString senderNonce = new DEROctetString(CertUtility.generateRandomBytes(16));
-
-    private final ASN1GeneralizedTime messageTime = new DERGeneralizedTime(new Date());
+    private final ASN1GeneralizedTime messageTime = new DERGeneralizedTime(Date.from(Instant.now()));
     private final ASN1OctetString recipientNonce;
     private final int pvno;
     private String certProfile = null;

@@ -32,9 +32,11 @@ import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.ParseException;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -420,6 +422,7 @@ public class JsonYamlMessageDumper {
         simpleModule.addSerializer(new GenericSerializer<>(CharSequence.class));
         simpleModule.addSerializer(new GenericSerializer<>(X500Name.class));
         simpleModule.addSerializer(new GenericSerializer<>(Date.class));
+        simpleModule.addSerializer(new GenericSerializer<>(Instant.class));
         simpleModule.addSerializer(new GenericSerializer<>(ASN1GeneralizedTime.class, a -> {
             try {
                 return a.getDate().toString();
@@ -432,6 +435,8 @@ public class JsonYamlMessageDumper {
                 a -> MessageDumper.getOidDescriptionForOid(a).toString()));
         simpleModule.addSerializer(
                 new GenericSerializer<>(ASN1Enumerated.class, a -> a.getValue().toString()));
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         mapper.registerModule(simpleModule);
         return mapper;
     }

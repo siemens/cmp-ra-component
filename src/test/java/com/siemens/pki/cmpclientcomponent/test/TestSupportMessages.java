@@ -29,7 +29,7 @@ import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
 import com.siemens.pki.cmpracomponent.test.framework.TestCertUtility;
 import java.security.cert.X509CRL;
 import java.security.cert.X509Certificate;
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
@@ -74,7 +74,7 @@ public class TestSupportMessages extends CmpClientTestcaseBase {
     @Test
     public void testCrlUpdateRetrieval() throws Exception {
         final List<X509CRL> crls = getSignatureBasedCmpClient("TestSupportMessages", clientContext, UPSTREAM_TRUST_PATH)
-                .getCrls(null, null, new String[] {"CN=distributionPoint"}, new Date());
+                .getCrls(null, null, new String[] {"CN=distributionPoint"}, Instant.now());
         assertNotNull("CRL", crls);
     }
 

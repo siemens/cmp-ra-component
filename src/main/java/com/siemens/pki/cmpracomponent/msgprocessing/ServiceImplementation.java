@@ -39,6 +39,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509CRL;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1EncodableVector;
@@ -63,7 +64,6 @@ import org.bouncycastle.asn1.x509.CertificateList;
 import org.bouncycastle.asn1.x509.DistributionPointName;
 import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.asn1.x509.GeneralNames;
-import org.bouncycastle.asn1.x509.Time;
 
 /**
  * implementation of a GENM service handler
@@ -126,7 +126,7 @@ class ServiceImplementation {
                                 dpnFullNameFinal,
                                 dpnNameRelativeToCRLIssuerFinal,
                                 issuers,
-                                ifNotNull(crlStatus.getThisUpdate(), Time::getDate)));
+                                ifNotNull(crlStatus.getThisUpdate().getDate(), Date::toInstant)));
                 if (crlsToAdd != null) {
                     if (responseCrl == null) {
                         responseCrl = new ASN1EncodableVector();

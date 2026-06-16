@@ -18,7 +18,7 @@
 package com.siemens.pki.cmpracomponent.configuration;
 
 import com.siemens.pki.cmpracomponent.persistency.DefaultPersistencyImplementation;
-import java.util.Date;
+import java.time.Instant;
 
 /**
  * an implementation of the {@link PersistencyInterface} is used to persist the
@@ -67,7 +67,7 @@ public interface PersistencyInterface {
      * @param expirationTime
      *            time when the save message should expire
      */
-    default void saveLastMessage(final byte[] transactionId, final byte[] message, final Date expirationTime) {
+    default void saveLastMessage(final byte[] transactionId, final byte[] message, final Instant expirationTime) {
         DefaultPersistencyImplementation.getInstance().saveLastMessage(transactionId, message, expirationTime);
     }
 }

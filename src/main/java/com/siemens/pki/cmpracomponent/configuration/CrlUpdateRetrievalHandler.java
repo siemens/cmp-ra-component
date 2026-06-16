@@ -18,7 +18,7 @@
 package com.siemens.pki.cmpracomponent.configuration;
 
 import java.security.cert.X509CRL;
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -42,5 +42,5 @@ public interface CrlUpdateRetrievalHandler extends SupportMessageHandlerInterfac
      * @return CRLs to be returned or <code>null</code> if the returned infoValue
      *         should be absent
      */
-    List<X509CRL> getCrls(String[] dpnFullName, String dpnNameRelativeToCRLIssuer, String[] issuer, Date thisUpdate);
+    List<X509CRL> getCrls(String[] dpnFullName, String dpnNameRelativeToCRLIssuer, String[] issuer, Instant thisUpdate);
 }

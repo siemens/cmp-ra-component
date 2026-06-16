@@ -21,9 +21,9 @@ import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
 
 import com.siemens.pki.cmpracomponent.configuration.PersistencyInterface;
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -41,9 +41,9 @@ public class DefaultPersistencyImplementation implements PersistencyInterface {
 
     class ValueType {
         byte[] message;
-        Date expirationTime;
+        Instant expirationTime;
 
-        ValueType(final byte[] message, final Date expirationTime) {
+        ValueType(final byte[] message, final Instant expirationTime) {
             this.message = message;
             this.expirationTime = expirationTime;
         }
@@ -97,12 +97,12 @@ public class DefaultPersistencyImplementation implements PersistencyInterface {
     }
 
     private void doHousekeeping() {
-        final Date now = new Date();
+        final Instant now = Instant.now();
         for (final Iterator<Entry<byte[], ValueType>> it =
                         persistencyMap.entrySet().iterator();
                 it.hasNext(); ) {
             final Entry<byte[], ValueType> currentEntry = it.next();
-            if (now.after(currentEntry.getValue().expirationTime)) {
+            if (now.isAfter(currentEntry.getValue().expirationTime)) {
                 if (LOGGER.isDebugEnabled()) {
                     LOGGER.debug("transaction {} expired", Arrays.toString(currentEntry.getKey()));
                 }
@@ -122,7 +122,7 @@ public class DefaultPersistencyImplementation implements PersistencyInterface {
     }
 
     @Override
-    public void saveLastMessage(final byte[] transactionId, final byte[] message, final Date expirationTime) {
+    public void saveLastMessage(final byte[] transactionId, final byte[] message, final Instant expirationTime) {
         persistencyMap.put(transactionId, new ValueType(message, expirationTime));
     }
 }

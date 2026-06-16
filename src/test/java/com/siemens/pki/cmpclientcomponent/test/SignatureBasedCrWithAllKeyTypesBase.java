@@ -48,7 +48,7 @@ import org.junit.Test;
 /**
  * use protection chains with different keytypes
  */
-class SignatureBasedCrWithAllKeyTypesBase extends EnrollmentTestcaseBase {
+public abstract class SignatureBasedCrWithAllKeyTypesBase extends EnrollmentTestcaseBase {
 
     protected SignatureBasedCrWithAllKeyTypesBase(
             TrustChainAndPrivateKey fromClientToRa,

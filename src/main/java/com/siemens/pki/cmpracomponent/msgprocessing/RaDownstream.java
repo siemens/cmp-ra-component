@@ -60,9 +60,9 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.cert.X509Certificate;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Date;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -504,7 +504,7 @@ class RaDownstream {
                         offset = Integer.MAX_VALUE / 2;
                     }
                     persistencyContext.updateTransactionExpirationTime(
-                            new Date(System.currentTimeMillis() + (offset + retryAfterTime) * 1000L));
+                            Instant.now().plusSeconds(offset + retryAfterTime));
                     persistencyContext.flush();
                 }
             }
