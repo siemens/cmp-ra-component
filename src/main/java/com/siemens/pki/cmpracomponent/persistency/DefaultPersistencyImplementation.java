@@ -18,6 +18,11 @@
 package com.siemens.pki.cmpracomponent.persistency;
 
 import static com.siemens.pki.cmpracomponent.util.NullUtil.ifNotNull;
+
+import com.siemens.pki.cmpracomponent.configuration.PersistencyInterface;
+import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
+import com.siemens.pki.cmpracomponent.persistency.cache.CertificateCache;
+import com.siemens.pki.cmpracomponent.persistency.cache.service.InMemoryCache;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -29,10 +34,6 @@ import java.util.TimerTask;
 import java.util.TreeMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.siemens.pki.cmpracomponent.configuration.PersistencyInterface;
-import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
-import com.siemens.pki.cmpracomponent.persistency.cache.CertificateCache;
-import com.siemens.pki.cmpracomponent.persistency.cache.service.InMemoryCache;
 
 /**
  * a {@link Map} based default implementation of {@link PersistencyInterface}
@@ -56,7 +57,7 @@ public class DefaultPersistencyImplementation implements PersistencyInterface {
     private static DefaultPersistencyImplementation instance;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultPersistencyImplementation.class);
-    
+
     private final CertificateCache cache;
 
     /**
@@ -129,7 +130,7 @@ public class DefaultPersistencyImplementation implements PersistencyInterface {
     public void saveLastMessage(final byte[] transactionId, final byte[] message, final Date expirationTime) {
         persistencyMap.put(transactionId, new ValueType(message, expirationTime));
     }
-    
+
     @Override
     public CertificateCache getCertificateCache() {
         return cache;

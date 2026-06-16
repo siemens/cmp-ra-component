@@ -17,9 +17,9 @@
  */
 package com.siemens.pki.cmpracomponent.configuration;
 
-import java.util.Date;
 import com.siemens.pki.cmpracomponent.persistency.DefaultPersistencyImplementation;
 import com.siemens.pki.cmpracomponent.persistency.cache.CertificateCache;
+import java.util.Date;
 
 /**
  * an implementation of the {@link PersistencyInterface} is used to persist the
@@ -71,7 +71,7 @@ public interface PersistencyInterface {
     default void saveLastMessage(final byte[] transactionId, final byte[] message, final Date expirationTime) {
         DefaultPersistencyImplementation.getInstance().saveLastMessage(transactionId, message, expirationTime);
     }
-    
+
     default CertificateCache getCertificateCache() {
         return DefaultPersistencyImplementation.getInstance().getCertificateCache();
     }

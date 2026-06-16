@@ -24,116 +24,115 @@ import org.bouncycastle.asn1.cmp.CMPCertificate;
  */
 public final class CertNode {
 
-  private final CertificateIdentity key;
-  private final CMPCertificate certificate;
-  private final CertificateIdentity parent;
-  private final boolean isCA;
-  private final Set<CertificateIdentity> children = new HashSet<>();
-  private final Instant addedAt;
-  private volatile Instant lastUsedAt;
+    private final CertificateIdentity key;
+    private final CMPCertificate certificate;
+    private final CertificateIdentity parent;
+    private final boolean isCA;
+    private final Set<CertificateIdentity> children = new HashSet<>();
+    private final Instant addedAt;
+    private volatile Instant lastUsedAt;
 
+    /**
+     * Creates a certificate node.
+     *
+     * @param key canonical certificate identity
+     * @param certificate CMP certificate
+     * @param parent parent certificate identity, or {@code null} if unknown
+     * @param isCA whether the certificate is allowed to issue certificates
+     */
+    public CertNode(CertificateIdentity key, CMPCertificate certificate, CertificateIdentity parent, boolean isCA) {
 
-  /**
-   * Creates a certificate node.
-   *
-   * @param key canonical certificate identity
-   * @param certificate CMP certificate
-   * @param parent parent certificate identity, or {@code null} if unknown
-   * @param isCA whether the certificate is allowed to issue certificates
-   */
-  public CertNode(CertificateIdentity key, CMPCertificate certificate, CertificateIdentity parent,
-      boolean isCA) {
+        this.key = key;
+        this.certificate = certificate;
+        this.parent = parent;
+        this.isCA = isCA;
 
-    this.key = key;
-    this.certificate = certificate;
-    this.parent = parent;
-    this.isCA = isCA;
-
-    Instant now = Instant.now();
-    this.addedAt = now;
-    this.lastUsedAt = now;
-  }
-
-  /**
-   * Returns the certificate identity of this node.
-   *
-   * @return certificate identity
-   */
-  public CertificateIdentity getKey() {
-    return key;
-  }
-
-  /**
-   * Returns the wrapped CMP certificate.
-   *
-   * @return CMP certificate
-   */
-  public CMPCertificate getCertificate() {
-    return certificate;
-  }
-
-  /**
-   * Returns the parent certificate identity.
-   *
-   * @return parent identity, or {@code null} if unknown
-   */
-  public CertificateIdentity getParent() {
-    return parent;
-  }
-
-  /**
-   * Indicates whether this certificate is a CA certificate.
-   *
-   * @return {@code true} if this certificate may issue certificates
-   */
-  public boolean isCA() {
-    return isCA;
-  }
-
-  /**
-   * Returns an unmodifiable view of the children identities.
-   *
-   * @return child identities
-   */
-  public Set<CertificateIdentity> getChildren() {
-    return Collections.unmodifiableSet(children);
-  }
-
-  /**
-   * Adds a verified child certificate node.
-   *
-   * @param child child node
-   * @throws IllegalStateException if this node is not a CA or issuer/subject DN mismatch is
-   *         detected
-   */
-  public void addChild(CertNode child) {
-
-    if (!isCA) {
-      throw new IllegalStateException("Non-CA certificate cannot have children: " + key);
+        Instant now = Instant.now();
+        this.addedAt = now;
+        this.lastUsedAt = now;
     }
 
-    if (certificate == null || child.certificate == null) {
-      throw new IllegalStateException(
-          "Certificates required to establish a parent-child relationship");
+    /**
+     * Returns the certificate identity of this node.
+     *
+     * @return certificate identity
+     */
+    public CertificateIdentity getKey() {
+        return key;
     }
 
-    if (!child.certificate.getX509v3PKCert().getIssuer()
-        .equals(certificate.getX509v3PKCert().getSubject())) {
-      throw new IllegalStateException("Invalid parent-child relation: issuer DN mismatch");
+    /**
+     * Returns the wrapped CMP certificate.
+     *
+     * @return CMP certificate
+     */
+    public CMPCertificate getCertificate() {
+        return certificate;
     }
 
-    children.add(child.key);
-  }
-  
-  public void touch() {
-    this.lastUsedAt = Instant.now();
-  }
+    /**
+     * Returns the parent certificate identity.
+     *
+     * @return parent identity, or {@code null} if unknown
+     */
+    public CertificateIdentity getParent() {
+        return parent;
+    }
 
-  public Instant getLastUsedAt() {
-    return lastUsedAt;
-  }
+    /**
+     * Indicates whether this certificate is a CA certificate.
+     *
+     * @return {@code true} if this certificate may issue certificates
+     */
+    public boolean isCA() {
+        return isCA;
+    }
 
-  public Instant getAddedAt() {
-    return addedAt;
-  }
+    /**
+     * Returns an unmodifiable view of the children identities.
+     *
+     * @return child identities
+     */
+    public Set<CertificateIdentity> getChildren() {
+        return Collections.unmodifiableSet(children);
+    }
+
+    /**
+     * Adds a verified child certificate node.
+     *
+     * @param child child node
+     * @throws IllegalStateException if this node is not a CA or issuer/subject DN mismatch is
+     *         detected
+     */
+    public void addChild(CertNode child) {
+
+        if (!isCA) {
+            throw new IllegalStateException("Non-CA certificate cannot have children: " + key);
+        }
+
+        if (certificate == null || child.certificate == null) {
+            throw new IllegalStateException("Certificates required to establish a parent-child relationship");
+        }
+
+        if (!child.certificate
+                .getX509v3PKCert()
+                .getIssuer()
+                .equals(certificate.getX509v3PKCert().getSubject())) {
+            throw new IllegalStateException("Invalid parent-child relation: issuer DN mismatch");
+        }
+
+        children.add(child.key);
+    }
+
+    public void touch() {
+        this.lastUsedAt = Instant.now();
+    }
+
+    public Instant getLastUsedAt() {
+        return lastUsedAt;
+    }
+
+    public Instant getAddedAt() {
+        return addedAt;
+    }
 }
