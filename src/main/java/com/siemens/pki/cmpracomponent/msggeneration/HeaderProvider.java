@@ -39,6 +39,7 @@ public interface HeaderProvider {
      * get MessageTime to be used in CMP header.
      * @return MessageTime
      */
+    @SuppressWarnings("java:S2143")
     default ASN1GeneralizedTime getMessageTime() {
         return new DERGeneralizedTime(Date.from(Instant.now()));
     }

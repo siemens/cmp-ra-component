@@ -17,7 +17,9 @@
  */
 package com.siemens.pki.cmpracomponent.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import com.siemens.pki.cmpracomponent.cryptoservices.CertUtility;
 import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
@@ -26,6 +28,7 @@ import com.siemens.pki.cmpracomponent.test.framework.HeaderProviderForTest;
 import com.siemens.pki.cmpracomponent.test.framework.TestCertUtility;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.security.cert.CRL;
+import java.time.Instant;
 import java.util.Date;
 import java.util.function.Function;
 import org.bouncycastle.asn1.ASN1Integer;
@@ -33,7 +36,16 @@ import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.DERSequence;
-import org.bouncycastle.asn1.cmp.*;
+import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
+import org.bouncycastle.asn1.cmp.CRLSource;
+import org.bouncycastle.asn1.cmp.CRLStatus;
+import org.bouncycastle.asn1.cmp.CertReqTemplateContent;
+import org.bouncycastle.asn1.cmp.GenMsgContent;
+import org.bouncycastle.asn1.cmp.GenRepContent;
+import org.bouncycastle.asn1.cmp.InfoTypeAndValue;
+import org.bouncycastle.asn1.cmp.PKIBody;
+import org.bouncycastle.asn1.cmp.PKIMessage;
+import org.bouncycastle.asn1.cmp.RootCaKeyUpdateContent;
 import org.bouncycastle.asn1.crmf.AttributeTypeAndValue;
 import org.bouncycastle.asn1.crmf.Controls;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -48,6 +60,7 @@ import org.slf4j.LoggerFactory;
 public class TestSupportMessages extends CmpTestcaseBase {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TestSupportMessages.class);
+    private static final Instant TEST_NOW = Instant.parse("2026-01-01T00:00:00Z");
 
     @Before
     public void setUp() throws Exception {
@@ -76,7 +89,7 @@ public class TestSupportMessages extends CmpTestcaseBase {
                         new DERSequence(new CRLStatus(
                                 new CRLSource(
                                         null, new GeneralNames(new GeneralName(new X500Name("CN=distributionPoint")))),
-                                new Time(new Date()))))));
+                                new Time(Date.from(TEST_NOW)))))));
         final PKIMessage genm = PkiMessageGenerator.generateAndProtectMessage(
                 new HeaderProviderForTest("CrlUpdateRetrieval"),
                 ConfigurationFactory.getEeSignaturebasedProtectionProvider(),

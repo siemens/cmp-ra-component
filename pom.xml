@@ -13,7 +13,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<parent.basedir>.</parent.basedir>
 		<spotless.version>3.4.0</spotless.version>
-		<jacoco.version>0.8.14</jacoco.version>
+		<jacoco.version>0.8.15</jacoco.version>
 		<source.version>3.4.0</source.version>
 		<maven.compiler.source>17</maven.compiler.source>
 		<maven.compiler.target>17</maven.compiler.target>
@@ -134,7 +134,7 @@
 			<plugin>
 				<groupId>org.owasp</groupId>
 				<artifactId>dependency-check-maven</artifactId>
-				<version>12.1.9</version>
+				<version>12.2.2</version>
 				<executions>
 					<execution>
 						<goals>
@@ -153,6 +153,13 @@
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
 				<version>${jacoco.version}</version>
+				<dependencies>
+                    <dependency>
+                        <groupId>org.codehaus.plexus</groupId>
+                        <artifactId>plexus-utils</artifactId>
+                        <version>3.6.1</version>
+                    </dependency>
+                </dependencies>
 				<executions>
 					<execution>
 						<id>jacoco-initialize</id>
@@ -267,20 +274,6 @@
 			<groupId>com.fasterxml.jackson.dataformat</groupId>
 			<artifactId>jackson-dataformat-yaml</artifactId>
 			<version>2.20.1</version>
-		</dependency>
-		<dependency>
-			<groupId>org.jacoco</groupId>
-			<artifactId>jacoco-maven-plugin</artifactId>
-			<version>${jacoco.version}</version>
-		</dependency>
-		<dependency>
-			<!--		Indirect dependency of jacoco-maven-plugin. We add this one
-			explicitly, otherwise the included version-->
-			<!--		would pull maven-artifact-manager-2.0.2 and lead to
-			CVE-2021-26291.-->
-			<groupId>org.apache.maven.shared</groupId>
-			<artifactId>file-management</artifactId>
-			<version>3.2.0</version>
 		</dependency>
 	</dependencies>
 	<scm>

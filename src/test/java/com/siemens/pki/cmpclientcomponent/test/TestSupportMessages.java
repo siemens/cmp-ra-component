@@ -42,6 +42,9 @@ import org.junit.Test;
 public class TestSupportMessages extends CmpClientTestcaseBase {
 
     private static final String UPSTREAM_TRUST_PATH = "credentials/CMP_LRA_DOWNSTREAM_Root.pem";
+
+    private static final Instant TEST_NOW = Instant.parse("2026-01-01T00:00:00Z");
+
     private static final ClientContext clientContext = new ClientContext() {
 
         @Override
@@ -74,7 +77,7 @@ public class TestSupportMessages extends CmpClientTestcaseBase {
     @Test
     public void testCrlUpdateRetrieval() throws Exception {
         final List<X509CRL> crls = getSignatureBasedCmpClient("TestSupportMessages", clientContext, UPSTREAM_TRUST_PATH)
-                .getCrls(null, null, new String[] {"CN=distributionPoint"}, Instant.now());
+                .getCrls(null, null, new String[] {"CN=distributionPoint"}, TEST_NOW);
         assertNotNull("CRL", crls);
     }
 

@@ -41,7 +41,8 @@ import org.bouncycastle.asn1.x509.GeneralName;
 public class HeaderProviderForTest implements HeaderProvider {
     final ASN1OctetString transactionId;
     final ASN1OctetString senderNonce = new DEROctetString(CertUtility.generateRandomBytes(16));
-    private final ASN1GeneralizedTime messageTime = new DERGeneralizedTime(Date.from(Instant.now()));
+    private static final Instant TEST_NOW = Instant.parse("2026-01-01T00:00:00Z");
+    private final ASN1GeneralizedTime messageTime = new DERGeneralizedTime(Date.from(TEST_NOW));
     private final ASN1OctetString recipientNonce;
     private final int pvno;
     private String certProfile = null;

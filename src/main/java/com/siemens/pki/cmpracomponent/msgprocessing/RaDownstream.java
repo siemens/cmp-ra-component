@@ -504,7 +504,7 @@ class RaDownstream {
                         offset = Integer.MAX_VALUE / 2;
                     }
                     persistencyContext.updateTransactionExpirationTime(
-                            Instant.now().plusSeconds(offset + retryAfterTime));
+                            Instant.now().plusSeconds((long) offset + retryAfterTime));
                     persistencyContext.flush();
                 }
             }
