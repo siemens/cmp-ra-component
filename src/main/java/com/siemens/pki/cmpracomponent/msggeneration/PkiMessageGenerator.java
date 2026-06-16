@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2026 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -35,6 +35,7 @@ import java.security.PrivateKey;
 import java.security.Signature;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -217,7 +218,7 @@ public class PkiMessageGenerator {
 
             @Override
             public ASN1GeneralizedTime getMessageTime() {
-                return new ASN1GeneralizedTime(new Date());
+                return new ASN1GeneralizedTime(Date.from(Instant.now()));
             }
 
             @Override
