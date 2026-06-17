@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2026 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import java.io.IOException;
 import java.security.PrivateKey;
-import java.util.Date;
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -40,11 +40,14 @@ public class PersistencyContext {
     @JsonIgnore
     private final TransactionStateTracker transactionStateTracker = new TransactionStateTracker(this);
 
-    private Date expirationTime;
+    private Instant expirationTime;
     private byte[] transactionId;
     private String certProfile;
     private PrivateKey newGeneratedPrivateKey;
-    private Set<CMPCertificate> alreadySentExtraCerts;
+
+    private Set<CMPCertificate> alreadySentExtraCertsToUpStream;
+    private Set<CMPCertificate> alreadySentExtraCertsToDownStream;
+
     private PKIMessage delayedInitialRequest;
     private PKIMessage pendingDelayedResponse;
     private LastTransactionState lastTransactionState;
@@ -94,17 +97,6 @@ public class PersistencyContext {
     }
 
     /**
-     * get sent extra certs, if compression is used
-     * @return already sent extra certs
-     */
-    public Set<CMPCertificate> getAlreadySentExtraCerts() {
-        if (alreadySentExtraCerts == null) {
-            alreadySentExtraCerts = new HashSet<>();
-        }
-        return alreadySentExtraCerts;
-    }
-
-    /**
      * get certificate profile used in transaction
      * @return certificate profile or <code>null</code>
      */
@@ -133,7 +125,7 @@ public class PersistencyContext {
      * get expiration time for related transaction
      * @return expiration time
      */
-    public Date getExpirationTime() {
+    public Instant getExpirationTime() {
         return expirationTime;
     }
 
@@ -218,14 +210,6 @@ public class PersistencyContext {
     }
 
     /**
-     * store  already sent extra certs in case of compression
-     * @param alreadySentExtraCerts already sent extra certs
-     */
-    public void setAlreadySentExtraCerts(final Set<CMPCertificate> alreadySentExtraCerts) {
-        this.alreadySentExtraCerts = alreadySentExtraCerts;
-    }
-
-    /**
      * set certificate profile
      * @param certProfile certificate profile or <code>null</code> if certificate profile should not change
      */
@@ -255,7 +239,7 @@ public class PersistencyContext {
      * set transaction expiration time
      * @param expirationTime transaction expiration time
      */
-    public void setExpirationTime(final Date expirationTime) {
+    public void setExpirationTime(final Instant expirationTime) {
         this.expirationTime = expirationTime;
     }
 
@@ -355,7 +339,7 @@ public class PersistencyContext {
      * update expirationTime
      * @param expirationTime new expirationTime
      */
-    public void updateTransactionExpirationTime(final Date expirationTime) {
+    public void updateTransactionExpirationTime(final Instant expirationTime) {
         // only downstream can expire
         this.expirationTime = expirationTime;
     }
@@ -373,5 +357,61 @@ public class PersistencyContext {
      */
     public boolean isRespondedCertMustBeEncrypted() {
         return respondedCertMustBeEncrypted;
+    }
+
+    /**
+     * Returns the set of extraCerts already sent to the upstream peer for this
+     * transaction. The set is lazily initialized and mutable, allowing callers
+     * to add entries as certificates are sent upstream.
+     *
+     * @return a non-null mutable {@link Set} of upstream-known {@link CMPCertificate}s
+     */
+    public Set<CMPCertificate> getAlreadySentExtraCertsToUpStream() {
+        if (alreadySentExtraCertsToUpStream == null) {
+            alreadySentExtraCertsToUpStream = new HashSet<>();
+        }
+        return alreadySentExtraCertsToUpStream;
+    }
+
+    /**
+     * Replaces the set of extraCerts already sent to the upstream peer.
+     * A defensive copy is created to avoid external mutation of internal state.
+     * If {@code certsKnownToUpstream} is {@code null}, the internal set is reset
+     * to an empty set.
+     *
+     * @param certsKnownToUpstream the new upstream-known certificates, or {@code null}
+     *                             to reset the set to empty
+     */
+    public void setAlreadySentExtraCertsToUpStream(final Set<CMPCertificate> certsKnownToUpstream) {
+        this.alreadySentExtraCertsToUpStream =
+                (certsKnownToUpstream == null) ? new HashSet<>() : new HashSet<>(certsKnownToUpstream);
+    }
+
+    /**
+     * Returns the set of extraCerts already sent to the downstream peer for this
+     * transaction. The set is lazily initialized and mutable, allowing callers
+     * to add entries as certificates are sent downstream.
+     *
+     * @return a non-null mutable {@link Set} of downstream-known {@link CMPCertificate}s
+     */
+    public Set<CMPCertificate> getAlreadySentExtraCertsToDownStream() {
+        if (alreadySentExtraCertsToDownStream == null) {
+            alreadySentExtraCertsToDownStream = new HashSet<>();
+        }
+        return alreadySentExtraCertsToDownStream;
+    }
+
+    /**
+     * Replaces the set of extraCerts already sent to the downstream peer.
+     * A defensive copy is created to avoid external mutation of internal state.
+     * If {@code certsKnownToDownstream} is {@code null}, the internal set is reset
+     * to an empty set.
+     *
+     * @param certsKnownToDownstream the new downstream-known certificates, or
+     *                               {@code null} to reset the set to empty
+     */
+    public void setAlreadySentExtraCertsToDownStream(final Set<CMPCertificate> certsKnownToDownstream) {
+        this.alreadySentExtraCertsToDownStream =
+                (certsKnownToDownstream == null) ? new HashSet<>() : new HashSet<>(certsKnownToDownstream);
     }
 }

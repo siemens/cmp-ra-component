@@ -1,7 +1,5 @@
-package com.siemens.pki.cmpracomponent.configuration;
-
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2026 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -17,7 +15,7 @@ package com.siemens.pki.cmpracomponent.configuration;
  *
  *  SPDX-License-Identifier: Apache-2.0
  */
-
+package com.siemens.pki.cmpracomponent.configuration;
 /**
  * result of a call to
  * {@link InventoryInterface#checkAndModifyCertRequest(byte[], String, byte[], String, byte[])}

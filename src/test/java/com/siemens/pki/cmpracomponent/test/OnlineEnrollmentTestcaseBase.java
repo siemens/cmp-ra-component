@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2020 Siemens AG
+ *  Copyright (c) 2026 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -65,6 +65,7 @@ public class OnlineEnrollmentTestcaseBase extends EnrollmentTestcaseBase {
 
         final PKIMessage cr = PkiMessageGenerator.generateAndProtectMessage(
                 new HeaderProviderForTest("theCertProfileForOnlineEnrollment"), protectionProvider, crBody);
+
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("send:\n" + MessageDumper.dumpPkiMessage(cr));
         }
