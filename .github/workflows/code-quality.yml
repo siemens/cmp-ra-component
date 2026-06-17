@@ -68,9 +68,10 @@ jobs:
         with:
           path: ~/.dependency-check
           key: dependency-check-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
+          restore-keys: dependency-check-${{ runner.os }}-
       - name: Analyze dependencies
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           OSS_INDEX_PASSWORD: ${{ secrets.OSS_INDEX_PASSWORD }}
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-        run: mvn dependency-check:check
+        run: mvn -B dependency-check-maven:check -DdataDirectory=$HOME/.dependency-check
