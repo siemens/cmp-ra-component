@@ -42,7 +42,6 @@ import org.junit.Test;
 public class TestSupportMessages extends CmpClientTestcaseBase {
 
     private static final String UPSTREAM_TRUST_PATH = "credentials/CMP_LRA_DOWNSTREAM_Root.pem";
-
     private static final ClientContext clientContext = new ClientContext() {
 
         @Override
