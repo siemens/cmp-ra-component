@@ -28,7 +28,6 @@ import com.siemens.pki.cmpracomponent.test.framework.HeaderProviderForTest;
 import com.siemens.pki.cmpracomponent.test.framework.TestCertUtility;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.security.cert.CRL;
-import java.time.Instant;
 import java.util.Date;
 import java.util.function.Function;
 import org.bouncycastle.asn1.ASN1Integer;
@@ -60,7 +59,6 @@ import org.slf4j.LoggerFactory;
 public class TestSupportMessages extends CmpTestcaseBase {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TestSupportMessages.class);
-    private static final Instant TEST_NOW = Instant.parse("2026-01-01T00:00:00Z");
 
     @Before
     public void setUp() throws Exception {
@@ -89,7 +87,7 @@ public class TestSupportMessages extends CmpTestcaseBase {
                         new DERSequence(new CRLStatus(
                                 new CRLSource(
                                         null, new GeneralNames(new GeneralName(new X500Name("CN=distributionPoint")))),
-                                new Time(Date.from(TEST_NOW)))))));
+                                new Time(new Date()))))));
         final PKIMessage genm = PkiMessageGenerator.generateAndProtectMessage(
                 new HeaderProviderForTest("CrlUpdateRetrieval"),
                 ConfigurationFactory.getEeSignaturebasedProtectionProvider(),

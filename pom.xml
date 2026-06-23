@@ -145,7 +145,7 @@
 				<configuration>
 					<failBuildOnCVSS>0</failBuildOnCVSS>
 					<suppressionFiles>resources/dependency-check-suppress.xml</suppressionFiles>
-					<nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
+					<ossIndexUsername>${env.OSS_INDEX_USERNAME}</ossIndexUsername>
 					<ossIndexPassword>${env.OSS_INDEX_PASSWORD}</ossIndexPassword>
 				</configuration>
 			</plugin>

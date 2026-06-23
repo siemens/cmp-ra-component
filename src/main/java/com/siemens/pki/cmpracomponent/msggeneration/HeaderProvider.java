@@ -17,7 +17,6 @@
  */
 package com.siemens.pki.cmpracomponent.msggeneration;
 
-import java.time.Instant;
 import java.util.Date;
 import org.bouncycastle.asn1.ASN1GeneralizedTime;
 import org.bouncycastle.asn1.ASN1OctetString;
@@ -39,9 +38,8 @@ public interface HeaderProvider {
      * get MessageTime to be used in CMP header.
      * @return MessageTime
      */
-    @SuppressWarnings("java:S2143")
     default ASN1GeneralizedTime getMessageTime() {
-        return new DERGeneralizedTime(Date.from(Instant.now()));
+        return new DERGeneralizedTime(new Date());
     }
 
     /**

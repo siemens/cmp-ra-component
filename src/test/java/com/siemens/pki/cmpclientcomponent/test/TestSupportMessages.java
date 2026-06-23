@@ -29,7 +29,7 @@ import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
 import com.siemens.pki.cmpracomponent.test.framework.TestCertUtility;
 import java.security.cert.X509CRL;
 import java.security.cert.X509Certificate;
-import java.time.Instant;
+import java.util.Date;
 import java.util.List;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.cmp.CMPObjectIdentifiers;
@@ -42,9 +42,6 @@ import org.junit.Test;
 public class TestSupportMessages extends CmpClientTestcaseBase {
 
     private static final String UPSTREAM_TRUST_PATH = "credentials/CMP_LRA_DOWNSTREAM_Root.pem";
-
-    private static final Instant TEST_NOW = Instant.parse("2026-01-01T00:00:00Z");
-
     private static final ClientContext clientContext = new ClientContext() {
 
         @Override

@@ -35,7 +35,6 @@ import java.security.PrivateKey;
 import java.security.Signature;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
-import java.time.Instant;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -218,7 +217,7 @@ public class PkiMessageGenerator {
 
             @Override
             public ASN1GeneralizedTime getMessageTime() {
-                return new ASN1GeneralizedTime(Date.from(Instant.now()));
+                return new ASN1GeneralizedTime(new Date());
             }
 
             @Override
