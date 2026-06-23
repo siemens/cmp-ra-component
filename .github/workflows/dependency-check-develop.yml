@@ -89,6 +89,10 @@ jobs:
         id: update
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+          NVD_MAX_RETRY: "50"
+          NVD_API_DELAY: "6000"
+          NVD_VALID_HOURS: "720"
+          NVD_RESULTS_PER_PAGE: "2000"
         run: |
           echo "Checking NVD availability..."
 
@@ -101,7 +105,11 @@ jobs:
             echo "Updating DB..."
 
             if mvn org.owasp:dependency-check-maven:update-only \
-                -DnvdApiKey=${NVD_API_KEY}; then
+                -DnvdApiKey=${NVD_API_KEY} \
+                -DnvdMaxRetryCount=${NVD_MAX_RETRY} \
+                -DnvdApiDelay=${NVD_API_DELAY} \
+                -DnvdValidForHours=${NVD_VALID_HOURS} \
+                -DnvdApiResultsPerPage=${NVD_RESULTS_PER_PAGE}; then
               echo "success=true" >> $GITHUB_OUTPUT
             else
               echo "success=false" >> $GITHUB_OUTPUT
@@ -128,10 +136,19 @@ jobs:
         if: github.event.inputs.update_only != 'true'
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+          NVD_MAX_RETRY: "50"
+          NVD_API_DELAY: "6000"
+          NVD_VALID_HOURS: "720"
+          NVD_RESULTS_PER_PAGE: "2000"
         run: |
           mvn dependency-check:check \
             -Ddependency-check.skipUpdates=true \
-            -DfailOnError=false
+            -DfailOnError=false \
+            -DnvdApiKey=${NVD_API_KEY} \
+            -DnvdMaxRetryCount=${NVD_MAX_RETRY} \
+            -DnvdApiDelay=${NVD_API_DELAY} \
+            -DnvdValidForHours=${NVD_VALID_HOURS} \
+            -DnvdApiResultsPerPage=${NVD_RESULTS_PER_PAGE}
 
       # Persist last commit
       - name: Save commit state
