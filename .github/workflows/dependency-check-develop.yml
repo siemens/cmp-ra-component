@@ -87,6 +87,8 @@ jobs:
       # Try updating the DB (safe)
       - name: Update NVD DB
         id: update
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
           echo "Checking NVD availability..."
 
@@ -124,6 +126,8 @@ jobs:
       # Run scan (ONLY if not update-only)
       - name: Run Dependency-Check
         if: github.event.inputs.update_only != 'true'
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
           mvn dependency-check:check \
             -Ddependency-check.skipUpdates=true \
