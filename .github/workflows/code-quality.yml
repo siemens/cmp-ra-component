@@ -8,6 +8,7 @@ on:
   push:
     branches:
       - main
+      - develop
   pull_request:
     types: [opened, synchronize, reopened]
 jobs:
@@ -62,9 +63,15 @@ jobs:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
+      - name: Cache Dependency-Check data
+        uses: actions/cache@v4
+        with:
+          path: ~/.dependency-check
+          key: dependency-check-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
+          restore-keys: dependency-check-${{ runner.os }}-
       - name: Analyze dependencies
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           OSS_INDEX_PASSWORD: ${{ secrets.OSS_INDEX_PASSWORD }}
-          OSS_INDEX_USERNAME: ${{ secrets.OSS_INDEX_USERNAME }}
-        run: mvn dependency-check:check -DnvdApiKey=${{ secrets.NVD_TOKEN }}
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: mvn -B dependency-check:check -DdataDirectory=$HOME/.dependency-check
