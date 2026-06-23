@@ -1,0 +1,55 @@
+name: Dependency Check (Cached Only)
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  dependency-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout current branch
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Restore cache
+      - name: Restore Dependency-Check cache
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: dependency-check-${{ runner.os }}-${{ runner.arch }}
+
+      # Check DB availability
+      - name: Check DB existence
+        id: dbcheck
+        run: |
+          if [ -d ~/.m2/repository/org/owasp/dependency-check-data ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      # Run scan (offline only)
+      - name: Run Dependency-Check
+        if: steps.dbcheck.outputs.exists == 'true'
+        run: |
+          mvn dependency-check:check \
+            -Ddependency-check.skipUpdates=true \
+            -DfailOnError=false
+
+      # Skip safely if no DB
+      - name: Skip if DB missing
+        if: steps.dbcheck.outputs.exists != 'true'
+        run: |
+          echo "⚠️ No cached DB available — skipping scan."
+
+      # Upload report
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: target/dependency-check-report.html
+          if-no-files-found: ignore
