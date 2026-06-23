@@ -77,7 +77,7 @@ public class TestSupportMessages extends CmpClientTestcaseBase {
     @Test
     public void testCrlUpdateRetrieval() throws Exception {
         final List<X509CRL> crls = getSignatureBasedCmpClient("TestSupportMessages", clientContext, UPSTREAM_TRUST_PATH)
-                .getCrls(null, null, new String[] {"CN=distributionPoint"}, TEST_NOW);
+                .getCrls(null, null, new String[] {"CN=distributionPoint"}, new Date().toInstant());
         assertNotNull("CRL", crls);
     }
 
