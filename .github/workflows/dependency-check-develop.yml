@@ -1,0 +1,140 @@
+name: Dependency Check (Develop Cache Builder)
+
+on:
+  schedule:
+    - cron: "0 0 * * *"   # midnight daily
+  workflow_dispatch:
+    inputs:
+      force_update:
+        description: "Force update even if no changes"
+        required: false
+        default: "false"
+      update_only:
+        description: "Only update cache (skip scan)"
+        required: false
+        default: "false"
+
+jobs:
+  dependency-check-develop:
+    runs-on: ubuntu-latest
+
+    env:
+      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+      CACHE_KEY: dependency-check-${{ runner.os }}-${{ runner.arch }}
+
+    steps:
+      # Checkout develop branch
+      - name: Checkout develop
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      # Get current commit hash
+      - name: Get current commit
+        id: current
+        run: echo "commit=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+      # Restore last processed commit
+      - name: Restore last state
+        uses: actions/download-artifact@v4
+        with:
+          name: last-run-state
+        continue-on-error: true
+
+      - name: Read last commit
+        id: lastcommit
+        run: |
+          if [ -f last_commit.txt ]; then
+            LAST=$(cat last_commit.txt)
+          else
+            LAST="none"
+          fi
+          echo "last=$LAST" >> $GITHUB_OUTPUT
+
+      # Detect changes
+      - name: Detect changes
+        id: compare
+        run: |
+          if [ "${{ steps.current.outputs.commit }}" = "${{ steps.lastcommit.outputs.last }}" ]; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      # Skip unless change OR forced
+      - name: Skip if no changes
+        if: steps.compare.outputs.changed == 'false' && github.event.inputs.force_update != 'true'
+        run: |
+          echo " No changes and no force → skipping."
+          exit 0
+
+      # Restore cache (always)
+      - name: Restore Dependency-Check cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: ${{ env.CACHE_KEY }}
+
+      # Try updating the DB (safe)
+      - name: Update NVD DB
+        id: update
+        run: |
+          echo "Checking NVD availability..."
+
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "https://services.nvd.nist.gov/rest/json/cves/2.0?resultsPerPage=1")
+
+          echo "NVD status: $STATUS"
+
+          if [ "$STATUS" = "200" ]; then
+            echo "Updating DB..."
+
+            if mvn org.owasp:dependency-check-maven:12.2.0:update-only \
+                -DnvdApiKey=${NVD_API_KEY}; then
+              echo "success=true" >> $GITHUB_OUTPUT
+            else
+              echo "success=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "success=false" >> $GITHUB_OUTPUT
+          fi
+
+      # Save cache ONLY if update succeeded
+      - name: Save updated cache
+        if: steps.update.outputs.success == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: ${{ env.CACHE_KEY }}
+
+      # Info for update-only mode
+      - name: Info (update-only mode)
+        if: github.event.inputs.update_only == 'true'
+        run: echo "Update-only mode enabled → skipping scan"
+
+      # Run scan (ONLY if not update-only)
+      - name: Run Dependency-Check
+        if: github.event.inputs.update_only != 'true'
+        run: |
+          mvn dependency-check:check \
+            -Ddependency-check.skipUpdates=true \
+            -DfailOnError=false
+
+      # Persist last commit
+      - name: Save commit state
+        run: echo "${{ steps.current.outputs.commit }}" > last_commit.txt
+
+      - name: Upload commit state
+        uses: actions/upload-artifact@v4
+        with:
+          name: last-run-state
+          path: last_commit.txt
+
+      # Upload report
+      - name: Upload report
+        if: github.event.inputs.update_only != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report-develop
+          path: target/dependency-check-report.html
+          if-no-files-found: ignore
