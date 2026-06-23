@@ -8,9 +8,6 @@ jobs:
   dependency-check:
     runs-on: ubuntu-latest
 
-    env:
-      CACHE_KEY: dependency-check-${{ runner.os }}-${{ runner.arch }}
-
     steps:
       # Checkout current branch
       - name: Checkout
@@ -22,7 +19,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: ${{ env.CACHE_KEY }}
+          key: dependency-check-${{ runner.os }}-${{ runner.arch }}
 
       # Check DB availability
       - name: Check DB existence
