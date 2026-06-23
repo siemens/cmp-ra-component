@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2026 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -60,9 +60,9 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.cert.X509Certificate;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Date;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -504,7 +504,7 @@ class RaDownstream {
                         offset = Integer.MAX_VALUE / 2;
                     }
                     persistencyContext.updateTransactionExpirationTime(
-                            new Date(System.currentTimeMillis() + (offset + retryAfterTime) * 1000L));
+                            Instant.now().plusSeconds((long) offset + retryAfterTime));
                     persistencyContext.flush();
                 }
             }
@@ -645,13 +645,16 @@ class RaDownstream {
                     "InventoryInterface.checkRevocationRequest(byte[], String, String, String, byte[])",
                     () -> inventory.checkRevocationRequest(
                             persistencyContext.getTransactionId(),
-                            ifNotNull(incomingRequest.getHeader().getSender(), sender -> X500Name.getInstance(
-                                            sender.getName())
-                                    .toString()),
-                            ifNotNull(revTemplate, template -> template.getSerialNumber()
-                                    .toString()),
-                            ifNotNull(revTemplate, template -> template.getIssuer()
-                                    .toString()),
+                            ifNotNull(
+                                    incomingRequest.getHeader().getSender(),
+                                    sender -> X500Name.getInstance(sender.getName())
+                                            .toString()),
+                            ifNotNull(
+                                    revTemplate,
+                                    template -> template.getSerialNumber().toString()),
+                            ifNotNull(
+                                    revTemplate,
+                                    template -> template.getIssuer().toString()),
                             encodedIncomingRequest))) {
                 throw new CmpValidationException(
                         INTERFACE_NAME, PKIFailureInfo.badRequest, "request refused by external inventory");

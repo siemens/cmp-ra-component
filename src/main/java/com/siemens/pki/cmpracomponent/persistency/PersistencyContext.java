@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2026 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import com.siemens.pki.cmpracomponent.msgvalidation.BaseCmpException;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import java.io.IOException;
 import java.security.PrivateKey;
-import java.util.Date;
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -40,7 +40,7 @@ public class PersistencyContext {
     @JsonIgnore
     private final TransactionStateTracker transactionStateTracker = new TransactionStateTracker(this);
 
-    private Date expirationTime;
+    private Instant expirationTime;
     private byte[] transactionId;
     private String certProfile;
     private PrivateKey newGeneratedPrivateKey;
@@ -133,7 +133,7 @@ public class PersistencyContext {
      * get expiration time for related transaction
      * @return expiration time
      */
-    public Date getExpirationTime() {
+    public Instant getExpirationTime() {
         return expirationTime;
     }
 
@@ -255,7 +255,7 @@ public class PersistencyContext {
      * set transaction expiration time
      * @param expirationTime transaction expiration time
      */
-    public void setExpirationTime(final Date expirationTime) {
+    public void setExpirationTime(final Instant expirationTime) {
         this.expirationTime = expirationTime;
     }
 
@@ -355,7 +355,7 @@ public class PersistencyContext {
      * update expirationTime
      * @param expirationTime new expirationTime
      */
-    public void updateTransactionExpirationTime(final Date expirationTime) {
+    public void updateTransactionExpirationTime(final Instant expirationTime) {
         // only downstream can expire
         this.expirationTime = expirationTime;
     }
