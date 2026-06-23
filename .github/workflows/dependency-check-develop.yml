@@ -98,7 +98,7 @@ jobs:
           if [ "$STATUS" = "200" ]; then
             echo "Updating DB..."
 
-            if mvn org.owasp:dependency-check-maven:12.2.0:update-only \
+            if mvn org.owasp:dependency-check-maven:update-only \
                 -DnvdApiKey=${NVD_API_KEY}; then
               echo "success=true" >> $GITHUB_OUTPUT
             else
