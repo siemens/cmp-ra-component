@@ -1,6 +1,7 @@
 name: Dependency Check (Develop Cache Builder)
 
 on:
+  push:
   schedule:
     - cron: "0 0 * * *"   # midnight daily
   workflow_dispatch:
