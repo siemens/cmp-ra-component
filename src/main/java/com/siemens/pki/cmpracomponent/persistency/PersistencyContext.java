@@ -44,7 +44,10 @@ public class PersistencyContext {
     private byte[] transactionId;
     private String certProfile;
     private PrivateKey newGeneratedPrivateKey;
-    private Set<CMPCertificate> alreadySentExtraCerts;
+
+    private Set<CMPCertificate> alreadySentExtraCertsToUpStream;
+    private Set<CMPCertificate> alreadySentExtraCertsToDownStream;
+
     private PKIMessage delayedInitialRequest;
     private PKIMessage pendingDelayedResponse;
     private LastTransactionState lastTransactionState;
@@ -91,17 +94,6 @@ public class PersistencyContext {
         } else {
             contextManager.flushPersistencyContext(this);
         }
-    }
-
-    /**
-     * get sent extra certs, if compression is used
-     * @return already sent extra certs
-     */
-    public Set<CMPCertificate> getAlreadySentExtraCerts() {
-        if (alreadySentExtraCerts == null) {
-            alreadySentExtraCerts = new HashSet<>();
-        }
-        return alreadySentExtraCerts;
     }
 
     /**
@@ -215,14 +207,6 @@ public class PersistencyContext {
      */
     public boolean isImplicitConfirmGranted() {
         return implicitConfirmGranted;
-    }
-
-    /**
-     * store  already sent extra certs in case of compression
-     * @param alreadySentExtraCerts already sent extra certs
-     */
-    public void setAlreadySentExtraCerts(final Set<CMPCertificate> alreadySentExtraCerts) {
-        this.alreadySentExtraCerts = alreadySentExtraCerts;
     }
 
     /**
@@ -373,5 +357,61 @@ public class PersistencyContext {
      */
     public boolean isRespondedCertMustBeEncrypted() {
         return respondedCertMustBeEncrypted;
+    }
+
+    /**
+     * Returns the set of extraCerts already sent to the upstream peer for this
+     * transaction. The set is lazily initialized and mutable, allowing callers
+     * to add entries as certificates are sent upstream.
+     *
+     * @return a non-null mutable {@link Set} of upstream-known {@link CMPCertificate}s
+     */
+    public Set<CMPCertificate> getAlreadySentExtraCertsToUpStream() {
+        if (alreadySentExtraCertsToUpStream == null) {
+            alreadySentExtraCertsToUpStream = new HashSet<>();
+        }
+        return alreadySentExtraCertsToUpStream;
+    }
+
+    /**
+     * Replaces the set of extraCerts already sent to the upstream peer.
+     * A defensive copy is created to avoid external mutation of internal state.
+     * If {@code certsKnownToUpstream} is {@code null}, the internal set is reset
+     * to an empty set.
+     *
+     * @param certsKnownToUpstream the new upstream-known certificates, or {@code null}
+     *                             to reset the set to empty
+     */
+    public void setAlreadySentExtraCertsToUpStream(final Set<CMPCertificate> certsKnownToUpstream) {
+        this.alreadySentExtraCertsToUpStream =
+                (certsKnownToUpstream == null) ? new HashSet<>() : new HashSet<>(certsKnownToUpstream);
+    }
+
+    /**
+     * Returns the set of extraCerts already sent to the downstream peer for this
+     * transaction. The set is lazily initialized and mutable, allowing callers
+     * to add entries as certificates are sent downstream.
+     *
+     * @return a non-null mutable {@link Set} of downstream-known {@link CMPCertificate}s
+     */
+    public Set<CMPCertificate> getAlreadySentExtraCertsToDownStream() {
+        if (alreadySentExtraCertsToDownStream == null) {
+            alreadySentExtraCertsToDownStream = new HashSet<>();
+        }
+        return alreadySentExtraCertsToDownStream;
+    }
+
+    /**
+     * Replaces the set of extraCerts already sent to the downstream peer.
+     * A defensive copy is created to avoid external mutation of internal state.
+     * If {@code certsKnownToDownstream} is {@code null}, the internal set is reset
+     * to an empty set.
+     *
+     * @param certsKnownToDownstream the new downstream-known certificates, or
+     *                               {@code null} to reset the set to empty
+     */
+    public void setAlreadySentExtraCertsToDownStream(final Set<CMPCertificate> certsKnownToDownstream) {
+        this.alreadySentExtraCertsToDownStream =
+                (certsKnownToDownstream == null) ? new HashSet<>() : new HashSet<>(certsKnownToDownstream);
     }
 }

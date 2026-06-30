@@ -394,7 +394,7 @@ class RaDownstream {
                                     config::getDownstreamConfiguration,
                                     null,
                                     PKIBody.TYPE_ERROR),
-                            INTERFACE_NAME,
+                            StreamType.downstream(INTERFACE_NAME),
                             null);
                     return protector.generateAndProtectResponseTo(
                             in,
@@ -446,7 +446,7 @@ class RaDownstream {
                         ifNotNull(persistencyContext, PersistencyContext::getCertProfile),
                         responseBodyType);
                 PKIMessage protectedResponse = new MsgOutputProtector(
-                                downstreamConfiguration, INTERFACE_NAME, messageContext)
+                                downstreamConfiguration, StreamType.downstream(INTERFACE_NAME), messageContext)
                         .protectOutgoingMessage(
                                 new PKIMessage(
                                         responseFromUpstream.getHeader(),
@@ -468,7 +468,9 @@ class RaDownstream {
                     return protectedResponse;
                 }
                 return new MsgOutputProtector(
-                                nestedEndpointContext, NESTED_INTERFACE_NAME, messageContext.getCredentialContext())
+                                nestedEndpointContext,
+                                StreamType.downstream(NESTED_INTERFACE_NAME),
+                                messageContext.getCredentialContext())
                         .createOutgoingMessage(
                                 PkiMessageGenerator.buildForwardingHeaderProvider(protectedResponse),
                                 new PKIBody(PKIBody.TYPE_NESTED, new PKIMessages(protectedResponse)));
@@ -480,7 +482,8 @@ class RaDownstream {
                         config::getDownstreamConfiguration,
                         ifNotNull(persistencyContext, PersistencyContext::getCertProfile),
                         errorBody.getType());
-                return new MsgOutputProtector(downstreamConfiguration, INTERFACE_NAME, messageContext)
+                return new MsgOutputProtector(
+                                downstreamConfiguration, StreamType.downstream(INTERFACE_NAME), messageContext)
                         .generateAndProtectResponseTo(in, errorBody);
             } catch (final RuntimeException ex) {
                 final PKIBody errorBody = new CmpProcessingException(INTERFACE_NAME, ex).asErrorBody();
@@ -490,7 +493,8 @@ class RaDownstream {
                         config::getDownstreamConfiguration,
                         ifNotNull(persistencyContext, PersistencyContext::getCertProfile),
                         errorBody.getType());
-                return new MsgOutputProtector(downstreamConfiguration, INTERFACE_NAME, messageContext)
+                return new MsgOutputProtector(
+                                downstreamConfiguration, StreamType.downstream(INTERFACE_NAME), messageContext)
                         .generateAndProtectResponseTo(in, errorBody);
             } finally {
                 if (persistencyContext != null) {
@@ -564,7 +568,7 @@ class RaDownstream {
                 Arrays.stream(embeddedMessages).map(this::handleInputMessage).toArray(PKIMessage[]::new);
         // batched responses needs to be wrapped in a new NESTED response
         MsgOutputProtector nestedOutputProtector =
-                new MsgOutputProtector(nestedEndpointContext, INTERFACE_NAME, credentialContext);
+                new MsgOutputProtector(nestedEndpointContext, StreamType.downstream(INTERFACE_NAME), credentialContext);
         return nestedOutputProtector.generateAndProtectResponseTo(
                 in, new PKIBody(PKIBody.TYPE_NESTED, new PKIMessages(responses)));
     }

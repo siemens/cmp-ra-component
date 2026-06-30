@@ -25,6 +25,7 @@ import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface.Reprotec
 import com.siemens.pki.cmpracomponent.configuration.CredentialContext;
 import com.siemens.pki.cmpracomponent.configuration.NestedEndpointContext;
 import com.siemens.pki.cmpracomponent.configuration.SharedSecretCredentialContext;
+import com.siemens.pki.cmpracomponent.msgprocessing.StreamType;
 import com.siemens.pki.cmpracomponent.msgvalidation.CmpProcessingException;
 import com.siemens.pki.cmpracomponent.msgvalidation.MessageContext;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContext;
@@ -57,6 +58,7 @@ public class MsgOutputProtector {
     private static final CMPCertificate[] EMPTY_CERTIFCATE_ARRAY = {};
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MsgOutputProtector.class);
+    private final StreamType streamType;
 
     private final CmpMessageInterface.ReprotectMode reprotectMode;
 
@@ -72,73 +74,76 @@ public class MsgOutputProtector {
     /**
      * ctor
      * @param config             specific configuration
-     * @param interfaceName      name of interface used in logging messages
+     * @param streamType         stream type with name and direction used in logging messages
      * @param messageContext     reference to transaction specific
      *                           {@link MessageContext}
      * @throws CmpProcessingException   in case of inconsistent configuration
      * @throws GeneralSecurityException in case of broken configuration
      */
     public MsgOutputProtector(
-            final CmpMessageInterface config, final String interfaceName, final MessageContext messageContext)
+            final CmpMessageInterface config, final StreamType streamType, final MessageContext messageContext)
             throws CmpProcessingException, GeneralSecurityException {
         persistencyContext = ifNotNull(messageContext, MessageContext::getPersistencyContext);
+        this.streamType = streamType;
         suppressRedundantExtraCerts = ConfigLogger.log(
-                interfaceName,
+                streamType.name(),
                 "CmpMessageInterface.getSuppressRedundantExtraCerts()",
                 config::getSuppressRedundantExtraCerts);
         recipient = ifNotNull(
-                ConfigLogger.logOptional(interfaceName, "CmpMessageInterface.getRecipient()", config::getRecipient),
+                ConfigLogger.logOptional(streamType.name(), "CmpMessageInterface.getRecipient()", config::getRecipient),
                 rec -> new GeneralName(new X500Name(rec)));
         final CredentialContext verificationCredentials =
                 ifNotNull(messageContext, MessageContext::getCredentialContext);
         if (verificationCredentials instanceof SharedSecretCredentialContext) {
             protectionCredentials = verificationCredentials;
             if (ConfigLogger.log(
-                    interfaceName, "CmpMessageInterface.enforceReprotectMode()", config::isEnforceReprotectMode)) {
+                    streamType.name(), "CmpMessageInterface.enforceReprotectMode()", config::isEnforceReprotectMode)) {
                 reprotectMode = ConfigLogger.log(
-                        interfaceName, "CmpMessageInterface.getReprotectMode()", config::getReprotectMode);
+                        streamType.name(), "CmpMessageInterface.getReprotectMode()", config::getReprotectMode);
             } else {
                 reprotectMode = ReprotectMode.reprotect;
             }
         } else {
-            reprotectMode =
-                    ConfigLogger.log(interfaceName, "CmpMessageInterface.getReprotectMode()", config::getReprotectMode);
+            reprotectMode = ConfigLogger.log(
+                    streamType.name(), "CmpMessageInterface.getReprotectMode()", config::getReprotectMode);
             protectionCredentials = ConfigLogger.logOptional(
-                    interfaceName, "CmpMessageInterface.getOutputCredentials()", config::getOutputCredentials);
+                    streamType.name(), "CmpMessageInterface.getOutputCredentials()", config::getOutputCredentials);
             if (reprotectMode == ReprotectMode.reprotect && protectionCredentials == null) {
                 throw new CmpProcessingException(
-                        interfaceName,
+                        streamType.name(),
                         PKIFailureInfo.wrongAuthority,
                         "reprotectMode is reprotect, but no output credentials are given");
             }
         }
-        protector = ProtectionProviderFactory.createProtectionProvider(protectionCredentials, interfaceName);
+        protector = ProtectionProviderFactory.createProtectionProvider(protectionCredentials, streamType.name());
     }
 
     /**
      * ctor
      * @param config             specific configuration
-     * @param interfaceName      name of interface used in logging messages
+     * @param streamType         stream type with name and direction used in logging messages
      * @param credentialContext  credentialContext from related request, if request was password protected
      * @throws CmpProcessingException   in case of inconsistent configuration
      * @throws GeneralSecurityException in case of broken configuration
      */
     public MsgOutputProtector(
-            final NestedEndpointContext config, final String interfaceName, final CredentialContext credentialContext)
+            final NestedEndpointContext config, final StreamType streamType, final CredentialContext credentialContext)
             throws CmpProcessingException, GeneralSecurityException {
         this.persistencyContext = null;
+        this.streamType = streamType;
         suppressRedundantExtraCerts = false;
         reprotectMode = ReprotectMode.reprotect;
         recipient = ifNotNull(
-                ConfigLogger.logOptional(interfaceName, "NestedEndpointContext.getRecipient()", config::getRecipient),
+                ConfigLogger.logOptional(
+                        streamType.name(), "NestedEndpointContext.getRecipient()", config::getRecipient),
                 rec -> new GeneralName(new X500Name(rec)));
         if (credentialContext instanceof SharedSecretCredentialContext) {
             protectionCredentials = credentialContext;
         } else {
             protectionCredentials = ConfigLogger.logOptional(
-                    interfaceName, "NestedEndpointContext.getOutputCredentials()", config::getOutputCredentials);
+                    streamType.name(), "NestedEndpointContext.getOutputCredentials()", config::getOutputCredentials);
         }
-        protector = ProtectionProviderFactory.createProtectionProvider(protectionCredentials, interfaceName);
+        protector = ProtectionProviderFactory.createProtectionProvider(protectionCredentials, streamType.name());
     }
 
     /**
@@ -236,7 +241,7 @@ public class MsgOutputProtector {
         }
     }
 
-    private synchronized PKIMessage stripRedundantExtraCerts(PKIMessage msg) {
+    protected synchronized PKIMessage stripRedundantExtraCerts(PKIMessage msg) {
         if (!suppressRedundantExtraCerts || persistencyContext == null) {
             return msg;
         }
@@ -246,8 +251,14 @@ public class MsgOutputProtector {
             return msg;
         }
 
+        final Set<CMPCertificate> alreadySentExtraCerts;
         final List<CMPCertificate> extraCertsAsList = new LinkedList<>(Arrays.asList(extraCerts));
-        final Set<CMPCertificate> alreadySentExtraCerts = persistencyContext.getAlreadySentExtraCerts();
+
+        if (streamType.isDownstream()) {
+            alreadySentExtraCerts = persistencyContext.getAlreadySentExtraCertsToDownStream();
+        } else {
+            alreadySentExtraCerts = persistencyContext.getAlreadySentExtraCertsToUpStream();
+        }
 
         if (extraCertsAsList.removeAll(alreadySentExtraCerts)) {
             // were able to drop some extra certs

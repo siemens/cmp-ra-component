@@ -133,7 +133,9 @@ class CmpRaUpstream implements RaUpstream {
                 sentMessage = in;
             } else {
                 final MsgOutputProtector outputProtector = new MsgOutputProtector(
-                        upstreamConfiguration, INTERFACE_NAME, new MessageContext(persistencyContext, null));
+                        upstreamConfiguration,
+                        StreamType.upstream(INTERFACE_NAME),
+                        new MessageContext(persistencyContext, null));
                 sentMessage = outputProtector.protectOutgoingMessage(in, null);
             }
             final NestedEndpointContext nestedEndpointContext = ConfigLogger.logOptional(
@@ -142,7 +144,7 @@ class CmpRaUpstream implements RaUpstream {
                     upstreamConfiguration::getNestedEndpointContext);
             if (nestedEndpointContext != null) {
                 final MsgOutputProtector nestedProtector =
-                        new MsgOutputProtector(nestedEndpointContext, "NESTED CMP upstream", null);
+                        new MsgOutputProtector(nestedEndpointContext, StreamType.upstream("NESTED CMP upstream"), null);
                 // wrap into nested message
                 sentMessage = nestedProtector.protectOutgoingMessage(
                         new PKIMessage(

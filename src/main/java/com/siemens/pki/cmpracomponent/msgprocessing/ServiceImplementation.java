@@ -268,7 +268,7 @@ class ServiceImplementation {
                             config::getDownstreamConfiguration,
                             ifNotNull(messageContext.getPersistencyContext(), PersistencyContext::getCertProfile),
                             body.getType()),
-                    INTERFACE_NAME,
+                    StreamType.downstream(INTERFACE_NAME),
                     messageContext);
             return protector.generateAndProtectResponseTo(msg, body);
         } catch (final BaseCmpException ex) {
