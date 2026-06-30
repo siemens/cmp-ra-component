@@ -89,6 +89,7 @@ jobs:
         id: update
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+          OSS_INDEX_PASSWORD: ${{ secrets.OSS_INDEX_PASSWORD }}
           NVD_MAX_RETRY: "50"
           NVD_API_DELAY: "6000"
           NVD_VALID_HOURS: "720"
@@ -136,6 +137,7 @@ jobs:
         if: github.event.inputs.update_only != 'true'
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+          OSS_INDEX_PASSWORD: ${{ secrets.OSS_INDEX_PASSWORD }}
           NVD_MAX_RETRY: "50"
           NVD_API_DELAY: "6000"
           NVD_VALID_HOURS: "720"
