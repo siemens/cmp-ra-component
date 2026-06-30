@@ -1,15 +1,12 @@
-name: Dependency Check (Develop Cache Builder)
+name: Dependency Check (Cache Builder)
 
 on:
-  push:
-    branches:
-      - develop
   schedule:
-    - cron: "0 0 * * *"   # midnight daily
+    - cron: "0 0 * * *"   # runs daily at 00:00 UTC
   workflow_dispatch:
     inputs:
       force_update:
-        description: "Force update even if no changes"
+        description: "Force update even if already fresh"
         required: false
         default: "false"
       update_only:
@@ -18,58 +15,14 @@ on:
         default: "false"
 
 jobs:
-  dependency-check-develop:
+  dependency-check-cache:
     runs-on: ubuntu-latest
 
-    env:
-      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-
     steps:
-      # Checkout develop branch
-      - name: Checkout develop
+      # Checkout repository (default branch)
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: develop
 
-      # Get current commit hash
-      - name: Get current commit
-        id: current
-        run: echo "commit=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
-
-      # Restore last processed commit
-      - name: Restore last state
-        uses: actions/download-artifact@v4
-        with:
-          name: last-run-state
-        continue-on-error: true
-
-      - name: Read last commit
-        id: lastcommit
-        run: |
-          if [ -f last_commit.txt ]; then
-            LAST=$(cat last_commit.txt)
-          else
-            LAST="none"
-          fi
-          echo "last=$LAST" >> $GITHUB_OUTPUT
-
-      # Detect changes
-      - name: Detect changes
-        id: compare
-        run: |
-          if [ "${{ steps.current.outputs.commit }}" = "${{ steps.lastcommit.outputs.last }}" ]; then
-            echo "changed=false" >> $GITHUB_OUTPUT
-          else
-            echo "changed=true" >> $GITHUB_OUTPUT
-          fi
-
-      # Skip unless change OR forced
-      - name: Skip if no changes
-        if: steps.compare.outputs.changed == 'false' && github.event.inputs.force_update != 'true'
-        run: |
-          echo " No changes and no force → skipping."
-          exit 0
-      
       # Restore Maven dependencies
       - name: Cache Maven dependencies
         uses: actions/cache@v4
@@ -79,22 +32,31 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-m2-
 
-      # Restore cache (always)
+      # Restore Dependency-Check cache
       - name: Restore Dependency-Check cache
+        id: dccache
         uses: actions/cache/restore@v4
         with:
           path: ~/.m2/repository/org/owasp/dependency-check-data
           key: dependency-check-${{ runner.os }}-${{ runner.arch }}
 
-      # Try updating the DB (safe)
+      # Debug cache state
+      - name: Debug cache state
+        run: |
+          echo "Cache hit: ${{ steps.dccache.outputs.cache-hit }}"
+          ls -la ~/.m2/repository/org/owasp || true
+          ls -la ~/.m2/repository/org/owasp/dependency-check-data || true
+
+      # Update NVD DB
       - name: Update NVD DB
         id: update
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+          OSS_INDEX_USERNAME: ${{ secrets.OSS_INDEX_USERNAME }}
           OSS_INDEX_PASSWORD: ${{ secrets.OSS_INDEX_PASSWORD }}
           NVD_MAX_RETRY: "50"
           NVD_API_DELAY: "6000"
-          NVD_VALID_HOURS: "720"
+          NVD_VALID_HOURS: "24"
           NVD_RESULTS_PER_PAGE: "2000"
         run: |
           echo "Checking NVD availability..."
@@ -118,6 +80,7 @@ jobs:
               echo "success=false" >> $GITHUB_OUTPUT
             fi
           else
+            echo "NVD unavailable → skipping update"
             echo "success=false" >> $GITHUB_OUTPUT
           fi
 
@@ -129,46 +92,28 @@ jobs:
           path: ~/.m2/repository/org/owasp/dependency-check-data
           key: dependency-check-${{ runner.os }}-${{ runner.arch }}
 
-      # Info for update-only mode
+      # Update-only mode info
       - name: Info (update-only mode)
         if: github.event.inputs.update_only == 'true'
         run: echo "Update-only mode enabled → skipping scan"
 
-      # Run scan (ONLY if not update-only)
+      # Run scan (optional)
       - name: Run Dependency-Check
         if: github.event.inputs.update_only != 'true'
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+          OSS_INDEX_USERNAME: ${{ secrets.OSS_INDEX_USERNAME }}
           OSS_INDEX_PASSWORD: ${{ secrets.OSS_INDEX_PASSWORD }}
-          NVD_MAX_RETRY: "50"
-          NVD_API_DELAY: "6000"
-          NVD_VALID_HOURS: "720"
-          NVD_RESULTS_PER_PAGE: "2000"
         run: |
           mvn dependency-check:check \
             -Ddependency-check.skipUpdates=true \
-            -DfailOnError=false \
-            -DnvdApiKey=${NVD_API_KEY} \
-            -DnvdMaxRetryCount=${NVD_MAX_RETRY} \
-            -DnvdApiDelay=${NVD_API_DELAY} \
-            -DnvdValidForHours=${NVD_VALID_HOURS} \
-            -DnvdApiResultsPerPage=${NVD_RESULTS_PER_PAGE}
-
-      # Persist last commit
-      - name: Save commit state
-        run: echo "${{ steps.current.outputs.commit }}" > last_commit.txt
-
-      - name: Upload commit state
-        uses: actions/upload-artifact@v4
-        with:
-          name: last-run-state
-          path: last_commit.txt
-
+            -DfailOnError=false
+      
       # Upload report
       - name: Upload report
         if: github.event.inputs.update_only != 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: dependency-check-report-develop
+          name: dependency-check-report
           path: target/dependency-check-report.html
           if-no-files-found: ignore

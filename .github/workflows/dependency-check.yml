@@ -7,18 +7,12 @@ on:
 jobs:
   dependency-check:
     runs-on: ubuntu-latest
-    
-    env:
-      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-      OSS_INDEX_PASSWORD: ${{ secrets.OSS_INDEX_PASSWORD }}
 
     steps:
-      # Checkout current branch
-      - name: Checkout
+      - name: Checkout Current Branch 
         uses: actions/checkout@v4
-        
-      # Restore Maven dependencies
-      - name: Cache Maven dependencies
+
+      - name: Restore Cached Maven Dependencies
         uses: actions/cache@v4
         with:
           path: ~/.m2/repository
@@ -26,7 +20,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-m2-
 
-      # Restore cache
       - name: Restore Dependency-Check cache
         id: cache
         uses: actions/cache/restore@v4
@@ -34,26 +27,32 @@ jobs:
           path: ~/.m2/repository/org/owasp/dependency-check-data
           key: dependency-check-${{ runner.os }}-${{ runner.arch }}
 
-      # Check DB availability
-      - name: Check DB existence
+      - name: Check Cached Dependency-Check DB existence
         id: dbcheck
         run: |
-          if [ -d ~/.m2/repository/org/owasp/dependency-check-data ]; then
+          echo "Checking Dependency-Check DB..."
+          if ls ~/.m2/repository/org/owasp/dependency-check-data/*.db 1> /dev/null 2>&1; then
+            echo "Valid DB found"
             echo "exists=true" >> $GITHUB_OUTPUT
           else
+            echo "No DB files found"
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
       # Run scan (offline only)
-      - name: Run Dependency-Check
+      - name: Run Dependency-Check (if cached DB awailable)
         if: steps.dbcheck.outputs.exists == 'true'
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+          OSS_INDEX_USERNAME: ${{ secrets.OSS_INDEX_USERNAME }}
+          OSS_INDEX_PASSWORD: ${{ secrets.OSS_INDEX_PASSWORD }}
         run: |
           mvn dependency-check:check \
             -Ddependency-check.skipUpdates=true \
             -DfailOnError=false
 
       # Skip safely if no DB
-      - name: Skip if DB missing
+      - name: Skip if cached Dependency DB missing
         if: steps.dbcheck.outputs.exists != 'true'
         run: |
           echo "No cached DB available — skipping scan."
