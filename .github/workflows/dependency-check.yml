@@ -7,11 +7,24 @@ on:
 jobs:
   dependency-check:
     runs-on: ubuntu-latest
+    
+    env:
+      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+      OSS_INDEX_PASSWORD: ${{ secrets.OSS_INDEX_PASSWORD }}
 
     steps:
       # Checkout current branch
       - name: Checkout
         uses: actions/checkout@v4
+        
+      # Restore Maven dependencies
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-m2-
 
       # Restore cache
       - name: Restore Dependency-Check cache
@@ -43,7 +56,7 @@ jobs:
       - name: Skip if DB missing
         if: steps.dbcheck.outputs.exists != 'true'
         run: |
-          echo "⚠️ No cached DB available — skipping scan."
+          echo "No cached DB available — skipping scan."
 
       # Upload report
       - name: Upload report
