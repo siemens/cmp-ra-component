@@ -8,7 +8,7 @@
 	<groupId>com.siemens.pki</groupId>
 	<artifactId>CmpRaComponent</artifactId>
 	<packaging>jar</packaging>
-	<version>4.3.0</version>
+	<version>4.4.0</version>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<parent.basedir>.</parent.basedir>
@@ -131,25 +131,6 @@
 					</java>
 				</configuration>
 			</plugin>
-			<!--<plugin>
-				<groupId>org.owasp</groupId>
-				<artifactId>dependency-check-maven</artifactId>
-				<version>12.2.2</version>
-				<executions>
-					<execution>
-						<goals>
-							<goal>check</goal>
-						</goals>
-					</execution>
-				</executions>
-				<configuration>
-					<failBuildOnCVSS>0</failBuildOnCVSS>
-					<suppressionFiles>resources/dependency-check-suppress.xml</suppressionFiles>
-					<ossIndexUsername>${env.OSS_INDEX_USERNAME}</ossIndexUsername>
-					<ossIndexPassword>${env.OSS_INDEX_PASSWORD}</ossIndexPassword>
-					<nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
-				</configuration>
-			</plugin>-->
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
