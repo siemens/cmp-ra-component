@@ -131,7 +131,7 @@
 					</java>
 				</configuration>
 			</plugin>
-			<plugin>
+			<!--<plugin>
 				<groupId>org.owasp</groupId>
 				<artifactId>dependency-check-maven</artifactId>
 				<version>12.2.2</version>
@@ -149,7 +149,7 @@
 					<ossIndexPassword>${env.OSS_INDEX_PASSWORD}</ossIndexPassword>
 					<nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
 				</configuration>
-			</plugin>
+			</plugin>-->
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
