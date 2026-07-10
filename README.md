@@ -9,7 +9,7 @@ It implements all CMP features specified in the
 [Lightweight Certificate Management Protocol (CMP) Profile, RFC 9483](
 https://datatracker.ietf.org/doc/rfc9483/),
 reflecting the updates to CMPv2 (RFC 4210) and CRMF (RFC 4211) given in
-[Certificate Management Protocol (CMP) Updates, RFC 9880](
+[Certificate Management Protocol (CMP) Updates, RFC 9480](
 https://datatracker.ietf.org/doc/rfc9480/)
 and [Certificate Management Protocol (CMP) Algorithms, RFC 9481](
 https://datatracker.ietf.org/doc/rfc9481/).
@@ -58,35 +58,27 @@ For more detail, see [below](#component-and-interface-design).
   and the Java crypto provider (JCE).
 
 
-## Advanced features, in particular for productive use
+## Advanced CMP RA features, in particular for productive use
 
-* The generic CMP RA component is usable as servlet
+* The generic CMP RA component is **usable as a servlet**
   in typical web server frameworks, such as Apache Tomcat.
 * The configuration interface of the generic CMP component supports
-  setting options also dynamically and dependent on certificate profiles.
+  **setting options also dynamically and dependent on certificate profiles**.
 * The upstream message transfer interface of the RA component and
   the message transfer interface of the CMP client component
-  provides optional routing information dependent
-  on the CMP operation (message body type) and the certificate profile.
+  provides optional information on **routing dependent
+  on the CMP operation (message body type) and the certificate profile**.
 * The upstream message transfer interface of the RA component
-  supports legacy servers by using PKCS#10 requests
-  and X.509 responses as alternative to CMP.
-* The RA component has an interface for authorizing and optionally
-  modifying certificate requests (e.g., using an external inventory).
-* The RA component has an interface for reporting (also intermediate)
-  enrollment state to external entities (e.g., inventory).
-* The RA component has an interface for persisting internal state
-  (e.g., using a database) supporting long-lasting transactions with
-  application recovery, to support restart on failure and load balancing.
+  **supports legacy servers using PKCS#10 requests
+  and X.509 responses** as alternative to CMP.
+* The RA component has an **interface for authorizing and optionally
+  modifying certificate requests** (e.g., using an external inventory).
+* The RA component has an **interface for reporting (also intermediate)
+  enrollment state** to external entities (e.g., inventory).
+* The RA component has an **interface for persisting internal state**
+  (e.g., using a database) to support long-lasting transactions with
+  application recovery, which **enables restart on failure and load balancing**.
   
-## Advanced features, in particular for productive use
-
-* The Configuration interface of the generic CMP client component supports
-  setting options also dynamically and dependent on certificate profiles in a
-  similar way as for the CMP RA component.
-* The message transfer interface of the component provides
-  optional routing information dependent on the certificate profile
-
 ## Overall software design
 
 * The API for instantiating an CMP RA component is specified as Java interfaces.\

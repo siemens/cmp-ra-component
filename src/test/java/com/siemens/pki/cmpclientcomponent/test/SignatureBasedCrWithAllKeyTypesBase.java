@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2023 Siemens AG
+ *  Copyright (c) 2026 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ import org.junit.Test;
 /**
  * use protection chains with different keytypes
  */
-class SignatureBasedCrWithAllKeyTypesBase extends EnrollmentTestcaseBase {
+public abstract class SignatureBasedCrWithAllKeyTypesBase extends EnrollmentTestcaseBase {
 
     protected SignatureBasedCrWithAllKeyTypesBase(
             TrustChainAndPrivateKey fromClientToRa,

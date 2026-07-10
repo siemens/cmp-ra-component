@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2026 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -565,6 +565,12 @@ public class PkiMessageGenerator {
                     new CertResponse(CERT_REQ_ID_0, new PKIStatusInfo(PKIStatus.waiting, errorDetails), null, null)
                 };
                 return new PKIBody(requestBody.getType() + 1, new CertRepMessage(null, response));
+            }
+            case PKIBody.TYPE_P10_CERT_REQ: {
+                final CertResponse[] response = {
+                    new CertResponse(CERT_REQ_ID_0, new PKIStatusInfo(PKIStatus.waiting, errorDetails), null, null)
+                };
+                return new PKIBody(PKIBody.TYPE_CERT_REP, new CertRepMessage(null, response));
             }
             default:
                 return new PKIBody(

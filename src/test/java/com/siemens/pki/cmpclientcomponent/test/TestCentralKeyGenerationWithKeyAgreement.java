@@ -1,6 +1,5 @@
-package com.siemens.pki.cmpclientcomponent.test;
 /*
- *  Copyright (c) 2021 Siemens AG
+ *  Copyright (c) 2026 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -16,6 +15,7 @@ package com.siemens.pki.cmpclientcomponent.test;
  *
  *  SPDX-License-Identifier: Apache-2.0
  */
+package com.siemens.pki.cmpclientcomponent.test;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertNotNull;

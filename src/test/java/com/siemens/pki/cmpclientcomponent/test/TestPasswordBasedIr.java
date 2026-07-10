@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2023 Siemens AG
+ *  Copyright (c) 2026 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ public class TestPasswordBasedIr extends EnrollmentTestcaseBase {
     }
 
     @Test
-    public void testIr() throws Exception {
+    public void testIrPASSWORDBASEDMAC() throws Exception {
         final EnrollmentResult ret = getPasswordBasedCmpClient(
                         "theCertProfileForOnlineEnrollment",
                         getClientContext(

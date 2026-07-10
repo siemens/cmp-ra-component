@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Siemens AG
+ *  Copyright (c) 2026 Siemens AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.spec.InvalidKeySpecException;
-import java.util.Date;
+import java.time.Instant;
 import java.util.Objects;
 import java.util.function.BiPredicate;
 import org.bouncycastle.asn1.ASN1Encodable;
@@ -188,7 +188,8 @@ public class MessageBodyValidator implements ValidatorIF<Boolean> {
             if (cmpInterfaceConfig != null) {
                 final ASN1GeneralizedTime messageTime = message.getHeader().getMessageTime();
                 if (messageTime != null) {
-                    final long diffInMillis = messageTime.getDate().getTime() - new Date().getTime();
+                    final long diffInMillis = messageTime.getDate().toInstant().toEpochMilli()
+                            - Instant.now().toEpochMilli();
                     if (!ConfigLogger.log(
                             interfaceName,
                             "CmpMessageInterface.isMessageTimeDeviationAllowed(long)",
