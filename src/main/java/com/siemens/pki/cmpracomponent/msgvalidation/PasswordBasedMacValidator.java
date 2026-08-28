@@ -22,7 +22,6 @@ import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import com.siemens.pki.cmpracomponent.cryptoservices.AlgorithmHelper;
 import com.siemens.pki.cmpracomponent.protection.OutputSharedSecretCredentials;
 import java.security.MessageDigest;
-import java.util.Arrays;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.bouncycastle.asn1.ASN1Encoding;
@@ -32,6 +31,7 @@ import org.bouncycastle.asn1.cmp.PKIHeader;
 import org.bouncycastle.asn1.cmp.PKIMessage;
 import org.bouncycastle.asn1.cmp.ProtectedPart;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
+import org.bouncycastle.util.Arrays;
 
 /**
  * This class validates the password based protection as define in RFC4210 of
@@ -77,7 +77,7 @@ public class PasswordBasedMacValidator extends MacValidator {
             mac.update(protectedBytes);
             final byte[] recalculatedProtection = mac.doFinal();
             final byte[] protectionBytes = message.getProtection().getBytes();
-            if (!Arrays.equals(recalculatedProtection, protectionBytes)) {
+            if (!Arrays.constantTimeAreEqual(recalculatedProtection, protectionBytes)) {
                 throw new CmpValidationException(
                         getInterfaceName(), PKIFailureInfo.badMessageCheck, "PasswordBasedMac protection check failed");
             }
