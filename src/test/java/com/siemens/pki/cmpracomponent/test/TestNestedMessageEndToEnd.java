@@ -28,6 +28,7 @@ import com.siemens.pki.cmpracomponent.configuration.VerificationContext;
 import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
 import com.siemens.pki.cmpracomponent.protection.ProtectionProvider;
 import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
+import com.siemens.pki.cmpracomponent.test.framework.EnrollmentResult;
 import com.siemens.pki.cmpracomponent.test.framework.TrustChainAndPrivateKey;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
 import java.util.function.Function;
@@ -72,11 +73,12 @@ public class TestNestedMessageEndToEnd extends OnlineEnrollmentTestcaseBase {
      */
     @Test
     public void testPlainCertificateRequest() throws Exception {
-        executeCrmfCertificateRequest(
+        final EnrollmentResult result = executeCrmfCertificateRequest(
                 PKIBody.TYPE_CERT_REQ,
                 PKIBody.TYPE_CERT_REP,
                 ConfigurationFactory.getEeSignaturebasedProtectionProvider(),
                 nestedClient(0));
+        assertNotNull("enrolled certificate", result.getCertificate());
     }
 
     /**
@@ -86,11 +88,12 @@ public class TestNestedMessageEndToEnd extends OnlineEnrollmentTestcaseBase {
      */
     @Test
     public void testSingleLevelNestedCertificateRequestIsProcessed() throws Exception {
-        executeCrmfCertificateRequest(
+        final EnrollmentResult result = executeCrmfCertificateRequest(
                 PKIBody.TYPE_CERT_REQ,
                 PKIBody.TYPE_CERT_REP,
                 ConfigurationFactory.getEeSignaturebasedProtectionProvider(),
                 nestedClient(1));
+        assertNotNull("enrolled certificate", result.getCertificate());
     }
 
     /**
@@ -99,11 +102,12 @@ public class TestNestedMessageEndToEnd extends OnlineEnrollmentTestcaseBase {
      */
     @Test
     public void testBoundaryDepthNestedCertificateRequestIsProcessed() throws Exception {
-        executeCrmfCertificateRequest(
+        final EnrollmentResult result = executeCrmfCertificateRequest(
                 PKIBody.TYPE_CERT_REQ,
                 PKIBody.TYPE_CERT_REP,
                 ConfigurationFactory.getEeSignaturebasedProtectionProvider(),
                 nestedClient(2));
+        assertNotNull("enrolled certificate", result.getCertificate());
     }
 
     /**
@@ -118,11 +122,11 @@ public class TestNestedMessageEndToEnd extends OnlineEnrollmentTestcaseBase {
         final PKIMessage overdeep = nest(plain, 3);
 
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("send (3x nested):\n" + MessageDumper.dumpPkiMessage(overdeep));
+            LOGGER.debug("send (3x nested):\n{}", MessageDumper.dumpPkiMessage(overdeep));
         }
         final PKIMessage response = getEeClient().apply(overdeep);
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("got:\n" + MessageDumper.dumpPkiMessage(response));
+            LOGGER.debug("got:\n{}", MessageDumper.dumpPkiMessage(response));
         }
 
         assertEquals("message type", PKIBody.TYPE_ERROR, response.getBody().getType());
@@ -131,7 +135,6 @@ public class TestNestedMessageEndToEnd extends OnlineEnrollmentTestcaseBase {
         final PKIStatusInfo statusInfo = errorContent.getPKIStatusInfo();
         assertNotNull("statusInfo", statusInfo);
         assertNotNull("failInfo must be present", statusInfo.getFailInfo());
-        // the production code builds the failure info as new PKIFailureInfo(PKIFailureInfo.badRequest);
         // compare the ASN.1 encodings (independent of BouncyCastle's internal bit layout)
         final PKIFailureInfo expected = new PKIFailureInfo(PKIFailureInfo.badRequest);
         assertEquals(

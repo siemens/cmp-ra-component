@@ -83,7 +83,7 @@ public class TestRaDownstreamNesting {
      * {@code badRequest} error body instead of exhausting the stack.
      */
     @Test
-    public void testOverlyDeepNestedMessageIsRejectedWithBadRequest() throws Exception {
+    public void testOverlyDeepNestedMessageIsRejectedWithBadRequest() {
         // 3 levels of NESTED wrapping -> depth 3 exceeds the limit
         final PKIMessage nestedMessage = nest(genmRequest(), 3);
         final PKIMessage response = unwrapNested(raDownstream.handleInputMessage(nestedMessage));
@@ -94,7 +94,6 @@ public class TestRaDownstreamNesting {
         final PKIStatusInfo statusInfo = errorContent.getPKIStatusInfo();
         assertNotNull("statusInfo", statusInfo);
         assertNotNull("failInfo must be present", statusInfo.getFailInfo());
-        // the production code builds the failure info as new PKIFailureInfo(PKIFailureInfo.badRequest);
         // compare the ASN.1 encodings (independent of BC's internal bit layout)
         final PKIFailureInfo expected = new PKIFailureInfo(PKIFailureInfo.badRequest);
         assertEquals(
