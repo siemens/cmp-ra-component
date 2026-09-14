@@ -122,6 +122,21 @@ class RaDownstream {
 
     private static final String NESTED_INTERFACE_NAME = "nested " + INTERFACE_NAME;
 
+    /**
+     * maximum number of NESTED layers that may be unwrapped when processing an incoming request.
+     *
+     * <p>
+     * On the downstream interface only a single wrapping NESTED message is legitimate: a nested
+     * endpoint forwards its single wrapped message, and outgoing NESTED responses are never
+     * nested further. A request wrapped more than once has no protocol-level justification and,
+     * left unbounded, leads to unbounded self-recursive unwrapping and the related stack
+     * exhaustion. This limit is deliberately set to {@code 2} — one level of headroom above the
+     * single legitimate wrapper — so a depth-2 (two-wrapper) request is tolerated while depth 3
+     * and above is rejected as a broken or malicious message.
+     * </p>
+     */
+    private static final int MAX_NESTING_DEPTH = 2;
+
     private static final Logger LOGGER = LoggerFactory.getLogger(RaDownstream.class);
 
     private final Collection<Integer> supportedMessageTypes;
@@ -378,6 +393,29 @@ class RaDownstream {
      * @return message to respond
      */
     PKIMessage handleInputMessage(final PKIMessage in) {
+        return handleInputMessage(in, 0);
+    }
+
+    /**
+     * process an incoming downstream message with an explicit NESTED-unwrapping depth.
+     *
+     * <p>
+     * The public entry point {@link #handleInputMessage(PKIMessage)} starts with a depth of
+     * {@code 0}. Each time an incoming NESTED message is dispatched to
+     * {@link #handleNestedRequest}, the depth is incremented by one; when a wrapped-protection
+     * NESTED message (a single embedded message) is unwrapped, the embedded message is processed
+     * again with this depth carried over, so that a message wrapped N levels deep actually
+     * reaches depth N. The depth is used to enforce the {@link #MAX_NESTING_DEPTH} bound inside
+     * {@link #handleNestedRequest}, which rejects over-deep messages with a {@code badRequest}
+     * error instead of recursing without limit.
+     * </p>
+     *
+     * @param in           received message
+     * @param nestingDepth current NESTED-unwrapping depth ({@code 0} for a plain, non-nested
+     *                     message; incremented once per enclosing NESTED layer)
+     * @return message to respond
+     */
+    private PKIMessage handleInputMessage(final PKIMessage in, final int nestingDepth) {
         PersistencyContext persistencyContext = null;
         MessageContext messageContext = null;
         int responseBodyType = PKIBody.TYPE_ERROR;
@@ -407,7 +445,7 @@ class RaDownstream {
                     PersistencyContext nestedPersistencyContext = persistencyContext;
                     // suppress persistency update for NESTED messages
                     persistencyContext = null;
-                    return handleNestedRequest(in, nestedPersistencyContext);
+                    return handleNestedRequest(in, nestedPersistencyContext, nestingDepth + 1);
                 }
                 final InputValidator inputValidator = new InputValidator(
                         INTERFACE_NAME,
@@ -518,8 +556,42 @@ class RaDownstream {
         }
     }
 
-    private PKIMessage handleNestedRequest(final PKIMessage in, final PersistencyContext persistencyContext)
+    /**
+     * validate and unwrap an incoming NESTED message.
+     *
+     * <p>
+     * Enforces the {@link #MAX_NESTING_DEPTH} bound first: a {@code nestingDepth} that exceeds
+     * the maximum (i.e. a message wrapped more than {@code MAX_NESTING_DEPTH} levels deep) is
+     * rejected with a {@code badRequest} error, which stops the self-recursive unwrapping before
+     * it can exhaust the stack. When a nested endpoint is configured and the incoming recipient
+     * is valid, the embedded message is processed: a single embedded message (the wrapped
+     * protection case) is unwrapped recursively at the same depth, while several embedded
+     * messages (batching) are each processed independently at depth {@code 0}. If no nested
+     * endpoint is configured, or the recipient is not valid, the NESTED message is forwarded to
+     * the upstream as-is.
+     * </p>
+     *
+     * @param in                 received NESTED message
+     * @param persistencyContext persistency context of the outer (non-NESTED) transaction, or
+     *                           {@code null} if none exists
+     * @param nestingDepth current NESTED-unwrapping depth, incremented once per enclosing NESTED
+     *                     layer before this method is called; must not exceed
+     *                     {@link #MAX_NESTING_DEPTH}
+     * @return message to respond
+     * @throws BaseCmpException            if the depth limit is exceeded or the message is invalid
+     * @throws GeneralSecurityException    if the message protection cannot be validated
+     * @throws IOException                 if the message cannot be decoded
+     */
+    private PKIMessage handleNestedRequest(
+            final PKIMessage in, final PersistencyContext persistencyContext, final int nestingDepth)
             throws BaseCmpException, GeneralSecurityException, IOException {
+        if (nestingDepth > MAX_NESTING_DEPTH) {
+            throw new CmpValidationException(
+                    NESTED_INTERFACE_NAME,
+                    PKIFailureInfo.badRequest,
+                    "NESTED message nesting depth " + nestingDepth + " exceeds maximum supported depth "
+                            + MAX_NESTING_DEPTH);
+        }
         final CmpMessageInterface downstreamConfiguration = ConfigLogger.log(
                 INTERFACE_NAME,
                 "Configuration.getDownstreamConfiguration",
@@ -561,7 +633,7 @@ class RaDownstream {
         }
         // wrapped protection case
         if (embeddedMessages.length == 1) {
-            return handleInputMessage(embeddedMessages[0]);
+            return handleInputMessage(embeddedMessages[0], nestingDepth);
         }
         // batching
         final PKIMessage[] responses =
