@@ -34,13 +34,13 @@ import java.util.function.Function;
 import org.bouncycastle.asn1.cmp.ErrorMsgContent;
 import org.bouncycastle.asn1.cmp.PKIBody;
 import org.bouncycastle.asn1.cmp.PKIFailureInfo;
-import org.bouncycastle.asn1.cmp.PKIStatusInfo;
 import org.bouncycastle.asn1.cmp.PKIMessage;
 import org.bouncycastle.asn1.cmp.PKIMessages;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.bouncycastle.asn1.cmp.PKIStatusInfo;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * End-to-end test of the NESTED message nesting-depth limit in {@code RaDownstream}, following the
@@ -73,7 +73,8 @@ public class TestNestedMessageEndToEnd extends OnlineEnrollmentTestcaseBase {
     @Test
     public void testPlainCertificateRequest() throws Exception {
         executeCrmfCertificateRequest(
-                PKIBody.TYPE_CERT_REQ, PKIBody.TYPE_CERT_REP,
+                PKIBody.TYPE_CERT_REQ,
+                PKIBody.TYPE_CERT_REP,
                 ConfigurationFactory.getEeSignaturebasedProtectionProvider(),
                 nestedClient(0));
     }
@@ -86,7 +87,8 @@ public class TestNestedMessageEndToEnd extends OnlineEnrollmentTestcaseBase {
     @Test
     public void testSingleLevelNestedCertificateRequestIsProcessed() throws Exception {
         executeCrmfCertificateRequest(
-                PKIBody.TYPE_CERT_REQ, PKIBody.TYPE_CERT_REP,
+                PKIBody.TYPE_CERT_REQ,
+                PKIBody.TYPE_CERT_REP,
                 ConfigurationFactory.getEeSignaturebasedProtectionProvider(),
                 nestedClient(1));
     }
@@ -98,7 +100,8 @@ public class TestNestedMessageEndToEnd extends OnlineEnrollmentTestcaseBase {
     @Test
     public void testBoundaryDepthNestedCertificateRequestIsProcessed() throws Exception {
         executeCrmfCertificateRequest(
-                PKIBody.TYPE_CERT_REQ, PKIBody.TYPE_CERT_REP,
+                PKIBody.TYPE_CERT_REQ,
+                PKIBody.TYPE_CERT_REP,
                 ConfigurationFactory.getEeSignaturebasedProtectionProvider(),
                 nestedClient(2));
     }
@@ -123,7 +126,8 @@ public class TestNestedMessageEndToEnd extends OnlineEnrollmentTestcaseBase {
         }
 
         assertEquals("message type", PKIBody.TYPE_ERROR, response.getBody().getType());
-        final ErrorMsgContent errorContent = (ErrorMsgContent) response.getBody().getContent();
+        final ErrorMsgContent errorContent =
+                (ErrorMsgContent) response.getBody().getContent();
         final PKIStatusInfo statusInfo = errorContent.getPKIStatusInfo();
         assertNotNull("statusInfo", statusInfo);
         assertNotNull("failInfo must be present", statusInfo.getFailInfo());
@@ -170,8 +174,8 @@ public class TestNestedMessageEndToEnd extends OnlineEnrollmentTestcaseBase {
                             public VerificationContext getInputVerification() {
                                 // the mock client signs its nested wrappers with the EE credential,
                                 // so validate incoming nested messages against the EE root
-                                return new com.siemens.pki.cmpracomponent.test.framework
-                                        .SignatureValidationCredentials("credentials/CMP_EE_Root.pem", null);
+                                return new com.siemens.pki.cmpracomponent.test.framework.SignatureValidationCredentials(
+                                        "credentials/CMP_EE_Root.pem", null);
                             }
 
                             @Override
@@ -256,8 +260,8 @@ public class TestNestedMessageEndToEnd extends OnlineEnrollmentTestcaseBase {
             }
 
             @Override
-            public com.siemens.pki.cmpracomponent.configuration.SupportMessageHandlerInterface
-                    getSupportMessageHandler(final String certProfile, final String infoTypeOid) {
+            public com.siemens.pki.cmpracomponent.configuration.SupportMessageHandlerInterface getSupportMessageHandler(
+                    final String certProfile, final String infoTypeOid) {
                 return base.getSupportMessageHandler(certProfile, infoTypeOid);
             }
 
@@ -278,17 +282,19 @@ public class TestNestedMessageEndToEnd extends OnlineEnrollmentTestcaseBase {
      * would send, so the over-deep test can wrap exactly that message in NESTED envelopes.
      */
     private PKIMessage executePlainCrRequest(final ProtectionProvider protectionProvider) throws Exception {
-        final java.security.KeyPair keyPair = ConfigurationFactory.getKeyGenerator().generateKeyPair();
+        final java.security.KeyPair keyPair =
+                ConfigurationFactory.getKeyGenerator().generateKeyPair();
         final org.bouncycastle.asn1.crmf.CertTemplateBuilder ctb = new org.bouncycastle.asn1.crmf.CertTemplateBuilder()
-                .setPublicKey(
-                        org.bouncycastle.asn1.x509.SubjectPublicKeyInfo.getInstance(keyPair.getPublic().getEncoded()))
+                .setPublicKey(org.bouncycastle.asn1.x509.SubjectPublicKeyInfo.getInstance(
+                        keyPair.getPublic().getEncoded()))
                 .setSubject(new org.bouncycastle.asn1.x500.X500Name("CN=Subject"));
-        final PKIBody crBody = PkiMessageGenerator.generateIrCrKurBody(
-                PKIBody.TYPE_CERT_REQ, ctb.build(), null, keyPair.getPrivate());
+        final PKIBody crBody =
+                PkiMessageGenerator.generateIrCrKurBody(PKIBody.TYPE_CERT_REQ, ctb.build(), null, keyPair.getPrivate());
         return PkiMessageGenerator.generateAndProtectMessage(
                 new com.siemens.pki.cmpracomponent.test.framework.HeaderProviderForTest(
                         "theCertProfileForOnlineEnrollment"),
-                protectionProvider, crBody);
+                protectionProvider,
+                crBody);
     }
 
     /**
@@ -296,12 +302,10 @@ public class TestNestedMessageEndToEnd extends OnlineEnrollmentTestcaseBase {
      * the wrapped message and signed with the EE credential (as a forwarding nested envelope does).
      */
     private static PKIMessage nest(final PKIMessage inner, final int nestingLevels) throws Exception {
-        final ProtectionProvider protectionProvider =
-                ConfigurationFactory.getEeSignaturebasedProtectionProvider();
+        final ProtectionProvider protectionProvider = ConfigurationFactory.getEeSignaturebasedProtectionProvider();
         PKIMessage current = inner;
         for (int i = 0; i < nestingLevels; i++) {
-            final PKIBody nestedBody = new PKIBody(
-                    PKIBody.TYPE_NESTED, new PKIMessages(new PKIMessage[] {current}));
+            final PKIBody nestedBody = new PKIBody(PKIBody.TYPE_NESTED, new PKIMessages(new PKIMessage[] {current}));
             current = PkiMessageGenerator.generateAndProtectMessage(
                     PkiMessageGenerator.buildForwardingHeaderProvider(current), protectionProvider, nestedBody);
         }

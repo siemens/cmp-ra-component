@@ -19,7 +19,6 @@ package com.siemens.pki.cmpracomponent.msgprocessing;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import com.siemens.pki.cmpracomponent.configuration.CkgContext;
 import com.siemens.pki.cmpracomponent.configuration.CmpMessageInterface;
@@ -90,7 +89,8 @@ public class TestRaDownstreamNesting {
         final PKIMessage response = unwrapNested(raDownstream.handleInputMessage(nestedMessage));
 
         assertEquals("message type", PKIBody.TYPE_ERROR, response.getBody().getType());
-        final ErrorMsgContent errorContent = (ErrorMsgContent) response.getBody().getContent();
+        final ErrorMsgContent errorContent =
+                (ErrorMsgContent) response.getBody().getContent();
         final PKIStatusInfo statusInfo = errorContent.getPKIStatusInfo();
         assertNotNull("statusInfo", statusInfo);
         assertNotNull("failInfo must be present", statusInfo.getFailInfo());
@@ -284,8 +284,7 @@ public class TestRaDownstreamNesting {
                 return true;
             }
         };
-        final Collection<Integer> supported =
-                Arrays.asList(PKIBody.TYPE_GEN_MSG, PKIBody.TYPE_GEN_REP);
+        final Collection<Integer> supported = Arrays.asList(PKIBody.TYPE_GEN_MSG, PKIBody.TYPE_GEN_REP);
         // upstream mock: answer a GENM with a GENRE (unprotected)
         final RaUpstream upstream = (in, persistencyContext) -> {
             try {
@@ -294,8 +293,7 @@ public class TestRaDownstreamNesting {
                         new NoProtection(),
                         new PKIBody(
                                 PKIBody.TYPE_GEN_REP,
-                                new GenRepContent(
-                                        new InfoTypeAndValue(CMPObjectIdentifiers.id_it_caCerts))));
+                                new GenRepContent(new InfoTypeAndValue(CMPObjectIdentifiers.id_it_caCerts))));
             } catch (final Exception e) {
                 throw new RuntimeException(e);
             }
@@ -324,8 +322,7 @@ public class TestRaDownstreamNesting {
         PKIMessage current = inner;
         for (int i = 0; i < nestingLevels; i++) {
             current = new PKIMessage(
-                    current.getHeader(),
-                    new PKIBody(PKIBody.TYPE_NESTED, new PKIMessages(new PKIMessage[] {current})));
+                    current.getHeader(), new PKIBody(PKIBody.TYPE_NESTED, new PKIMessages(new PKIMessage[] {current})));
         }
         return current;
     }
