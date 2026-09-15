@@ -34,6 +34,7 @@ import com.siemens.pki.cmpracomponent.msggeneration.PkiMessageGenerator;
 import com.siemens.pki.cmpracomponent.persistency.DefaultPersistencyImplementation;
 import com.siemens.pki.cmpracomponent.persistency.PersistencyContextManager;
 import com.siemens.pki.cmpracomponent.protection.NoProtection;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -54,6 +55,9 @@ import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.GeneralName;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Unit tests for the self-recursive NESTED message unwrapping in {@link RaDownstream}.
@@ -63,29 +67,70 @@ import org.junit.Test;
  * ({@code handleInputMessage} -> {@code handleNestedRequest} -> {@code handleInputMessage} ...)
  * with no bound on the nesting depth, so a message wrapped N times in NESTED messages caused N
  * recursive validator invocations and, for large N, a {@link StackOverflowError}. These tests
- * verify that the depth limit is enforced (an over-deep NESTED message is rejected with a
- * {@code badRequest} error body) while legitimate nesting is still processed.
+ * verify that the (configurable) depth limit is enforced (an over-deep NESTED message is
+ * rejected with a {@code badRequest} error body) while legitimate nesting is still processed,
+ * for the default limit and for custom limits via
+ * {@code NestedEndpointContext#getMaximumNestingDepth()}.
  * </p>
  */
+@RunWith(Parameterized.class)
 public class TestRaDownstreamNesting {
 
     private static final byte[] TXN_ID = "0123456789abcdef".getBytes();
+
+    /** nesting-depth limit used for the "default" parameter (the interface default value). */
+    private static final int LIMIT_DEFAULT = NestedEndpointContext.DEFAULT_MAX_NESTING_DEPTH;
+
+    /** nesting-levels / limit pairs: (plain, single-level, boundary, over-deep) for each limit. */
+    private static final int[][] TEST_DATA = {
+        //
+        {0, 1, LIMIT_DEFAULT, LIMIT_DEFAULT + 1}, // default limit
+        //
+        {0, 1, 1, 2}, // custom limit of 1
+        //
+        {0, 1, 3, 4}, // custom limit of 3
+        //
+    };
+
+    @Parameters(name = "{index}: maxNestingDepth=>{1}")
+    public static Collection<Object[]> testData() {
+        final Collection<Object[]> params = new ArrayList<>(TEST_DATA.length);
+        for (final int[] data : TEST_DATA) {
+            params.add(new Object[] {data[0], data[1], data[2], data[3]});
+        }
+        return params;
+    }
+
+    private final int plainDepth;
+
+    private final int singleLevelDepth;
+
+    private final int boundaryDepth;
+
+    private final int overDeepDepth;
+
+    public TestRaDownstreamNesting(
+            final int plainDepth, final int singleLevelDepth, final int boundaryDepth, final int overDeepDepth) {
+        this.plainDepth = plainDepth;
+        this.singleLevelDepth = singleLevelDepth;
+        this.boundaryDepth = boundaryDepth;
+        this.overDeepDepth = overDeepDepth;
+    }
 
     private RaDownstream raDownstream;
 
     @Before
     public void setUp() {
-        raDownstream = buildRaDownstream();
+        raDownstream = buildRaDownstream(boundaryDepth);
     }
 
     /**
-     * An over-deep self-recursive NESTED message must be rejected with a
-     * {@code badRequest} error body instead of exhausting the stack.
+     * An over-deep self-recursive NESTED message (nesting one level above the configured limit)
+     * must be rejected with a {@code badRequest} error body instead of exhausting the stack.
      */
     @Test
     public void testOverlyDeepNestedMessageIsRejectedWithBadRequest() {
-        // 3 levels of NESTED wrapping -> depth 3 exceeds the limit
-        final PKIMessage nestedMessage = nest(genmRequest(), 3);
+        final PKIMessage nestedMessage = nest(genmRequest(), overDeepDepth);
         final PKIMessage response = unwrapNested(raDownstream.handleInputMessage(nestedMessage));
 
         assertEquals("message type", PKIBody.TYPE_ERROR, response.getBody().getType());
@@ -103,11 +148,12 @@ public class TestRaDownstreamNesting {
     }
 
     /**
-     * Nesting at the boundary (depth 2, still allowed) must be processed normally.
+     * Nesting at the boundary (depth equal to the configured limit, still allowed) must be
+     * processed normally.
      */
     @Test
     public void testBoundaryDepthNestedMessageIsProcessed() {
-        final PKIMessage nestedMessage = nest(genmRequest(), 2);
+        final PKIMessage nestedMessage = nest(genmRequest(), boundaryDepth);
         final PKIMessage response = unwrapNested(raDownstream.handleInputMessage(nestedMessage));
 
         assertEquals("message type", PKIBody.TYPE_GEN_REP, response.getBody().getType());
@@ -119,7 +165,7 @@ public class TestRaDownstreamNesting {
      */
     @Test
     public void testSingleLevelNestedMessageIsStillProcessed() {
-        final PKIMessage nestedMessage = nest(genmRequest(), 1);
+        final PKIMessage nestedMessage = nest(genmRequest(), singleLevelDepth);
         final PKIMessage response = unwrapNested(raDownstream.handleInputMessage(nestedMessage));
 
         assertEquals("message type", PKIBody.TYPE_GEN_REP, response.getBody().getType());
@@ -130,7 +176,8 @@ public class TestRaDownstreamNesting {
      */
     @Test
     public void testPlainRequestStillProcessed() {
-        final PKIMessage response = unwrapNested(raDownstream.handleInputMessage(genmRequest()));
+        final PKIMessage nestedMessage = nest(genmRequest(), plainDepth);
+        final PKIMessage response = unwrapNested(raDownstream.handleInputMessage(nestedMessage));
         assertEquals("message type", PKIBody.TYPE_GEN_REP, response.getBody().getType());
     }
 
@@ -141,7 +188,7 @@ public class TestRaDownstreamNesting {
      * and whose upstream is mocked to answer a GENM request with a GENRE, so a nested (or plain)
      * GENM can be processed end-to-end without any crypto.
      */
-    private static RaDownstream buildRaDownstream() {
+    private static RaDownstream buildRaDownstream(final int maxNestingDepth) {
         final Configuration config = new Configuration() {
             @Override
             public CkgContext getCkgConfiguration(final String certProfile, final int bodyType) {
@@ -160,6 +207,11 @@ public class TestRaDownstreamNesting {
                     @Override
                     public NestedEndpointContext getNestedEndpointContext() {
                         return new NestedEndpointContext() {
+                            @Override
+                            public int getMaximumNestingDepth() {
+                                return maxNestingDepth;
+                            }
+
                             @Override
                             public VerificationContext getInputVerification() {
                                 // no protection validation for the nested endpoint

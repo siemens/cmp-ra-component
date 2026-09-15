@@ -123,19 +123,21 @@ class RaDownstream {
     private static final String NESTED_INTERFACE_NAME = "nested " + INTERFACE_NAME;
 
     /**
-     * maximum number of NESTED layers that may be unwrapped when processing an incoming request.
+     * default maximum number of NESTED layers that may be unwrapped when processing an incoming
+     * request, used when the {@link NestedEndpointContext} does not override it via
+     * {@link NestedEndpointContext#getMaximumNestingDepth()}.
      *
      * <p>
      * On the downstream interface only a single wrapping NESTED message is legitimate: a nested
      * endpoint forwards its single wrapped message, and outgoing NESTED responses are never
      * nested further. A request wrapped more than once has no protocol-level justification and,
      * left unbounded, leads to unbounded self-recursive unwrapping and the related stack
-     * exhaustion. This limit is deliberately set to {@code 2} — one level of headroom above the
-     * single legitimate wrapper — so a depth-2 (two-wrapper) request is tolerated while depth 3
-     * and above is rejected as a broken or malicious message.
+     * exhaustion. This default is deliberately set to {@code 2} — one level of headroom above
+     * the single legitimate wrapper — so a depth-2 (two-wrapper) request is tolerated while
+     * depth 3 and above is rejected as a broken or malicious message.
      * </p>
      */
-    private static final int MAX_NESTING_DEPTH = 2;
+    private static final int DEFAULT_MAX_NESTING_DEPTH = 2;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RaDownstream.class);
 
@@ -405,7 +407,7 @@ class RaDownstream {
      * {@link #handleNestedRequest}, the depth is incremented by one; when a wrapped-protection
      * NESTED message (a single embedded message) is unwrapped, the embedded message is processed
      * again with this depth carried over, so that a message wrapped N levels deep actually
-     * reaches depth N. The depth is used to enforce the {@link #MAX_NESTING_DEPTH} bound inside
+     * reaches depth N. The depth is used to enforce the {@link #DEFAULT_MAX_NESTING_DEPTH} bound inside
      * {@link #handleNestedRequest}, which rejects over-deep messages with a {@code badRequest}
      * error instead of recursing without limit.
      * </p>
@@ -560,23 +562,25 @@ class RaDownstream {
      * validate and unwrap an incoming NESTED message.
      *
      * <p>
-     * Enforces the {@link #MAX_NESTING_DEPTH} bound first: a {@code nestingDepth} that exceeds
-     * the maximum (i.e. a message wrapped more than {@code MAX_NESTING_DEPTH} levels deep) is
-     * rejected with a {@code badRequest} error, which stops the self-recursive unwrapping before
-     * it can exhaust the stack. When a nested endpoint is configured and the incoming recipient
-     * is valid, the embedded message is processed: a single embedded message (the wrapped
-     * protection case) is unwrapped recursively at the same depth, while several embedded
-     * messages (batching) are each processed independently at depth {@code 0}. If no nested
-     * endpoint is configured, or the recipient is not valid, the NESTED message is forwarded to
-     * the upstream as-is.
+     * Enforces the maximum-nesting-depth bound first: the limit is taken from
+     * {@link NestedEndpointContext#getMaximumNestingDepth()} of the configured nested endpoint
+     * (falling back to {@link #DEFAULT_MAX_NESTING_DEPTH} when no nested endpoint is
+     * configured). A {@code nestingDepth} that exceeds the limit (i.e. a message wrapped more
+     * than the maximum number of levels deep) is rejected with a {@code badRequest} error,
+     * which stops the self-recursive unwrapping before it can exhaust the stack. When a nested
+     * endpoint is configured and the incoming recipient is valid, the embedded message is
+     * processed: a single embedded message (the wrapped protection case) is unwrapped
+     * recursively at the same depth, while several embedded messages (batching) are each
+     * processed independently at depth {@code 0}. If no nested endpoint is configured, or the
+     * recipient is not valid, the NESTED message is forwarded to the upstream as-is.
      * </p>
      *
      * @param in                 received NESTED message
      * @param persistencyContext persistency context of the outer (non-NESTED) transaction, or
      *                           {@code null} if none exists
      * @param nestingDepth current NESTED-unwrapping depth, incremented once per enclosing NESTED
-     *                     layer before this method is called; must not exceed
-     *                     {@link #MAX_NESTING_DEPTH}
+     *                     layer before this method is called; must not exceed the maximum
+     *                     nesting depth of the configured nested endpoint
      * @return message to respond
      * @throws BaseCmpException            if the depth limit is exceeded or the message is invalid
      * @throws GeneralSecurityException    if the message protection cannot be validated
@@ -585,13 +589,6 @@ class RaDownstream {
     private PKIMessage handleNestedRequest(
             final PKIMessage in, final PersistencyContext persistencyContext, final int nestingDepth)
             throws BaseCmpException, GeneralSecurityException, IOException {
-        if (nestingDepth > MAX_NESTING_DEPTH) {
-            throw new CmpValidationException(
-                    NESTED_INTERFACE_NAME,
-                    PKIFailureInfo.badRequest,
-                    "NESTED message nesting depth " + nestingDepth + " exceeds maximum supported depth "
-                            + MAX_NESTING_DEPTH);
-        }
         final CmpMessageInterface downstreamConfiguration = ConfigLogger.log(
                 INTERFACE_NAME,
                 "Configuration.getDownstreamConfiguration",
@@ -602,6 +599,23 @@ class RaDownstream {
                 INTERFACE_NAME,
                 "CmpMessageInterface.getNestedEndpointContext()",
                 downstreamConfiguration::getNestedEndpointContext);
+        // the depth limit is configurable per nested endpoint; the interface default applies
+        // when the context does not override it or is not configured at all. The bound is
+        // enforced before the forwarding check so over-deep requests are rejected with a
+        // badRequest error even when no nested endpoint is configured (the shipped behavior).
+        final int maxNestingDepth = nestedEndpointContext == null
+                ? DEFAULT_MAX_NESTING_DEPTH
+                : ConfigLogger.log(
+                        NESTED_INTERFACE_NAME,
+                        "NestedEndpointContext.getMaximumNestingDepth()",
+                        nestedEndpointContext::getMaximumNestingDepth);
+        if (nestingDepth > maxNestingDepth) {
+            throw new CmpValidationException(
+                    NESTED_INTERFACE_NAME,
+                    PKIFailureInfo.badRequest,
+                    "NESTED message nesting depth " + nestingDepth + " exceeds maximum supported depth "
+                            + maxNestingDepth);
+        }
         if (nestedEndpointContext == null) {
             return upstreamHandler.handleRequest(in, persistencyContext);
         }

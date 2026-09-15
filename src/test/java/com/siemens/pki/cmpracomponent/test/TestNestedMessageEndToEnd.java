@@ -31,6 +31,8 @@ import com.siemens.pki.cmpracomponent.test.framework.ConfigurationFactory;
 import com.siemens.pki.cmpracomponent.test.framework.EnrollmentResult;
 import com.siemens.pki.cmpracomponent.test.framework.TrustChainAndPrivateKey;
 import com.siemens.pki.cmpracomponent.util.MessageDumper;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.function.Function;
 import org.bouncycastle.asn1.cmp.ErrorMsgContent;
 import org.bouncycastle.asn1.cmp.PKIBody;
@@ -38,8 +40,12 @@ import org.bouncycastle.asn1.cmp.PKIFailureInfo;
 import org.bouncycastle.asn1.cmp.PKIMessage;
 import org.bouncycastle.asn1.cmp.PKIMessages;
 import org.bouncycastle.asn1.cmp.PKIStatusInfo;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,73 +62,82 @@ import org.slf4j.LoggerFactory;
  * the outgoing message.
  * </p>
  */
+@RunWith(Parameterized.class)
 public class TestNestedMessageEndToEnd extends OnlineEnrollmentTestcaseBase {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TestNestedMessageEndToEnd.class);
 
     @Before
     public void setUp() throws Exception {
-        launchCmpCaAndRa(buildRaConfigurationWithNestedEndpoint());
+        launchCmpCaAndRa(buildRaConfigurationWithNestedEndpoint(maxNestingDepth));
+    }
+
+    /** nesting levels covered by the happy path against the default depth limit (0, 1, boundary). */
+    private static final int[] NESTING_LEVELS = {0, 1, 2};
+
+    /** nested-endpoint limit used by the over-deep test instance ({@code null} = default limit). */
+    private static final Integer NESTING_LIMIT_1 = 1;
+
+    @Parameters(name = "{index}: nestingLevels=>{0}, maxNestingDepth=>{1}")
+    public static Collection<Object[]> buildParameters() {
+        final Collection<Object[]> params = new ArrayList<>();
+        for (final int level : NESTING_LEVELS) {
+            params.add(new Object[] {level, null});
+        }
+        // custom limit, happy path at the allowed boundary depth
+        params.add(new Object[] {1, NESTING_LIMIT_1});
+        // custom limit, over-deep at limit+1 (run by the over-deep test, nestingLevels==0)
+        params.add(new Object[] {0, NESTING_LIMIT_1});
+        return params;
+    }
+
+    private final int nestingLevels;
+
+    /** configured nested-endpoint limit, or {@code null} for the default. */
+    private final Integer maxNestingDepth;
+
+    public TestNestedMessageEndToEnd(final int nestingLevels, final Integer maxNestingDepth) {
+        this.nestingLevels = nestingLevels;
+        this.maxNestingDepth = maxNestingDepth;
     }
 
     /**
-     * Control case: a plain (non-nested) certificate request is still processed end-to-end when a
-     * nested endpoint is configured on the RA. Because the RA re-wraps outgoing responses in a
-     * NESTED envelope whenever a nested endpoint is present, the client unwraps that single layer
-     * before the standard enrollment assertion applies.
+     * A certificate request wrapped in {@code nestingLevels} NESTED envelopes must be processed
+     * end-to-end when a nested endpoint is configured on the RA. The parameter covers the plain
+     * control case (0), the single-level nesting regression guard (1), the boundary at the
+     * configured (default) limit (2), and the boundary of a custom limit of 1. Because the RA
+     * re-wraps outgoing responses in a NESTED envelope whenever a nested endpoint is present, the
+     * client unwraps that single layer before the standard enrollment assertion applies.
      */
     @Test
-    public void testPlainCertificateRequest() throws Exception {
+    public void testCertificateRequestIsProcessed() throws Exception {
         final EnrollmentResult result = executeCrmfCertificateRequest(
                 PKIBody.TYPE_CERT_REQ,
                 PKIBody.TYPE_CERT_REP,
                 ConfigurationFactory.getEeSignaturebasedProtectionProvider(),
-                nestedClient(0));
+                nestedClient(nestingLevels));
         assertNotNull("enrolled certificate", result.getCertificate());
     }
 
     /**
-     * Legitimate single-level NESTED wrapping (depth 1) must be unwrapped by the RA and the inner
-     * certificate request processed end-to-end. Regression guard proving the nesting-depth limit
-     * does not break the intended nested feature.
-     */
-    @Test
-    public void testSingleLevelNestedCertificateRequestIsProcessed() throws Exception {
-        final EnrollmentResult result = executeCrmfCertificateRequest(
-                PKIBody.TYPE_CERT_REQ,
-                PKIBody.TYPE_CERT_REP,
-                ConfigurationFactory.getEeSignaturebasedProtectionProvider(),
-                nestedClient(1));
-        assertNotNull("enrolled certificate", result.getCertificate());
-    }
-
-    /**
-     * Nesting at the boundary (2 NESTED wrappers = the maximum supported depth) must still be
-     * unwrapped and the inner certificate request processed end-to-end.
-     */
-    @Test
-    public void testBoundaryDepthNestedCertificateRequestIsProcessed() throws Exception {
-        final EnrollmentResult result = executeCrmfCertificateRequest(
-                PKIBody.TYPE_CERT_REQ,
-                PKIBody.TYPE_CERT_REP,
-                ConfigurationFactory.getEeSignaturebasedProtectionProvider(),
-                nestedClient(2));
-        assertNotNull("enrolled certificate", result.getCertificate());
-    }
-
-    /**
-     * An over-deep self-recursive NESTED message (3 levels of wrapping) must be rejected by the RA
-     * with a {@code badRequest} error body instead of exhausting the stack. The request never
-     * reaches the mock CA, because the depth check is enforced before the message is forwarded.
+     * An over-deep self-recursive NESTED message (nesting one level above the configured limit:
+     * limit+1, so depth 3 for the default limit and depth 2 for the custom limit of 1) must be
+     * rejected by the RA with a {@code badRequest} error body instead of exhausting the stack.
+     * The request never reaches the mock CA, because the depth check is enforced before the
+     * message is forwarded.
      */
     @Test
     public void testOverlyDeepNestedMessageIsRejectedWithBadRequest() throws Exception {
+        // this test is independent of nestingLevels -> run it only once, not per parameter
+        Assume.assumeTrue("run once, not per nesting level", nestingLevels == 0);
+        final int overdeepDepth =
+                (maxNestingDepth == null ? NestedEndpointContext.DEFAULT_MAX_NESTING_DEPTH : maxNestingDepth) + 1;
         final ProtectionProvider eeProtectionProvider = ConfigurationFactory.getEeSignaturebasedProtectionProvider();
         final PKIMessage plain = executePlainCrRequest(eeProtectionProvider);
-        final PKIMessage overdeep = nest(plain, 3);
+        final PKIMessage overdeep = nest(plain, overdeepDepth);
 
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("send (3x nested):\n{}", MessageDumper.dumpPkiMessage(overdeep));
+            LOGGER.debug("send ({}x nested):\n{}", overdeepDepth, MessageDumper.dumpPkiMessage(overdeep));
         }
         final PKIMessage response = getEeClient().apply(overdeep);
         if (LOGGER.isDebugEnabled()) {
@@ -150,7 +165,8 @@ public class TestNestedMessageEndToEnd extends OnlineEnrollmentTestcaseBase {
      * request flow (validation, inventory, forwarding, reprotection) is identical to the standard
      * enrollment tests.
      */
-    private static Configuration buildRaConfigurationWithNestedEndpoint() throws Exception {
+    private static Configuration buildRaConfigurationWithNestedEndpoint(final Integer maxNestingDepth)
+            throws Exception {
         final Configuration base = TestNestedKur.buildSignaturebasedRaConfiguration();
         return new Configuration() {
 
@@ -173,6 +189,14 @@ public class TestNestedMessageEndToEnd extends OnlineEnrollmentTestcaseBase {
                     @Override
                     public NestedEndpointContext getNestedEndpointContext() {
                         return new NestedEndpointContext() {
+                            @Override
+                            public int getMaximumNestingDepth() {
+                                // maxNestingDepth==null -> keep the interface default
+                                return maxNestingDepth != null
+                                        ? maxNestingDepth
+                                        : NestedEndpointContext.DEFAULT_MAX_NESTING_DEPTH;
+                            }
+
                             @Override
                             public VerificationContext getInputVerification() {
                                 // the mock client signs its nested wrappers with the EE credential,

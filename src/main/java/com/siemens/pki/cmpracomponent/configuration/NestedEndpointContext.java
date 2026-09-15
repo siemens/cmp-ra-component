@@ -23,6 +23,11 @@ package com.siemens.pki.cmpracomponent.configuration;
  */
 public interface NestedEndpointContext {
     /**
+     * default value of {@link #getMaximumNestingDepth()}.
+     */
+    int DEFAULT_MAX_NESTING_DEPTH = 2;
+
+    /**
      * configure trust for protection validation of incoming messages
      *
      * @return a trust configuration if the protection of incoming nested messages
@@ -46,6 +51,23 @@ public interface NestedEndpointContext {
      */
     default String getRecipient() {
         return null;
+    }
+
+    /**
+     * configure the maximum number of NESTED layers the RA unwraps when processing an incoming
+     * nested message on the downstream interface.
+     *
+     * <p>
+     * A message wrapped in more NESTED layers than this limit is rejected with a
+     * {@code badRequest} error instead of being unwrapped further, which bounds the
+     * self-recursive unwrapping and the related stack usage.
+     * </p>
+     *
+     * @return the maximum number of NESTED layers that may be unwrapped; must be at least
+     *         {@code 1}
+     */
+    default int getMaximumNestingDepth() {
+        return DEFAULT_MAX_NESTING_DEPTH;
     }
 
     /**
