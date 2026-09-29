@@ -118,7 +118,8 @@ public interface Configuration {
      *                    generalInfo field or <code>null</code> if no certificate
      *                    profile was specified
      * @param infoTypeOid infoType OID extracted from an GENM PKI message
-     * @return an a handler instance
+     * @return a handler instance or <code>null</code> if the GENM shall be
+     * forwarded to the next upstream PKI management entity
      */
     SupportMessageHandlerInterface getSupportMessageHandler(String certProfile, String infoTypeOid);
 
